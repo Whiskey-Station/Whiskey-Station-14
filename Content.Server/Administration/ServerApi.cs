@@ -2,6 +2,7 @@
 using Content.Shared.Administration;
 // </Trauma>
 using System.Linq;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -77,6 +78,7 @@ public sealed partial class ServerApi : IPostInjectInit
 
         // Get
         RegisterActorHandler(HttpMethod.Get, "/admin/info", InfoHandler);
+        RegisterActorHandler(HttpMethod.Get, "/admin/health", HealthHandler);
         RegisterHandler(HttpMethod.Get, "/admin/game_rules", GetGameRules);
         RegisterHandler(HttpMethod.Get, "/admin/presets", GetPresets);
 
@@ -592,13 +594,17 @@ public sealed partial class ServerApi : IPostInjectInit
             foreach (var player in _playerManager.Sessions)
             {
                 var adminData = _adminManager.GetAdminData(player, true);
+                var playerInfo = adminSystem.GetCachedPlayerInfo(player.UserId);
 
                 players.Add(new InfoResponse.Player
                 {
                     UserId = player.UserId.UserId,
                     Name = player.Name,
                     IsAdmin = adminData != null,
-                    IsDeadminned = !adminData?.Active ?? false
+                    IsDeadminned = !adminData?.Active ?? false,
+                    CharacterName = playerInfo?.CharacterName,
+                    Job = playerInfo?.StartingJob,
+                    OverallPlaytimeSeconds = playerInfo?.OverallPlaytime?.TotalSeconds,
                 });
             }
 
@@ -633,6 +639,76 @@ public sealed partial class ServerApi : IPostInjectInit
         });
 
         await context.RespondJsonAsync(info);
+    }
+
+    /// <summary>
+    /// Returns non-sensitive host health data for the staff bot.
+    /// This endpoint remains protected by the admin API token and Actor header.
+    /// </summary>
+    private async Task HealthHandler(IStatusHandlerContext context, Actor actor)
+    {
+        var health = ReadHostHealth();
+        await context.RespondJsonAsync(health);
+    }
+
+    private static HealthResponse ReadHostHealth()
+    {
+        long totalMemory = 0;
+        long availableMemory = 0;
+        double? loadPercentage = null;
+        double? temperatureCelsius = null;
+
+        try
+        {
+            foreach (var line in File.ReadLines("/proc/meminfo"))
+            {
+                var parts = line.Split(':', 2, StringSplitOptions.TrimEntries);
+                if (parts.Length != 2)
+                    continue;
+
+                var value = parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                if (!long.TryParse(value, out var kibibytes))
+                    continue;
+
+                if (parts[0] == "MemTotal")
+                    totalMemory = kibibytes * 1024;
+                else if (parts[0] == "MemAvailable")
+                    availableMemory = kibibytes * 1024;
+            }
+
+            var load = File.ReadAllText("/proc/loadavg").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            if (double.TryParse(load, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var loadAverage))
+                loadPercentage = Math.Min(100, loadAverage / Math.Max(1, Environment.ProcessorCount) * 100);
+
+            foreach (var path in Directory.EnumerateFiles("/sys/class/thermal", "temp", SearchOption.AllDirectories))
+            {
+                if (!double.TryParse(File.ReadAllText(path).Trim(), out var rawTemperature))
+                    continue;
+
+                var candidate = rawTemperature > 1000 ? rawTemperature / 1000 : rawTemperature;
+                if (candidate is > -40 and < 150)
+                {
+                    temperatureCelsius = candidate;
+                    break;
+                }
+            }
+        }
+        catch (IOException)
+        {
+            // The server can also run on a platform without Linux procfs/thermal sensors.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Health reporting is best-effort and must never affect the game server.
+        }
+
+        return new HealthResponse
+        {
+            TotalMemoryBytes = totalMemory,
+            AvailableMemoryBytes = availableMemory,
+            CpuLoadPercent = loadPercentage,
+            TemperatureCelsius = temperatureCelsius,
+        };
     }
 
     #endregion
@@ -819,6 +895,9 @@ public sealed partial class ServerApi : IPostInjectInit
             public required string Name { get; init; }
             public required bool IsAdmin { get; init; }
             public required bool IsDeadminned { get; init; }
+            public string? CharacterName { get; init; }
+            public string? Job { get; init; }
+            public double? OverallPlaytimeSeconds { get; init; }
         }
 
         public sealed class MapInfo
@@ -826,6 +905,14 @@ public sealed partial class ServerApi : IPostInjectInit
             public required string Id { get; init; }
             public required string Name { get; init; }
         }
+    }
+
+    private sealed class HealthResponse
+    {
+        public required long TotalMemoryBytes { get; init; }
+        public required long AvailableMemoryBytes { get; init; }
+        public required double? CpuLoadPercent { get; init; }
+        public required double? TemperatureCelsius { get; init; }
     }
 
     private sealed class PresetResponse

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Content.Server.Chat.Managers;
+using Content.Server.Chat.Systems;
 using Content.Shared.CCVar;
 using Robust.Server.ServerStatus;
 using Robust.Shared.Asynchronous;
@@ -18,6 +19,7 @@ namespace Content.Server.MoMMI
         [Dependency] private IStatusHost _statusHost = default!;
         [Dependency] private IChatManager _chatManager = default!;
         [Dependency] private ITaskManager _taskManager = default!;
+        [Dependency] private IEntitySystemManager _entitySystems = default!;
 
         private readonly HttpClient _httpClient = new();
 
@@ -35,6 +37,17 @@ namespace Content.Server.MoMMI
             };
 
             await SendMessageInternal("ooc", sentMessage);
+        }
+
+        public async void SendDeadChatMessage(string sender, string message)
+        {
+            var sentMessage = new MoMMIMessageOOC
+            {
+                Sender = sender,
+                Contents = message
+            };
+
+            await SendMessageInternal("dead", sentMessage);
         }
 
         private async Task SendMessageInternal(string type, object messageObject)
@@ -69,7 +82,9 @@ namespace Content.Server.MoMMI
 
         private async Task<bool> HandleChatPost(IStatusHandlerContext context)
         {
-            if (context.RequestMethod != HttpMethod.Post || context.Url.AbsolutePath != "/ooc")
+            var isOoc = context.Url.AbsolutePath == "/ooc";
+            var isDead = context.Url.AbsolutePath == "/dead";
+            if (context.RequestMethod != HttpMethod.Post || (!isOoc && !isDead))
             {
                 return false;
             }
@@ -107,7 +122,13 @@ namespace Content.Server.MoMMI
             var sender = message.Sender;
             var contents = message.Contents.ReplaceLineEndings(" ");
 
-            _taskManager.RunOnMainThread(() => _chatManager.SendHookOOC(sender, contents));
+            _taskManager.RunOnMainThread(() =>
+            {
+                if (isDead)
+                    _entitySystems.GetEntitySystem<ChatSystem>().SendHookDeadChat(sender, contents);
+                else
+                    _chatManager.SendHookOOC(sender, contents);
+            });
 
             await context.RespondAsync("Success", HttpStatusCode.OK);
             return true;

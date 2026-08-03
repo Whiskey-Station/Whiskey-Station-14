@@ -331,5 +331,24 @@ public sealed partial class ChatSystem
         }
 
         _chatManager.ChatMessageToMany(ChatChannel.Dead, message, wrappedMessage, source, hideChat, true, clients.ToList(), author: player.UserId);
+        _mommiLink.SendDeadChatMessage(player.Name, message.Replace("@", "\\@").Replace("<", "\\<").Replace("/", "\\/"));
+    }
+
+    /// <summary>
+    /// Sends a staff Discord message to dead chat. It is only reached through
+    /// the password-protected MoMMI endpoint on the private network.
+    /// </summary>
+    public void SendHookDeadChat(string sender, string message)
+    {
+        var clients = GetDeadChatClients().ToList();
+        var wrappedMessage = Loc.GetString("chat-manager-send-admin-dead-chat-wrap-message",
+            ("verb", "diz"),
+            ("adminChannelName", sender),
+            ("userName", sender),
+            ("message", FormattedMessage.EscapeText(message)));
+
+        _chatManager.ChatMessageToMany(ChatChannel.Dead, message, wrappedMessage, EntityUid.Invalid,
+            hideChat: false, recordReplay: true, clients);
+        _adminLogger.Add(LogType.Chat, LogImpact.Low, $"Discord dead chat from {sender}: {message}");
     }
 }

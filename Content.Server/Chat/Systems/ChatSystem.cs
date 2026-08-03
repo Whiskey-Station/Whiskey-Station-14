@@ -11,6 +11,7 @@ using System.Globalization;
 using Content.Server.Administration.Logs;
 using Content.Server.Administration.Managers;
 using Content.Server.Chat.Managers;
+using Content.Server.MoMMI;
 using Content.Server.GameTicking;
 using Content.Server.Speech.EntitySystems;
 using Content.Server.Station.Systems;
@@ -48,6 +49,7 @@ public sealed partial class ChatSystem : SharedChatSystem
     [Dependency] private IReplayRecordingManager _replay = default!;
     [Dependency] private IConfigurationManager _configurationManager = default!;
     [Dependency] private IChatManager _chatManager = default!;
+    [Dependency] private IMoMMILink _mommiLink = default!;
     [Dependency] private IChatSanitizationManager _sanitizer = default!;
     [Dependency] private IAdminManager _adminManager = default!;
     [Dependency] private IPlayerManager _playerManager = default!;
