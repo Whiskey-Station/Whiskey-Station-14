@@ -7,6 +7,7 @@ using Content.Trauma.Common.Interaction;
 // </Trauma>
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Content.Shared._ST.Interaction;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Administration.Logs;
 using Content.Shared.CCVar;
@@ -82,6 +83,7 @@ namespace Content.Shared.Interaction
         [Dependency] private SharedPlayerRateLimitManager _rateLimit = default!;
         [Dependency] private TagSystem _tagSystem = default!;
         [Dependency] private UseDelaySystem _useDelay = default!;
+        [Dependency] private INetManager _net = default!;
 
         [Dependency] private EntityQuery<IgnoreUIRangeComponent> _ignoreUiRangeQuery = default!;
         [Dependency] private EntityQuery<FixturesComponent> _fixtureQuery = default!;
@@ -575,7 +577,7 @@ namespace Content.Shared.Interaction
             RaiseLocalEvent(user, userMessage, true);
 
             _adminLogger.Add(LogType.InteractHand, LogImpact.Low, $"{user} interacted with {target}");
-            DoContactInteraction(user, target, message);
+            DoContactInteraction(user, target, args: message);
             if (message.Handled || userMessage.Handled)
                 return true; // Goob
 
@@ -621,7 +623,7 @@ namespace Content.Shared.Interaction
                 RaiseLocalEvent(target.Value, rangedMsg, true);
 
                 // We contact the USED entity, but not the target.
-                DoContactInteraction(user, used, rangedMsg);
+                DoContactInteraction(user, used, args: rangedMsg);
                 if (rangedMsg.Handled)
                     return;
             }
@@ -1062,7 +1064,7 @@ namespace Content.Shared.Interaction
                 return false;
 
             // We contact the USED entity, but not the target.
-            DoContactInteraction(user, used, ev);
+            DoContactInteraction(user, used, args: ev);
             return ev.Handled;
         }
 
@@ -1114,8 +1116,8 @@ namespace Content.Shared.Interaction
             var userInteractUsingEvent = new UserInteractUsingEvent(user, used, target, clickLocation);
             RaiseLocalEvent(user, userInteractUsingEvent, true);
 
-            DoContactInteraction(user, used, interactUsingEvent);
-            DoContactInteraction(user, target, interactUsingEvent);
+            DoContactInteraction(user, used, args: interactUsingEvent);
+            DoContactInteraction(user, target, used, args: interactUsingEvent);
             // Contact interactions are currently only used for forensics, so we don't raise used -> target
             if (interactUsingEvent.Handled || userInteractUsingEvent.Handled)
                 return true;
@@ -1166,10 +1168,12 @@ namespace Content.Shared.Interaction
 
             var afterInteractEvent = new AfterInteractEvent(user, used, target, clickLocation, canReach);
             RaiseLocalEvent(used, afterInteractEvent);
-            DoContactInteraction(user, used, afterInteractEvent);
+            DoContactInteraction(user, used, args: afterInteractEvent,
+                interactionParticles: afterInteractEvent.SpawnInteractionParticles);
             if (canReach)
             {
-                DoContactInteraction(user, target, afterInteractEvent);
+                DoContactInteraction(user, target, used, args: afterInteractEvent,
+                    interactionParticles: afterInteractEvent.SpawnInteractionParticles);
                 // Contact interactions are currently only used for forensics, so we don't raise used -> target
             }
 
@@ -1183,10 +1187,12 @@ namespace Content.Shared.Interaction
             var afterInteractUsingEvent = new AfterInteractUsingEvent(user, used, target, clickLocation, canReach);
             RaiseLocalEvent(target.Value, afterInteractUsingEvent);
 
-            DoContactInteraction(user, used, afterInteractUsingEvent);
+            DoContactInteraction(user, used, args: afterInteractUsingEvent,
+                interactionParticles: afterInteractUsingEvent.SpawnInteractionParticles);
             if (canReach)
             {
-                DoContactInteraction(user, target, afterInteractUsingEvent);
+                DoContactInteraction(user, target, used, args: afterInteractUsingEvent,
+                    interactionParticles: afterInteractUsingEvent.SpawnInteractionParticles);
                 // Contact interactions are currently only used for forensics, so we don't raise used -> target
             }
 
@@ -1313,7 +1319,7 @@ namespace Content.Shared.Interaction
             RaiseLocalEvent(used, useMsg, true);
             if (useMsg.Handled)
             {
-                DoContactInteraction(user, used, useMsg);
+                DoContactInteraction(user, used, args: useMsg);
                 if (delayComponent != null && useMsg.ApplyDelay)
                     _useDelay.TryResetDelay((used, delayComponent));
                 return true;
@@ -1499,7 +1505,13 @@ namespace Content.Shared.Interaction
         /// <summary>
         ///     Simple convenience function to raise contact events (disease, forensics, etc).
         /// </summary>
-        public void DoContactInteraction(EntityUid uidA, EntityUid? uidB, HandledEntityEventArgs? args = null)
+        public void DoContactInteraction(
+            EntityUid uidA,
+            EntityUid? uidB,
+            EntityUid? used = null,
+            bool predicted = true,
+            HandledEntityEventArgs? args = null,
+            bool interactionParticles = true)
         {
             if (uidB == null || args?.Handled == false)
                 return;
@@ -1519,6 +1531,33 @@ namespace Content.Shared.Interaction
 
             ev.Other = uidA;
             RaiseLocalEvent(uidB.Value, ev);
+
+            if (!interactionParticles)
+                return;
+
+            if (_net.IsServer)
+            {
+                var filter = predicted
+                    ? Filter.PvsExcept(uidA, entityManager: EntityManager)
+                    : Filter.Pvs(uidA, entityManager: EntityManager);
+
+                RaiseNetworkEvent(
+                    new StellarInteractionParticleEvent(
+                        GetNetEntity(uidA),
+                        GetNetEntity(used),
+                        GetNetEntity(uidB.Value),
+                        false),
+                    filter);
+            }
+            else if (_gameTiming.IsFirstTimePredicted)
+            {
+                var particleEvent = new StellarInteractionParticleEvent(
+                    GetNetEntity(uidA),
+                    GetNetEntity(used),
+                    GetNetEntity(uidB.Value),
+                    true);
+                RaiseLocalEvent(particleEvent);
+            }
         }
 
 

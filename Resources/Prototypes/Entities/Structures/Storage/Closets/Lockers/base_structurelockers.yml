@@ -36,6 +36,9 @@
   - type: RecyclableOnUnlock
   - type: Paintable
     group: Locker
+  - type: ESSparkOnHit
+    prob: 0.25
+    count: 2
   - type: Damageable
     damageModifierSet: StructuralMetallic
   - type: Injurable

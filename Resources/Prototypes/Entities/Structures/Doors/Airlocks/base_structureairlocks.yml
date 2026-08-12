@@ -77,7 +77,7 @@
     openSound:
       path: /Audio/Machines/airlock_open.ogg
     closeSound:
-      path: /Audio/Machines/airlock_close.ogg
+      path: /Audio/_ES/Machines/airlock_close.ogg
     denySound:
       path: /Audio/Machines/airlock_deny.ogg
   - type: ContainerContainer
@@ -208,6 +208,9 @@
     penetrateDamage: 75
     damagePenalty: 0.2
   - type: SoundBlocker # Trauma
+  - type: ESSparkOnHit
+    prob: 0.25
+    count: 2
   placement:
     mode: SnapgridCenter
 

@@ -12,6 +12,7 @@
   - type: IgnitionSource
     temperature: 800
   - type: IgniteOnTrigger
+  - type: ESSparkOnTrigger
   - type: EmitSoundOnTrigger
     sound:
       collection: WelderOn

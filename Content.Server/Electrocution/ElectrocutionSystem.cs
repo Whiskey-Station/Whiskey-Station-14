@@ -12,6 +12,7 @@ using Content.Shared.Damage;
 using Content.Shared.Damage.Prototypes;
 using Content.Shared.Damage.Systems;
 using Content.Shared.Database;
+using Content.Shared._ES.Sparks;
 using Content.Shared.Electrocution;
 using Content.Shared.IdentityManagement;
 using Content.Shared.Interaction;
@@ -62,6 +63,7 @@ public sealed partial class ElectrocutionSystem : SharedElectrocutionSystem
     [Dependency] private TagSystem _tag = default!;
     [Dependency] private MetaDataSystem _metaData = default!;
     [Dependency] private TurfSystem _turf = default!;
+    [Dependency] private ESSparksSystem _esSparks = default!;
 
     private static readonly ProtoId<StatusEffectPrototype> StatusKeyIn = "Electrocution";
     private static readonly ProtoId<DamageTypePrototype> DamageType = "Shock";
@@ -401,6 +403,7 @@ public sealed partial class ElectrocutionSystem : SharedElectrocutionSystem
 
     private bool DoCommonElectrocutionAttempt(EntityUid uid, EntityUid? sourceUid, ref float siemensCoefficient, bool ignoreInsulation = false)
     {
+        TrySpark(uid, sourceUid);
 
         var attemptEvent = new ElectrocutionAttemptEvent(uid, sourceUid, siemensCoefficient,
             ignoreInsulation ? SlotFlags.NONE : ~SlotFlags.POCKET & ~SlotFlags.HEAD); // Goobstation - insulated mouse can't be worn
@@ -412,6 +415,18 @@ public sealed partial class ElectrocutionSystem : SharedElectrocutionSystem
 
         siemensCoefficient = attemptEvent.SiemensCoefficient;
         return true;
+    }
+
+    private void TrySpark(EntityUid uid, EntityUid? sourceUid)
+    {
+        if (sourceUid is not { } source ||
+            !TryComp<StatusEffectsComponent>(uid, out var statusEffects) ||
+            !_statusEffects.CanApplyEffect(uid, StatusKeyIn, statusEffects))
+        {
+            return;
+        }
+
+        _esSparks.DoSparks(source);
     }
 
     private bool DoCommonElectrocution(EntityUid uid, EntityUid? sourceUid,

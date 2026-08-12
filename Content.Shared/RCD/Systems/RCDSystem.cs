@@ -5,6 +5,7 @@ using Content.Shared.Access.Components;
 using Content.Shared.Access.Systems;
 using Content.Shared.Doors.Components;
 using Content.Shared.Doors.Systems;
+using Content.Shared._ES.Sparks;
 // </Trauma>
 using Content.Shared.Administration.Logs;
 using Content.Shared.Charges.Systems;
@@ -52,6 +53,7 @@ public sealed partial class RCDSystem : EntitySystem
     [Dependency] private SharedTransformSystem _transform = default!;
     [Dependency] private TagSystem _tags = default!;
     [Dependency] private AccessReaderSystem _accessReader = default!; // Goobstation - RCD respects door access
+    [Dependency] private ESSparksSystem _esSparks = default!;
 
     private readonly int _instantConstructionDelay = 0;
     private readonly EntProtoId _instantConstructionFx = "EffectRCDConstruct0";
@@ -105,6 +107,7 @@ public sealed partial class RCDSystem : EntitySystem
 
         // Set the current RCD prototype to the one supplied
         component.ProtoId = args.ProtoId;
+        _esSparks.DoSparks(uid, 1, user: args.Actor);
 
         _adminLogger.Add(LogType.RCD, LogImpact.Low, $"{args.Actor} set RCD mode to: {prototype.Mode} : {prototype.Prototype}");
 

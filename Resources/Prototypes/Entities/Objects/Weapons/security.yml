@@ -28,10 +28,6 @@
     energyPerUse: 50
   - type: ItemToggle
     onActivate: false
-    soundActivate:
-      collection: sparks
-      params:
-        variation: 0.250
     soundDeactivate:
       collection: sparks
       params:
@@ -54,7 +50,9 @@
         Blunt: 7
     bluntStaminaDamageFactor: 2.0
     angle: 0 # Trauma - was 60, no more wideswing
-    animation: WeaponArcThrust
+    wideAnimation: WeaponArcThrust
+  - type: ESSparkOnItemToggle
+    count: 1
   - type: StaminaDamageOnHit
     # <Trauma>
     damage: 15 # was 35, now 55 total over time

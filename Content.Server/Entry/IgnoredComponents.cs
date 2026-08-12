@@ -11,6 +11,8 @@ namespace Content.Server.Entry
             "ItemSlotRenderer",
             "ShowSpriteLayerStatusEffect",
             "AnimatedEmotesBlacklist",
+            "ESTimedDespawnLightFade",
+            "ESTimedDespawnSpriteFade",
             // </Trauma>
             "ConstructionGhost",
             "IconSmooth",
