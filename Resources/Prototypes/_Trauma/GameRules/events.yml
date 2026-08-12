@@ -11,6 +11,7 @@
     - id: FloorGoblinMidRound
     - id: ClownGoblinMigration
     - id: RadiationStormRule
+    - id: ElectricalFire
 
 - type: entityTable
   id: BasicAntagEventsTrauma
@@ -39,6 +40,19 @@
     - id: ColossusSpawn
     - id: FugitiveSpawn
 
+
+- type: entity
+  parent: BaseGameRule
+  id: ElectricalFire
+  components:
+  - type: StationEvent
+    startAudio:
+      path: /Audio/Announcements/attention.ogg
+    weight: 2
+    minimumPlayers: 10
+    reoccurrenceDelay: 30
+    duration: 1
+  - type: ESElectricalFireRule
 
 - type: entity
   parent: BaseGameRule
