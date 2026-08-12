@@ -95,6 +95,12 @@ public sealed partial class ESTileFireSystem : ESSharedTileFireSystem
             if (_atmos.GetHeatCapacity(mixture, false) < Atmospherics.MinimumHeatCapacity)
                 score *= 0;
 
+            // Weighted picks treat an all-zero set as selecting its first entry.
+            // Exclude tiles that cannot sustain fire so vacuum never becomes a
+            // valid fallback when every neighboring tile has a score of zero.
+            if (score <= 0f)
+                continue;
+
             var coords = MapSys.GridTileToLocal(neighbor.Tile.GridUid, neighbor.Grid, neighbor.Tile.GridIndices);
             weights.Add(coords, score);
         }
