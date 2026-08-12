@@ -8,6 +8,7 @@ using Content.Trauma.Common.Projectiles;
 // </Trauma>
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Content.Shared._ES.Camera;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Actions;
 using Content.Shared.Administration.Logs;
