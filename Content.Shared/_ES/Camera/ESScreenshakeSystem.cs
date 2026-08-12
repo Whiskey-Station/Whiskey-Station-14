@@ -1,6 +1,9 @@
 using System.Linq;
 using System.Numerics;
 using Content.Shared.Camera;
+using Content.Shared.CCVar;
+using Robust.Shared.Configuration;
+using Robust.Shared.Network;
 using Robust.Shared.Noise;
 using Robust.Shared.Player;
 using Robust.Shared.Timing;
@@ -13,7 +16,11 @@ namespace Content.Shared._ES.Camera;
 /// </summary>
 public sealed partial class ESScreenshakeSystem : EntitySystem
 {
+    [Dependency] private IConfigurationManager _config = default!;
+    [Dependency] private INetManager _net = default!;
     [Dependency] private IGameTiming _timing = default!;
+
+    private float _intensity = 1f;
 
     #region Internal
 
@@ -24,6 +31,9 @@ public sealed partial class ESScreenshakeSystem : EntitySystem
         SubscribeLocalEvent<ESScreenshakeComponent, ESGetEyeRotationEvent>(OnGetEyeRotation);
         SubscribeLocalEvent<ESScreenshakeComponent, GetEyeOffsetEvent>(OnGetEyeOffset);
         SubscribeLocalEvent<ESScreenshakeComponent, EntityUnpausedEvent>(OnEntityUnpaused);
+
+        if (_net.IsClient)
+            Subs.CVar(_config, CCVars.ScreenShakeIntensity, value => _intensity = value, true);
     }
 
 
@@ -82,7 +92,7 @@ public sealed partial class ESScreenshakeSystem : EntitySystem
             accumulatedOffset += new Vector2(offsetX, offsetY);
         }
 
-        args.Offset += accumulatedOffset;
+        args.Offset += accumulatedOffset * _intensity;
     }
 
     private void OnGetEyeRotation(Entity<ESScreenshakeComponent> ent, ref ESGetEyeRotationEvent args)
@@ -112,7 +122,7 @@ public sealed partial class ESScreenshakeSystem : EntitySystem
             accumulatedAngle += Angle.FromDegrees(angle);
         }
 
-        args.Rotation += accumulatedAngle;
+        args.Rotation += accumulatedAngle * _intensity;
     }
 
     private void OnEntityUnpaused(Entity<ESScreenshakeComponent> ent, ref EntityUnpausedEvent args)

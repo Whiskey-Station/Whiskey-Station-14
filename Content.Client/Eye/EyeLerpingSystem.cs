@@ -69,6 +69,9 @@ public sealed partial class EyeLerpingSystem : EntitySystem
         {
             _eye.SetRotation(uid, lerpInfo.TargetRotation, component);
             _eye.SetZoom(uid, lerpInfo.TargetZoom, component);
+
+            if (TryComp<ContentEyeComponent>(uid, out var contentEye))
+                contentEye.BaseRotation = lerpInfo.TargetRotation;
         }
     }
 
