@@ -34,7 +34,7 @@ namespace Content.Server.Explosion.EntitySystems;
 
 public sealed partial class ExplosionSystem : SharedExplosionSystem
 {
-    [Dependency] private readonly ESScreenshakeSystem _screenshake = default!;
+    [Dependency] private ESScreenshakeSystem _screenshake = default!;
     [Dependency] private IRobustRandom _robustRandom = default!;
     [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
     [Dependency] private IConfigurationManager _cfg = default!;

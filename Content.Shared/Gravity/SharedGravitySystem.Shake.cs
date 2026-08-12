@@ -7,8 +7,8 @@ namespace Content.Shared.Gravity;
 public abstract partial class SharedGravitySystem
 {
     [Dependency] private EntityQuery<GravityComponent> _gravityQuery = default!;
-    [Dependency] private readonly SharedGameTicker _ticker = default!;
-    [Dependency] private readonly ESScreenshakeSystem _screenshake = default!;
+    [Dependency] private SharedGameTicker _ticker = default!;
+    [Dependency] private ESScreenshakeSystem _screenshake = default!;
 
     protected const float GravityKick = 100.0f;
     protected const float ShakeCooldown = 0.2f;

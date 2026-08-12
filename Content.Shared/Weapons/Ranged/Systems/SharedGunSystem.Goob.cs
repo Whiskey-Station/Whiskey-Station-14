@@ -15,7 +15,6 @@ namespace Content.Shared.Weapons.Ranged.Systems;
 /// </summary>
 public abstract partial class SharedGunSystem
 {
-    [Dependency] private EntityLookupSystem _lookup = default!;
 
     private HashSet<Entity<BodyComponent>> _bodies = new();
 

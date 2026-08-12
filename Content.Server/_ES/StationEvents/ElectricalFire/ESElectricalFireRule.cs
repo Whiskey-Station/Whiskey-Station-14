@@ -7,11 +7,11 @@ using Robust.Shared.Map.Components;
 
 namespace Content.Server._ES.StationEvents.ElectricalFire;
 
-public sealed class ESElectricalFireRule : StationEventSystem<ESElectricalFireRuleComponent>
+public sealed partial class ESElectricalFireRule : StationEventSystem<ESElectricalFireRuleComponent>
 {
-    [Dependency] private readonly ESTileFireSystem _tileFire = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly SharedMapSystem _map = default!;
+    [Dependency] private ESTileFireSystem _tileFire = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedMapSystem _map = default!;
 
     protected override void Added(EntityUid uid,
         ESElectricalFireRuleComponent component,
