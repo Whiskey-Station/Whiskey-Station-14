@@ -112,8 +112,23 @@ public sealed partial class MeleeWeaponComponent : Component
     [DataField, AutoNetworkedField]
     public Angle WideAnimationRotation = Angle.Zero;
 
+    /// <summary>
+    /// Attack animation direction.
+    /// </summary>
     [DataField, AutoNetworkedField]
     public bool SwingLeft;
+
+    /// <summary>
+    /// Alternates <see cref="SwingLeft"/> after every attack.
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public bool SwingBeverage = true;
+
+    /// <summary>
+    /// How far from the player the attack animation is displayed.
+    /// </summary>
+    [DataField]
+    public float AnimationOffset = 1f;
 
     // Sounds
 
