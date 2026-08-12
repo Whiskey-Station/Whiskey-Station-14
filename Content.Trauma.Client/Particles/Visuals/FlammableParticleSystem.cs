@@ -42,8 +42,8 @@ public sealed partial class FlammableParticleSystem : EntitySystem
         if (!_appearance.TryGetData(ent, FireVisuals.OnFire, out bool onFire))
             onFire = false;
 
-        if (!_appearance.TryGetData(ent, FireVisuals.FireStacks, out float stacks))
-            stacks = 0f;
+        if (!_appearance.TryGetData(ent, FireVisuals.FireStacks, out int stacks))
+            stacks = 0;
 
         if (!_active.TryGetValue(ent, out var state))
         {
