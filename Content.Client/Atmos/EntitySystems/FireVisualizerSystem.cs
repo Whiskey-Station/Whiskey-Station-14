@@ -143,7 +143,7 @@ public sealed partial class FireVisualizerSystem : VisualizerSystem<FireVisualsC
             return;
 
         AppearanceSystem.TryGetData<bool>(uid, FireVisuals.OnFire, out var onFire, appearance);
-        AppearanceSystem.TryGetData<float>(uid, FireVisuals.FireStacks, out var fireStacks, appearance);
+        AppearanceSystem.TryGetData<int>(uid, FireVisuals.FireStacks, out var fireStacks, appearance);
         AppearanceSystem.TryGetData<string?>(uid, FireVisuals.FireDisplacement, out var fireDisplacement, appearance);
         SpriteSystem.LayerSetVisible((uid, sprite), index, onFire);
 

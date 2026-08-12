@@ -165,6 +165,7 @@
   variants: 4
   itemDrop: FloorTileItemPlastic # Trauma - plastic tile items
   tileRipResistance: 80 # Trauma
+  flammability: 3
 
 - type: tile
   id: FloorWood
@@ -178,6 +179,7 @@
     collection: BarestepWood
   itemDrop: FloorTileItemWood
   tileRipResistance: 80 # Trauma
+  flammability: 8
 
 - type: tile
   id: FloorWhite
@@ -189,6 +191,7 @@
     collection: FootstepTile
   itemDrop: FloorTileItemWhite
   tileRipResistance: 80 # Trauma
+  flammability: 2
 
 - type: tile
   id: FloorWhiteMini
@@ -455,6 +458,7 @@
     collection: FootstepHull
   itemDrop: FloorTileItemTechmaint
   tileRipResistance: 250 # Goob
+  flammability: 0.5
 
 - type: tile
   id: FloorTechMaintDark
@@ -475,6 +479,7 @@
     collection: FootstepHull
   itemDrop: PartRodMetal1
   reinforced: true # Goob
+  flammability: 0.1
 
 - type: tile
   id: FloorMono
@@ -951,6 +956,7 @@
     collection: FootstepTile
   itemDrop: SheetGlass1
   tileRipResistance: 150 # Goob
+  flammability: 0.1
 
 - type: tile
   id: FloorRGlass
@@ -962,6 +968,7 @@
     collection: FootstepTile
   itemDrop: SheetRGlass1
   tileRipResistance: 175 # Goob
+  flammability: 0.1
 
 - type: tile
   id: FloorMetalFoam
@@ -1424,6 +1431,7 @@
     collection: FootstepGrass
   itemDrop: FloorTileItemAstroGrass
   tileRipResistance: 50 # Goob
+  flammability: 10
 
 - type: tile
   parent: [ BaseStationTile, FloorGrass ]
@@ -1471,6 +1479,7 @@
   footstepSounds: null
   itemDrop: FloorTileItemAstroIce
   tileRipResistance: 50
+  flammability: 0.1
 
 - type: tile
   parent: [ BaseStationTile, FloorSnow ]
@@ -1480,6 +1489,7 @@
     collection: FootstepSnow
   itemDrop: FloorTileItemAstroSnow
   tileRipResistance: 50
+  flammability: 0.1
 
 # Asteroid Sand
 - type: tile

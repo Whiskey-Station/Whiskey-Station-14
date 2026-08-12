@@ -3,6 +3,7 @@
   abstract: true
   friction: 1.5
   heatCapacity: 10000
+  flammability: 0.5
   isSubfloor: true
   # Goobstation - Fireaxe plating prying
   deconstructTools: [ Axing ]

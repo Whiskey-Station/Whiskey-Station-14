@@ -89,9 +89,6 @@ namespace Content.Server.Atmos.EntitySystems
 
         private void OnExtinguishEvent(Entity<FlammableComponent> ent, ref ExtinguishEvent args)
         {
-            // You know I'm really not sure if having AdjustFireStacks *after* Extinguish,
-            // but I'm just moving this code, not questioning it.
-            TryExtinguish(ent.AsNullable());
             AdjustFireStacks(ent, args.FireStacksAdjustment, ent.Comp);
         }
 
@@ -212,14 +209,33 @@ namespace Content.Server.Atmos.EntitySystems
             if (args.OtherFixtureId != flammable.FlammableFixtureID && args.OurFixtureId != flammable.FlammableFixtureID)
                 return;
 
-            if (!flammable.FireSpread)
+            if (!TryComp(otherUid, out FlammableComponent? otherFlammable) ||
+                (!otherFlammable.FireSpread && !flammable.BasicFireSpread))
                 return;
 
-            if (!TryComp(otherUid, out FlammableComponent? otherFlammable) || !otherFlammable.FireSpread)
+            if (!flammable.FireSpread && !otherFlammable.BasicFireSpread)
                 return;
 
             if (!flammable.OnFire && !otherFlammable.OnFire)
                 return; // Neither are on fire
+
+            if (flammable.BasicFireSpread)
+            {
+                AdjustFireStacks(otherUid,
+                    flammable.FireStacks * flammable.BasicFireSpreadStackPercentage,
+                    otherFlammable,
+                    true);
+                return;
+            }
+
+            if (otherFlammable.BasicFireSpread)
+            {
+                AdjustFireStacks(uid,
+                    otherFlammable.FireStacks * otherFlammable.BasicFireSpreadStackPercentage,
+                    flammable,
+                    true);
+                return;
+            }
 
             // Both are on fire -> equalize fire stacks.
             // Weight each thing's firestacks by its mass
@@ -279,7 +295,10 @@ namespace Content.Server.Atmos.EntitySystems
                 return;
 
             _appearance.SetData(uid, FireVisuals.OnFire, flammable.OnFire, appearance);
-            _appearance.SetData(uid, FireVisuals.FireStacks, flammable.FireStacks, appearance);
+            _appearance.SetData(uid,
+                FireVisuals.FireStacks,
+                (int) MathF.Floor(flammable.FireStacks / flammable.FirestackVisualDivisor),
+                appearance);
 
             if (flammable.Displacement != null)
                 _appearance.SetData(uid, FireVisuals.FireDisplacement, flammable.Displacement.Value.Id, appearance);
@@ -377,6 +396,9 @@ namespace Content.Server.Atmos.EntitySystems
 
             var extinguished = new ExtinguishedEvent();
             RaiseLocalEvent(ent, ref extinguished);
+
+            if (ent.Comp.DeleteOnExtinguish)
+                QueueDel(ent);
 
             UpdateAppearance(ent, ent.Comp);
             return true;
@@ -547,7 +569,10 @@ namespace Content.Server.Atmos.EntitySystems
                     var multiplier = Math.Clamp(ev.Multiplier + flammable.FireProtectionPenetration, 0f, 1f); // Goob
 
                     // <Trauma> - custom damage logic and spellblade check
-                    if (!isImmune && multiplier > 0f && !_spellblade.IsHoldingItemWithFireSpellbladeEnchantmentComponent(uid))
+                    if (!flammable.Damage.Empty &&
+                        !isImmune &&
+                        multiplier > 0f &&
+                        !_spellblade.IsHoldingItemWithFireSpellbladeEnchantmentComponent(uid))
                     {
                         var damage = flammable.Damage * flammable.FireStacks * multiplier;
                         if (TryComp<BodyComponent>(uid, out var body))

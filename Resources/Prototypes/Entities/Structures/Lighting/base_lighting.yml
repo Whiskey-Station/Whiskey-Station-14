@@ -74,6 +74,8 @@
     - WallLight
   - type: PlacementReplacement
     key: lights
+  - type: ESSparkOnHit
+    tileFireChance: 0.05
 
 - type: entity
   parent: BaseWallLight

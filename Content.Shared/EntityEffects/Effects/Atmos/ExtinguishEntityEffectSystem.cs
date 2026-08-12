@@ -30,7 +30,9 @@ public sealed partial class Extinguish : EntityEffectBase<Extinguish>
     ///     Amount of FireStacks reduced.
     /// </summary>
     [DataField]
-    public float FireStacksAdjustment = -1.5f;
+    // ES START
+    public float FireStacksAdjustment = -0.33f;
+    // ES END
 
     /// <summary>
     /// Trauma - true if extinguished by holy source, e.g. holy water

@@ -82,6 +82,10 @@
   - type: Wires
     boardName: wires-board-name-computer
     layoutId: Computer
+  - type: ESSparkOnHit
+    prob: 0.25
+    tileFireChance: 0.2
+    count: 2
   - type: SpamEmitSound # Goobstation - random lathe sounds
     minInterval: 45
     maxInterval: 120

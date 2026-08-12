@@ -91,6 +91,12 @@ public sealed partial class ContentTileDefinition : IPrototype, IInheritingProto
 
     [DataField] public float ThermalConductivity = 0.04f;
 
+    /// <summary>
+    /// Relative weight used when tile fires select a spread target.
+    /// </summary>
+    [DataField]
+    public float Flammability = 1f;
+
     // Heat capacity is opt-in, not opt-out.
     [DataField] public float HeatCapacity = Atmospherics.MinimumHeatCapacity;
 

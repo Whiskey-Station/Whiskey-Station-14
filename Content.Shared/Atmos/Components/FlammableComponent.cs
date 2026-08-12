@@ -71,7 +71,7 @@ namespace Content.Shared.Atmos.Components
         [DataField]
         public bool CanResistFire { get; private set; } = false;
 
-        [DataField(required: true)]
+        [DataField]
         [ViewVariables(VVAccess.ReadWrite)]
         public DamageSpecifier Damage = new(); // Empty by default, we don't want any funny NREs.
 
@@ -122,5 +122,26 @@ namespace Content.Shared.Atmos.Components
         /// </summary>
         [DataField]
         public ProtoId<DisplacementDataPrototype>? Displacement;
+
+        /// <summary>
+        /// Number of fire stacks represented by each visual stage.
+        /// </summary>
+        [DataField]
+        public float FirestackVisualDivisor = 1f;
+
+        /// <summary>
+        /// Deletes this entity when it is extinguished.
+        /// </summary>
+        [DataField]
+        public bool DeleteOnExtinguish;
+
+        /// <summary>
+        /// Spreads a percentage of fire stacks on contact without equalizing mass.
+        /// </summary>
+        [DataField]
+        public bool BasicFireSpread;
+
+        [DataField]
+        public float BasicFireSpreadStackPercentage = 0.1f;
     }
 }

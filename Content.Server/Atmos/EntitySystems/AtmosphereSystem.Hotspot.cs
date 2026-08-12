@@ -106,31 +106,7 @@ public sealed partial class AtmosphereSystem
             var gridUid = ent.Owner;
             var tilePos = tile.GridIndices;
 
-            // Get the existing decals on the tile
-            var tileDecals = _decalSystem.GetDecalsInRange(gridUid, tilePos);
-
-            // Count the burnt decals on the tile
-            var tileBurntDecals = 0;
-
-            foreach (var set in tileDecals)
-            {
-                if (Array.IndexOf(_burntDecals, set.Comp.Data.Id) == -1) // Trauma - decal entities
-                    continue;
-
-                tileBurntDecals++;
-
-                if (tileBurntDecals > 4)
-                    break;
-            }
-
-            // Add a random burned decal to the tile only if there are less than 4 of them
-            if (tileBurntDecals < 4)
-            {
-                _decalSystem.TryAddDecal(_burntDecals[_random.Next(_burntDecals.Length)],
-                    new EntityCoordinates(gridUid, tilePos),
-                    out _,
-                    cleanable: true);
-            }
+            TryAddBurntDecalsToTile(gridUid, tilePos);
 
             if (tile.Air.Temperature > Atmospherics.FireMinimumTemperatureToSpread)
             {
@@ -174,6 +150,33 @@ public sealed partial class AtmosphereSystem
             _hotspotSoundCooldown = 0;
 
         // TODO ATMOS Maybe destroy location here?
+    }
+
+    /// <summary>
+    /// Adds burnt decals to a tile up to its visual limit.
+    /// </summary>
+    public void TryAddBurntDecalsToTile(EntityUid gridUid, Vector2i tilePos, int count = 1)
+    {
+        var tileBurntDecals = 0;
+
+        foreach (var set in _decalSystem.GetDecalsInRange(gridUid, tilePos))
+        {
+            if (Array.IndexOf(_burntDecals, set.Comp.Data.Id) == -1)
+                continue;
+
+            tileBurntDecals++;
+            if (tileBurntDecals >= 4)
+                return;
+        }
+
+        for (var i = 0; i < count && tileBurntDecals < 4; i++)
+        {
+            _decalSystem.TryAddDecal(_burntDecals[_random.Next(_burntDecals.Length)],
+                new EntityCoordinates(gridUid, tilePos),
+                out _,
+                cleanable: true);
+            tileBurntDecals++;
+        }
     }
 
     /// <summary>

@@ -66,6 +66,10 @@
   - type: ExtensionCableReceiver
   - type: LightningTarget
     priority: 1
+  - type: ESSparkOnHit
+    prob: 0.25
+    tileFireChance: 0.2
+    count: 2
 
 - type: entity
   abstract: true
