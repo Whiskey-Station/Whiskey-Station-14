@@ -49,7 +49,7 @@
     deleteOnExtinguish: true
     basicFireSpread: true
   - type: Temperature
-    currentTemperature: 423.15
+    temperature: 423.15
   - type: AtmosExposed
   - type: Reactive
     groups:
