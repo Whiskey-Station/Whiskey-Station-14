@@ -50,6 +50,7 @@ namespace Content.Shared.Weapons.Ranged.Systems;
 
 public abstract partial class SharedGunSystem : EntitySystem
 {
+    [Dependency] private readonly ESScreenshakeSystem _screenshake = default!;
     [Dependency] private ActionBlockerSystem _actionBlockerSystem = default!;
     [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
     [Dependency] private INetManager _netManager = default!;
@@ -478,6 +479,10 @@ public abstract partial class SharedGunSystem : EntitySystem
         Shoot(gun, ev.Ammo, fromCoordinates, toCoordinates.Value, out var userImpulse, user, throwItems: attemptEv.ThrowItems);
         var shotEv = new GunShotEvent(user, ev.Ammo);
         RaiseLocalEvent(gun, ref shotEv);
+
+        var gunShake = new ESScreenshakeParameters
+            { Trauma = 0.085f * gun.Comp.CameraRecoilScalarModified, DecayRate = 1.2f, Frequency = 0.008f };
+        _screenshake.Screenshake(user, null, gunShake);
 
         UpdateAmmoCount(gun); //GoobStation - Multishot
         if (!userImpulse || !TryComp<PhysicsComponent>(user, out var userPhysics))

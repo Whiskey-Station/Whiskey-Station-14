@@ -57,7 +57,10 @@ public sealed partial class ContentEyeSystem : SharedContentEyeSystem
     private void UpdateLocalEye()
     {
         if (_player.LocalEntity is { } uid && TryComp<EyeComponent>(uid, out var eye))
+        {
             UpdateEyeOffset((uid, eye));
+            UpdateEyeRotation((uid, eye));
+        }
     }
 
     public override void FrameUpdate(float frameTime)

@@ -76,6 +76,7 @@ public abstract partial class SharedMeleeWeaponSystem : EntitySystem
     [Dependency] private SharedStaminaSystem _stamina = default!;
     [Dependency] private DamageExamineSystem _damageExamine = default!;
     [Dependency] private SharedEntityEffectsSystem _effects = default!;
+    [Dependency] private readonly ESScreenshakeSystem _screenshake = default!;
 
     [Dependency] private EntityQuery<DamageableComponent> _damageQuery = default!;
 
@@ -707,6 +708,14 @@ public abstract partial class SharedMeleeWeaponSystem : EntitySystem
 
         if (damageResult.GetTotal() > FixedPoint2.Zero && !TerminatingOrDeleted(target.Value))
         {
+            var attackerShake = new ESScreenshakeParameters
+                { Trauma = 0.08f, DecayRate = 1.0f, Frequency = 0.009f };
+            var targetShake = new ESScreenshakeParameters
+                { Trauma = 0.45f, DecayRate = 1.1f, Frequency = 0.04f };
+            _screenshake.Screenshake(user, null, attackerShake);
+            foreach (var shakeTarget in targets)
+                _screenshake.Screenshake(shakeTarget, targetShake, null);
+
             DoDamageEffect(targets, user, targetXform);
         }
     }
@@ -894,6 +903,14 @@ public abstract partial class SharedMeleeWeaponSystem : EntitySystem
 
         if (appliedDamage.GetTotal() > FixedPoint2.Zero && targets.Count > 0)
         {
+            var attackerShake = new ESScreenshakeParameters
+                { Trauma = 0.08f, DecayRate = 1.0f, Frequency = 0.009f };
+            var targetShake = new ESScreenshakeParameters
+                { Trauma = 0.45f, DecayRate = 1.1f, Frequency = 0.04f };
+            _screenshake.Screenshake(user, null, attackerShake);
+            foreach (var shakeTarget in targets)
+                _screenshake.Screenshake(shakeTarget, targetShake, null);
+
             DoDamageEffect(targets, user, Transform(targets[0]));
         }
 

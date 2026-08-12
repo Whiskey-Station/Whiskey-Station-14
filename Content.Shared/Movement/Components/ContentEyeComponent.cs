@@ -7,7 +7,7 @@ namespace Content.Shared.Movement.Components;
 /// <summary>
 /// Holds SS14 eye data not relevant for engine, e.g. lerp targets.
 /// </summary>
-[RegisterComponent, NetworkedComponent, AutoGenerateComponentState, Access(typeof(SharedContentEyeSystem))]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class ContentEyeComponent : Component
 {
     /// <summary>
@@ -21,4 +21,10 @@ public sealed partial class ContentEyeComponent : Component
     /// </summary>
     [ViewVariables(VVAccess.ReadWrite), DataField("maxZoom"), AutoNetworkedField]
     public Vector2 MaxZoom = Vector2.One;
+
+    /// <summary>
+    /// Base rotation from grid movement and eye lerping, before temporary effects.
+    /// </summary>
+    [DataField]
+    public Angle BaseRotation = Angle.Zero;
 }

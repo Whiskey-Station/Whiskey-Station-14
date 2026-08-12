@@ -2,6 +2,7 @@
 
 using Content.Goobstation.Common.Weapons.Penetration;
 using Content.Medical.Common.Targeting;
+using Content.Shared._ES.Camera;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Destructible;
 using Content.Shared.Effects;
@@ -36,6 +37,7 @@ public sealed partial class PredictedProjectileSystem : EntitySystem
     [Dependency] private ISharedAdminLogManager _adminLogger = default!;
     [Dependency] private DamageableSystem _damageable = default!;
     [Dependency] private SharedCameraRecoilSystem _recoil = default!;
+    [Dependency] private ESScreenshakeSystem _screenshake = default!;
     [Dependency] private SharedColorFlashEffectSystem _color = default!;
     [Dependency] private SharedDestructibleSystem _destructible = default!;
     [Dependency] private SharedGunSystem _gun = default!;
@@ -166,7 +168,11 @@ public sealed partial class PredictedProjectileSystem : EntitySystem
             _gun.PlayImpactSound(target, damage, comp.SoundHit, comp.ForceSound);
 
             if (!ourBody.LinearVelocity.IsLengthZero() && _timing.IsFirstTimePredicted)
-                _recoil.KickCamera(target, ourBody.LinearVelocity.Normalized());
+            {
+                _recoil.KickCamera(target, ourBody.LinearVelocity.Normalized() * 0.08f);
+                var shake = new ESScreenshakeParameters { Trauma = 0.45f, DecayRate = 1.1f, Frequency = 0.04f };
+                _screenshake.Screenshake(target, shake, null);
+            }
         }
 
         if (comp.DeleteOnCollide && comp.ProjectileSpent)

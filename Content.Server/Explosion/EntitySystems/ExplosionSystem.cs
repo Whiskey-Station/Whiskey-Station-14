@@ -6,9 +6,9 @@ using Content.Server.Atmos.EntitySystems;
 using Content.Shared.Destructible; // Trauma - Destructible moved to shared
 using Content.Server.NodeContainer.EntitySystems;
 using Content.Server.NPC.Pathfinding;
+using Content.Shared._ES.Camera;
 using Content.Shared.Armor;
 using Content.Shared.Atmos.Components;
-using Content.Shared.Camera;
 using Content.Shared.CCVar;
 using Content.Shared.Damage.Components;
 using Content.Shared.Damage.Systems;
@@ -21,7 +21,6 @@ using Content.Shared.Inventory;
 using Content.Shared.Maps;
 using Content.Shared.Throwing;
 using Robust.Server.GameStates;
-using Robust.Server.Player;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Configuration;
 using Robust.Shared.Map;
@@ -35,10 +34,10 @@ namespace Content.Server.Explosion.EntitySystems;
 
 public sealed partial class ExplosionSystem : SharedExplosionSystem
 {
+    [Dependency] private readonly ESScreenshakeSystem _screenshake = default!;
     [Dependency] private IRobustRandom _robustRandom = default!;
     [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
     [Dependency] private IConfigurationManager _cfg = default!;
-    [Dependency] private IPlayerManager _playerManager = default!;
     [Dependency] private IAdminLogManager _adminLogger = default!;
     [Dependency] private IGameTiming _timing = default!;
 
@@ -46,7 +45,6 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
     [Dependency] private DamageableSystem _damageableSystem = default!;
     [Dependency] private NodeGroupSystem _nodeGroupSystem = default!;
     [Dependency] private PathfindingSystem _pathfindingSystem = default!;
-    [Dependency] private SharedCameraRecoilSystem _recoilSystem = default!;
     [Dependency] private ThrowingSystem _throwingSystem = default!;
     [Dependency] private PvsOverrideSystem _pvsSys = default!;
     [Dependency] private SharedAudioSystem _audio = default!;
@@ -340,9 +338,6 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
 
         var visualEnt = CreateExplosionVisualEntity(pos, queued.Proto.ID, spaceMatrix, spaceData, gridData.Values, iterationIntensity);
 
-        // camera shake
-        CameraShake(iterationIntensity.Count * 4f, pos, queued.TotalIntensity);
-
         //For whatever bloody reason, sound system requires ENTITY coordinates.
         var mapEntityCoords = _transformSystem.ToCoordinates(_map.GetMap(pos.MapId), pos);
 
@@ -372,6 +367,11 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
             ? queued.Proto.SmallSoundFar
             : queued.Proto.SoundFar;
 
+        var shake = iterationIntensity.Count < queued.Proto.SmallSoundIterationThreshold
+            ? new ESScreenshakeParameters { Trauma = 0.4f, DecayRate = 0.2f, Frequency = 0.014f }
+            : new ESScreenshakeParameters { Trauma = 0.6f, DecayRate = 0.05f, Frequency = 0.014f };
+        _screenshake.Screenshake(filter, shake, null);
+
         _audio.PlayGlobal(farSound, farFilter, true, farSound.Params);
 
         return new Explosion(this,
@@ -394,26 +394,4 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
             _tileHistoryQuery);
     }
 
-    private void CameraShake(float range, MapCoordinates epicenter, float totalIntensity)
-    {
-        var players = Filter.Empty();
-        players.AddInRange(epicenter, range, _playerManager, EntityManager);
-
-        foreach (var player in players.Recipients)
-        {
-            if (player.AttachedEntity is not EntityUid uid)
-                continue;
-
-            var playerPos = _transformSystem.GetWorldPosition(player.AttachedEntity!.Value);
-            var delta = epicenter.Position - playerPos;
-
-            if (delta.EqualsApprox(Vector2.Zero))
-                delta = new(0.01f, 0);
-
-            var distance = delta.Length();
-            var effect = 5 * MathF.Pow(totalIntensity, 0.5f) * (1 - distance / range);
-            if (effect > 0.01f)
-                _recoilSystem.KickCamera(uid, -delta.Normalized() * effect);
-        }
-    }
 }

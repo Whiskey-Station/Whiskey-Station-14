@@ -3,6 +3,7 @@
 // <Trauma>
 using Content.Trauma.Common.Throwing;
 // </Trauma>
+using Content.Shared._ES.Camera;
 using Content.Shared.Administration.Logs;
 using Content.Shared.Camera;
 using Content.Shared.Coordinates;
@@ -30,6 +31,7 @@ public abstract partial class SharedDamageOtherOnHitSystem
     [Dependency] private ISharedAdminLogManager _adminLogger = default!;
     [Dependency] private SharedGunSystem _gun = default!;
     [Dependency] private SharedCameraRecoilSystem _recoil = default!;
+    [Dependency] private ESScreenshakeSystem _screenshake = default!;
     [Dependency] private SharedColorFlashEffectSystem _color = default!;
 
     private List<EntityUid> _target = new(1);
@@ -82,7 +84,9 @@ public abstract partial class SharedDamageOtherOnHitSystem
         if (TryComp<PhysicsComponent>(uid, out var body) && body.LinearVelocity.LengthSquared() > 0f)
         {
             var direction = body.LinearVelocity.Normalized();
-            _recoil.KickCamera(args.Target, direction);
+            _recoil.KickCamera(args.Target, direction * 0.1f);
+            var shake = new ESScreenshakeParameters { Trauma = 0.35f, DecayRate = 1.4f, Frequency = 0.014f };
+            _screenshake.Screenshake(args.Target, shake, null);
         }
     }
 }
