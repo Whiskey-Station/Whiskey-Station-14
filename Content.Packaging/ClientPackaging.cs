@@ -15,6 +15,8 @@ public static class ClientPackaging
     /// </summary>
     public static async Task PackageClient(bool skipBuild, bool logBuild, string configuration, IPackageLogger logger)
     {
+        await LauncherEngineGuard.VerifyAsync(logger, skipBuild);
+
         logger.Info("Building client...");
 
         if (!skipBuild)
@@ -42,6 +44,7 @@ public static class ClientPackaging
             }
 
             await ProcessHelpers.RunCheck(startInfo);
+            await LauncherEngineGuard.VerifyAsync(logger, skipBuild: false);
         }
 
         logger.Info("Packaging client...");
