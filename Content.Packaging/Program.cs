@@ -9,6 +9,11 @@ if (!CommandLineArgs.TryParse(args, out var parsed))
     return;
 }
 
+// Verify before wiping any existing build or release output. Hybrid ACZ invokes
+// the same guard from ClientPackaging.PackageClient.
+if (parsed.Client)
+    await LauncherEngineGuard.VerifyAsync(logger, parsed.SkipBuild);
+
 if (parsed.WipeRelease)
     WipeRelease();
 else

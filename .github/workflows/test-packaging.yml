@@ -9,6 +9,9 @@ on:
     - '**.sln'
     - '**.git**'
     - '**.yml'
+    - 'Tools/launcher_engine.py'
+    - 'Tools/launcher_engine_lock.json'
+    - 'Tools/tests/test_launcher_engine.py'
     # no docs on which one of these is supposed to work, so
     # why not just do both
     - 'RobustToolbox'
@@ -23,6 +26,9 @@ on:
     - '**.sln'
     - '**.git**'
     - '**.yml'
+    - 'Tools/launcher_engine.py'
+    - 'Tools/launcher_engine_lock.json'
+    - 'Tools/tests/test_launcher_engine.py'
     - 'RobustToolbox'
     - 'RobustToolbox/**'
 
@@ -64,6 +70,9 @@ jobs:
         sudo apt-get install -y nasm
     # </Trauma>
 
+    - name: Test launcher engine helper
+      run: python3 Tools/tests/test_launcher_engine.py
+
     - name: Install dependencies
       run: dotnet restore
 
@@ -71,10 +80,39 @@ jobs:
       run: dotnet build Content.Packaging --configuration Release --no-restore /m
 
     - name: Package server
-      run: dotnet run --project Content.Packaging server --log-build --platform win-x64 --platform win-arm64 --platform linux-x64 --platform linux-arm64 --platform osx-x64 --platform osx-arm64
+      run: dotnet run --project Content.Packaging --configuration Release --no-build -- server --configuration Release --log-build --platform win-x64 --platform win-arm64 --platform linux-x64 --platform linux-arm64 --platform osx-x64 --platform osx-arm64
+
+    - name: Prove client guard rejects the custom server engine
+      run: |
+        if dotnet run --project Content.Packaging --configuration Release --no-build -- client --skip-build --no-wipe-release > launcher-engine-guard.log 2>&1; then
+          echo "Client packaging unexpectedly accepted the custom server engine" >&2
+          exit 1
+        fi
+        grep -F "LAUNCHER_ENGINE_GUARD: refusing to package SS14.Client.zip" launcher-engine-guard.log
+        grep -F "launcher engine commit mismatch" launcher-engine-guard.log
+
+    - name: Switch to pinned launcher engine
+      run: |
+        python3 Tools/launcher_engine.py clone RobustToolbox.launcher
+        mv RobustToolbox RobustToolbox.server
+        mv RobustToolbox.launcher RobustToolbox
+        python3 Tools/launcher_engine.py verify RobustToolbox
+
+    - name: Rebuild packaging for launcher engine
+      run: |
+        dotnet restore
+        dotnet build Content.Packaging --configuration Release --no-restore /m
+
+    - name: Prove stale client builds are rejected
+      run: |
+        if dotnet run --project Content.Packaging --configuration Release --no-build -- client --skip-build --no-wipe-release > stale-client-guard.log 2>&1; then
+          echo "Client packaging unexpectedly accepted --skip-build" >&2
+          exit 1
+        fi
+        grep -F "client --skip-build is disabled" stale-client-guard.log
 
     - name: Package client
-      run: dotnet run --project Content.Packaging client --log-build --no-wipe-release
+      run: dotnet run --project Content.Packaging --configuration Release --no-build -- client --configuration Release --log-build --no-wipe-release
 
     - uses: actions/upload-artifact@v4
       with:
