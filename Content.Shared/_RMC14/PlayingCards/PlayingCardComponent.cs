@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using Robust.Shared.GameStates;
 using Robust.Shared.Serialization;
 
-namespace Content.Shared._Trauma.PlayingCards;
+namespace Content.Shared._RMC14.PlayingCards;
 
 /// <summary>
 /// Componente para cartas individuais.

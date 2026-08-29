@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using Content.Shared.DoAfter;
 using Content.Shared.Examine;
 using Content.Shared.Hands.EntitySystems;
@@ -13,7 +15,7 @@ using Robust.Shared.Player;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
 
-namespace Content.Shared._Trauma.PlayingCards;
+namespace Content.Shared._RMC14.PlayingCards;
 
 /// <summary>
 /// Lógica compartilhada de cartas, baralhos e mãos.
@@ -39,6 +41,9 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
     protected EntityQuery<PlayingCardComponent> _cardQuery;
     protected EntityQuery<PlayingCardHandComponent> _handQuery;
+
+    private static readonly VerbCategory DrawCategory = new("rmc-playing-card-verb-category-draw", (string?) null);
+    private const int DrawFiveCount = 5;
 
     private const float AreaPickupRadius = 1f;
     private const float AreaPickupDelayPerCard = 0.1f;
@@ -106,13 +111,13 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
     {
         if (!ent.Comp.FaceUp)
         {
-            args.PushMarkup(Loc.GetString("trauma-playing-card-examine-face-down"));
+            args.PushMarkup(Loc.GetString("rmc-playing-card-examine-face-down"));
             return;
         }
 
         var suit = GetSuitDisplayName(ent.Comp.Suit);
         var rank = GetRankDisplayName(ent.Comp.Rank);
-        args.PushMarkup(Loc.GetString("trauma-playing-card-examine", ("rank", rank), ("suit", suit)));
+        args.PushMarkup(Loc.GetString("rmc-playing-card-examine", ("rank", rank), ("suit", suit)));
     }
 
     private void OnCardGetAltVerbs(Entity<PlayingCardComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
@@ -124,7 +129,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
         args.Verbs.Add(new AlternativeVerb
         {
-            Text = Loc.GetString("trauma-playing-card-verb-flip"),
+            Text = Loc.GetString("rmc-playing-card-verb-flip"),
             Act = () => FlipCard(ent, user),
             Priority = 1
         });
@@ -183,7 +188,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
     private void OnDeckExamined(Entity<PlayingCardDeckComponent> ent, ref ExaminedEvent args)
     {
-        args.PushMarkup(Loc.GetString("trauma-playing-card-deck-examine", ("count", ent.Comp.CardOrder.Count)));
+        args.PushMarkup(Loc.GetString("rmc-playing-card-deck-examine", ("count", ent.Comp.CardOrder.Count)));
     }
 
     private void OnDeckGetExamineVerbs(Entity<PlayingCardDeckComponent> ent, ref GetVerbsEvent<ExamineVerb> args)
@@ -192,19 +197,19 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             return;
 
         var msg = new FormattedMessage();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-deck-examine-shuffle"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-deck-examine-shuffle"));
         msg.PushNewline();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-deck-examine-draw"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-deck-examine-draw"));
         msg.PushNewline();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-deck-examine-pickup"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-deck-examine-pickup"));
 
         _examine.AddDetailedExamineVerb(
             args,
             ent.Comp,
             msg,
-            Loc.GetString("trauma-playing-card-deck-examine-verb"),
+            Loc.GetString("rmc-playing-card-deck-examine-verb"),
             "/Textures/Interface/VerbIcons/examine.svg.192dpi.png",
-            Loc.GetString("trauma-playing-card-deck-examine-verb-message"));
+            Loc.GetString("rmc-playing-card-deck-examine-verb-message"));
     }
 
     private void OnDeckGetAltVerbs(Entity<PlayingCardDeckComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
@@ -216,25 +221,52 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
         args.Verbs.Add(new AlternativeVerb
         {
-            Text = Loc.GetString("trauma-playing-card-verb-shuffle"),
+            Text = Loc.GetString("rmc-playing-card-verb-shuffle"),
             Act = () =>
             {
                 ShuffleDeck(ent);
-                _popup.PopupPredicted(Loc.GetString("trauma-playing-card-deck-shuffle", ("deck", ent.Owner)), ent, user);
+                _popup.PopupPredicted(Loc.GetString("rmc-playing-card-deck-shuffle", ("deck", ent.Owner)), ent, user);
                 _audio.PlayPredicted(ent.Comp.ShuffleSound, ent, user);
+            },
+            Priority = 2
+        });
+
+        var deckCount = ent.Comp.CardOrder.Count;
+
+        args.Verbs.Add(new AlternativeVerb
+        {
+            Text = Loc.GetString("rmc-playing-card-verb-draw-5"),
+            Category = DrawCategory,
+            Act = () =>
+            {
+                if (_net.IsServer)
+                    DrawMultiple(ent, user, DrawFiveCount);
             },
             Priority = 2
         });
 
         args.Verbs.Add(new AlternativeVerb
         {
-            Text = Loc.GetString("trauma-playing-card-verb-draw"),
+            Text = Loc.GetString("rmc-playing-card-verb-draw-half"),
+            Category = DrawCategory,
             Act = () =>
             {
                 if (_net.IsServer)
-                    DrawCard(ent, user);
+                    DrawMultiple(ent, user, Math.Max(1, deckCount / 2));
             },
             Priority = 1
+        });
+
+        args.Verbs.Add(new AlternativeVerb
+        {
+            Text = Loc.GetString("rmc-playing-card-verb-draw-all"),
+            Category = DrawCategory,
+            Act = () =>
+            {
+                if (_net.IsServer)
+                    DrawMultiple(ent, user, deckCount);
+            },
+            Priority = 0
         });
     }
 
@@ -328,7 +360,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
         if (ent.Comp.CardOrder.Count >= ent.Comp.MaxCards)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-deck-full"), ent, args.User);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-full"), ent, args.User);
             return;
         }
 
@@ -373,7 +405,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
         if (added > 0)
         {
             Dirty(ent);
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-deck-pickup", ("count", added)), ent, args.User);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-pickup", ("count", added)), ent, args.User);
             _audio.PlayPvs(ent.Comp.DrawSound, ent);
         }
     }
@@ -413,7 +445,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
         var count = ent.Comp.Cards.Count;
         if (!ent.Comp.FaceUp)
         {
-            args.PushMarkup(Loc.GetString("trauma-playing-card-hand-examine-hidden", ("count", count)));
+            args.PushMarkup(Loc.GetString("rmc-playing-card-hand-examine-hidden", ("count", count)));
             return;
         }
 
@@ -422,17 +454,17 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             container.Owner != args.Examiner &&
             _hands.IsHolding(container.Owner, ent.Owner))
         {
-            args.PushMarkup(Loc.GetString("trauma-playing-card-hand-examine-hidden", ("count", count)));
+            args.PushMarkup(Loc.GetString("rmc-playing-card-hand-examine-hidden", ("count", count)));
             return;
         }
 
-        args.PushMarkup(Loc.GetString("trauma-playing-card-hand-examine", ("count", count)));
+        args.PushMarkup(Loc.GetString("rmc-playing-card-hand-examine", ("count", count)));
         foreach (var encoded in ent.Comp.Cards)
         {
             var (suit, rank) = DecodeCard(encoded);
             var suitName = GetSuitDisplayName(suit);
             var rankName = GetRankDisplayName(rank);
-            args.PushMarkup(Loc.GetString("trauma-playing-card-hand-card", ("rank", rankName), ("suit", suitName)));
+            args.PushMarkup(Loc.GetString("rmc-playing-card-hand-card", ("rank", rankName), ("suit", suitName)));
         }
     }
 
@@ -442,19 +474,19 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             return;
 
         var msg = new FormattedMessage();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-hand-examine-face-down"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-hand-examine-face-down"));
         msg.PushNewline();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-hand-examine-face-up"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-hand-examine-face-up"));
         msg.PushNewline();
-        msg.AddMarkupOrThrow(Loc.GetString("trauma-playing-card-hand-examine-flip"));
+        msg.AddMarkupOrThrow(Loc.GetString("rmc-playing-card-hand-examine-flip"));
 
         _examine.AddDetailedExamineVerb(
             args,
             ent.Comp,
             msg,
-            Loc.GetString("trauma-playing-card-hand-examine-verb"),
+            Loc.GetString("rmc-playing-card-hand-examine-verb"),
             "/Textures/Interface/VerbIcons/examine.svg.192dpi.png",
-            Loc.GetString("trauma-playing-card-hand-examine-verb-message"));
+            Loc.GetString("rmc-playing-card-hand-examine-verb-message"));
     }
 
     private void OnHandGetAltVerbs(Entity<PlayingCardHandComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
@@ -466,18 +498,18 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
 
         args.Verbs.Add(new AlternativeVerb
         {
-            Text = Loc.GetString("trauma-playing-card-verb-flip"),
+            Text = Loc.GetString("rmc-playing-card-verb-flip"),
             Act = () => FlipHand(ent, user),
             Priority = 3
         });
 
         args.Verbs.Add(new AlternativeVerb
         {
-            Text = Loc.GetString("trauma-playing-card-verb-shuffle"),
+            Text = Loc.GetString("rmc-playing-card-verb-shuffle"),
             Act = () =>
             {
                 ShuffleHand(ent);
-                _popup.PopupPredicted(Loc.GetString("trauma-playing-card-hand-shuffle", ("hand", ent.Owner)), ent, user);
+                _popup.PopupPredicted(Loc.GetString("rmc-playing-card-hand-shuffle", ("hand", ent.Owner)), ent, user);
                 _audio.PlayPredicted(ent.Comp.ShuffleSound, ent, user);
             },
             Priority = 2
@@ -489,7 +521,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             {
                 args.Verbs.Add(new AlternativeVerb
                 {
-                    Text = Loc.GetString("trauma-playing-card-verb-pick"),
+                    Text = Loc.GetString("rmc-playing-card-verb-pick"),
                     Act = () => _ui.OpenUi(ent.Owner, PlayingCardHandUi.Key, user),
                     Priority = 1
                 });
@@ -498,7 +530,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             {
                 args.Verbs.Add(new AlternativeVerb
                 {
-                    Text = Loc.GetString("trauma-playing-card-verb-draw"),
+                    Text = Loc.GetString("rmc-playing-card-verb-draw"),
                     Act = () =>
                     {
                         if (_net.IsServer)
@@ -543,7 +575,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
         Dirty(card);
 
         var direction = card.Comp.FaceUp ? "up" : "down";
-        _popup.PopupPredicted(Loc.GetString("trauma-playing-card-flip", ("direction", direction)), card, user);
+        _popup.PopupPredicted(Loc.GetString("rmc-playing-card-flip", ("direction", direction)), card, user);
     }
 
     public virtual void FlipHand(Entity<PlayingCardHandComponent> hand, EntityUid user)
@@ -552,7 +584,7 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
         Dirty(hand);
 
         var direction = hand.Comp.FaceUp ? "up" : "down";
-        _popup.PopupPredicted(Loc.GetString("trauma-playing-card-hand-flip", ("direction", direction)), hand, user);
+        _popup.PopupPredicted(Loc.GetString("rmc-playing-card-hand-flip", ("direction", direction)), hand, user);
     }
 
     protected virtual void CombineCards(Entity<PlayingCardComponent> card1, Entity<PlayingCardComponent> card2, EntityUid user)
@@ -620,6 +652,10 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
     {
     }
 
+    protected virtual void DrawMultiple(Entity<PlayingCardDeckComponent> deck, EntityUid user, int count)
+    {
+    }
+
     protected virtual void AddCardToDeck(Entity<PlayingCardDeckComponent> deck, Entity<PlayingCardComponent> card, EntityUid user)
     {
     }
@@ -648,10 +684,10 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
     {
         return suit switch
         {
-            CardSuit.Spades => Loc.GetString("trauma-playing-card-suit-spades"),
-            CardSuit.Hearts => Loc.GetString("trauma-playing-card-suit-hearts"),
-            CardSuit.Diamonds => Loc.GetString("trauma-playing-card-suit-diamonds"),
-            CardSuit.Clubs => Loc.GetString("trauma-playing-card-suit-clubs"),
+            CardSuit.Spades => Loc.GetString("rmc-playing-card-suit-spades"),
+            CardSuit.Hearts => Loc.GetString("rmc-playing-card-suit-hearts"),
+            CardSuit.Diamonds => Loc.GetString("rmc-playing-card-suit-diamonds"),
+            CardSuit.Clubs => Loc.GetString("rmc-playing-card-suit-clubs"),
             _ => suit.ToString()
         };
     }
@@ -660,11 +696,11 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
     {
         return rank switch
         {
-            CardRank.Ace => Loc.GetString("trauma-playing-card-rank-ace"),
+            CardRank.Ace => Loc.GetString("rmc-playing-card-rank-ace"),
             >= CardRank.Two and <= CardRank.Ten => ((int)rank).ToString(),
-            CardRank.Jack => Loc.GetString("trauma-playing-card-rank-jack"),
-            CardRank.Queen => Loc.GetString("trauma-playing-card-rank-queen"),
-            CardRank.King => Loc.GetString("trauma-playing-card-rank-king"),
+            CardRank.Jack => Loc.GetString("rmc-playing-card-rank-jack"),
+            CardRank.Queen => Loc.GetString("rmc-playing-card-rank-queen"),
+            CardRank.King => Loc.GetString("rmc-playing-card-rank-king"),
             _ => ((int)rank).ToString()
         };
     }

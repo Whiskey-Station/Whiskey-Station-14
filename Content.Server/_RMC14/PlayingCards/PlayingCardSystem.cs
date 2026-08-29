@@ -1,8 +1,10 @@
-using Content.Shared._Trauma.PlayingCards;
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
+using Content.Shared._RMC14.PlayingCards;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 
-namespace Content.Server._Trauma.PlayingCards;
+namespace Content.Server._RMC14.PlayingCards;
 
 /// <summary>
 /// Sistema de servidor para cartas, spawn de baralhos e gerenciamento de mãos.
@@ -14,8 +16,8 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     [Dependency] private IGameTiming _timing = default!;
     [Dependency] private SharedTransformSystem _transform = default!;
 
-    private static readonly EntProtoId CardProto = "TraumaPlayingCard";
-    private static readonly EntProtoId CardHandProto = "TraumaPlayingCardHand";
+    private static readonly EntProtoId CardProto = "RMCPlayingCard";
+    private static readonly EntProtoId CardHandProto = "RMCPlayingCardHand";
 
     private const int StackThreshold = 5;
 
@@ -36,7 +38,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     {
         if (deck.Comp.CardOrder.Count == 0)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-deck-empty"), deck, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-empty"), deck, user);
             return;
         }
 
@@ -48,7 +50,44 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         var card = SpawnCard(deck.Comp.CardPrototype, deck, suit, rank, false);
         _hands.TryPickupAnyHand(user, card);
 
-        _popup.PopupEntity(Loc.GetString("trauma-playing-card-draw-deck"), deck, user);
+        _popup.PopupEntity(Loc.GetString("rmc-playing-card-draw-deck"), deck, user);
+        _audio.PlayPvs(deck.Comp.DrawSound, deck);
+    }
+
+    protected override void DrawMultiple(Entity<PlayingCardDeckComponent> deck, EntityUid user, int count)
+    {
+        if (deck.Comp.CardOrder.Count == 0)
+        {
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-empty"), deck, user);
+            return;
+        }
+
+        var actualCount = Math.Min(count, deck.Comp.CardOrder.Count);
+        if (actualCount <= 0)
+            return;
+
+        var hand = Spawn(CardHandProto, _transform.GetMapCoordinates(deck));
+        if (!TryComp<PlayingCardHandComponent>(hand, out var handComp))
+        {
+            QueueDel(hand);
+            return;
+        }
+
+        for (var i = 0; i < actualCount; i++)
+        {
+            var cardIndex = deck.Comp.CardOrder.Count - 1;
+            handComp.Cards.Add(deck.Comp.CardOrder[cardIndex]);
+            deck.Comp.CardOrder.RemoveAt(cardIndex);
+        }
+
+        handComp.FaceUp = false;
+        Dirty(deck);
+        Dirty(hand, handComp);
+
+        _hands.TryPickupAnyHand(user, hand);
+        UpdateHandName((hand, handComp));
+
+        _popup.PopupEntity(Loc.GetString("rmc-playing-card-draw-multiple", ("count", actualCount)), deck, user);
         _audio.PlayPvs(deck.Comp.DrawSound, deck);
     }
 
@@ -74,7 +113,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
 
         _hands.TryPickup(user, hand, handId);
         UpdateHandName((hand, handComp));
-        TryPopup((hand, handComp), Loc.GetString("trauma-playing-card-add-to-hand", ("count", handComp.Cards.Count)), user);
+        TryPopup((hand, handComp), Loc.GetString("rmc-playing-card-add-to-hand", ("count", handComp.Cards.Count)), user);
     }
 
     protected override void AddCardToHand(Entity<PlayingCardHandComponent> hand, Entity<PlayingCardComponent> card, EntityUid user)
@@ -83,7 +122,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         Dirty(hand);
         QueueDel(card);
         UpdateHandName(hand);
-        TryPopup(hand, Loc.GetString("trauma-playing-card-add-to-hand", ("count", hand.Comp.Cards.Count)), user);
+        TryPopup(hand, Loc.GetString("rmc-playing-card-add-to-hand", ("count", hand.Comp.Cards.Count)), user);
     }
 
     protected override void MergeHands(Entity<PlayingCardHandComponent> hand1, Entity<PlayingCardHandComponent> hand2, EntityUid user)
@@ -92,7 +131,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         Dirty(hand1);
         QueueDel(hand2);
         UpdateHandName(hand1);
-        TryPopup(hand1, Loc.GetString("trauma-playing-card-merge-hands", ("count", hand1.Comp.Cards.Count)), user);
+        TryPopup(hand1, Loc.GetString("rmc-playing-card-merge-hands", ("count", hand1.Comp.Cards.Count)), user);
     }
 
     protected override void DrawFromHand(Entity<PlayingCardHandComponent> hand, EntityUid user)
@@ -102,7 +141,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     {
         if (hand.Comp.Cards.Count == 0)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-hand-empty"), hand, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-hand-empty"), hand, user);
             return;
         }
 
@@ -117,9 +156,9 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         _hands.TryPickupAnyHand(user, card);
 
         if (hand.Comp.FaceUp)
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-draw", ("rank", GetRankDisplayName(rank)), ("suit", GetSuitDisplayName(suit))), hand, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-draw", ("rank", GetRankDisplayName(rank)), ("suit", GetSuitDisplayName(suit))), hand, user);
         else
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-draw-hidden"), hand, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-draw-hidden"), hand, user);
 
         if (hand.Comp.Cards.Count == 1)
         {
@@ -140,8 +179,8 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     private void UpdateHandName(Entity<PlayingCardHandComponent> hand)
     {
         var name = hand.Comp.Cards.Count > StackThreshold
-            ? Loc.GetString("trauma-playing-card-stack-name")
-            : Loc.GetString("trauma-playing-card-hand-name");
+            ? Loc.GetString("rmc-playing-card-stack-name")
+            : Loc.GetString("rmc-playing-card-hand-name");
         _meta.SetEntityName(hand, name);
     }
 
@@ -159,7 +198,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     {
         if (deck.Comp.CardOrder.Count >= deck.Comp.MaxCards)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-deck-full"), deck, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-full"), deck, user);
             return;
         }
 
@@ -167,7 +206,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         Dirty(deck);
         QueueDel(card);
 
-        _popup.PopupEntity(Loc.GetString("trauma-playing-card-added-to-deck"), deck, user);
+        _popup.PopupEntity(Loc.GetString("rmc-playing-card-added-to-deck"), deck, user);
         _audio.PlayPvs(deck.Comp.DrawSound, deck);
     }
 
@@ -175,7 +214,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
     {
         if (deck.Comp.CardOrder.Count >= deck.Comp.MaxCards)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-deck-full"), deck, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-deck-full"), deck, user);
             return;
         }
 
@@ -200,7 +239,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
 
         if (added > 0)
         {
-            _popup.PopupEntity(Loc.GetString("trauma-playing-card-added-cards-to-deck", ("count", added)), deck, user);
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-added-cards-to-deck", ("count", added)), deck, user);
             _audio.PlayPvs(deck.Comp.DrawSound, deck);
         }
     }

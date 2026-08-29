@@ -1,5 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using System.Numerics;
-using Content.Shared._Trauma.PlayingCards;
+using Content.Shared._RMC14.PlayingCards;
 using Content.Shared.Hands;
 using Content.Shared.Hands.EntitySystems;
 using Robust.Client.GameObjects;
@@ -8,7 +10,7 @@ using Robust.Shared.Containers;
 using Robust.Shared.Player;
 using Robust.Shared.Utility;
 
-namespace Content.Client._Trauma.PlayingCards;
+namespace Content.Client._RMC14.PlayingCards;
 
 /// <summary>
 /// Sistema de cliente para renderizar cartas, baralhos e mãos em leque.
@@ -23,7 +25,7 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
 
     private const int MaxVisibleCards = 5;
     private const float CardFanOffset = 2f / 32f;
-    private static readonly ResPath CardRsiPath = new("_Trauma/Objects/Fun/playing_cards.rsi");
+    private static readonly ResPath CardRsiPath = new("_RMC14/Objects/Fun/playing_cards.rsi");
 
     private EntityQuery<SpriteComponent> _spriteQuery;
 

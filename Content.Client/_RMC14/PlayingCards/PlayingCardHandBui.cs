@@ -1,6 +1,8 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using System.Numerics;
 using Content.Client.UserInterface.Controls;
-using Content.Shared._Trauma.PlayingCards;
+using Content.Shared._RMC14.PlayingCards;
 using JetBrains.Annotations;
 using Robust.Client.GameObjects;
 using Robust.Client.Graphics;
@@ -8,7 +10,7 @@ using Robust.Client.UserInterface;
 using Robust.Client.UserInterface.Controls;
 using Robust.Shared.Utility;
 
-namespace Content.Client._Trauma.PlayingCards;
+namespace Content.Client._RMC14.PlayingCards;
 
 /// <summary>
 /// BoundUserInterface para exibir e interagir com uma mão de cartas.
@@ -24,7 +26,7 @@ public sealed partial class PlayingCardHandBui : BoundUserInterface
     private readonly SpriteSystem _sprite;
     private readonly SharedPlayingCardSystem _cards;
 
-    private static readonly ResPath CardRsiPath = new("_Trauma/Objects/Fun/playing_cards.rsi");
+    private static readonly ResPath CardRsiPath = new("_RMC14/Objects/Fun/playing_cards.rsi");
 
     private PlayingCardHandMenu? _menu;
 
@@ -75,7 +77,9 @@ public sealed partial class PlayingCardHandBui : BoundUserInterface
             {
                 StyleClasses = { "RadialMenuButton" },
                 SetSize = new Vector2(64, 64),
-                ToolTip = $"{rankName} of {suitName}",
+                ToolTip = Loc.GetString("rmc-playing-card-tooltip",
+                    ("rank", FormattedMessage.RemoveMarkupPermissive(rankName)),
+                    ("suit", FormattedMessage.RemoveMarkupPermissive(suitName))),
             };
 
             var specifier = new SpriteSpecifier.Rsi(CardRsiPath, stateName);

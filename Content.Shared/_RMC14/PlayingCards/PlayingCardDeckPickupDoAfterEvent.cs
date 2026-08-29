@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using Content.Shared.DoAfter;
 using Robust.Shared.Serialization;
 
-namespace Content.Shared._Trauma.PlayingCards;
+namespace Content.Shared._RMC14.PlayingCards;
 
 /// <summary>
 /// Evento disparado ao pegar cartas soltas do chão e adicioná-las ao baralho.

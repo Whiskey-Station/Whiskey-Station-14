@@ -1,35 +1,35 @@
 - type: entity
   abstract: true
   parent: BaseItem
-  id: TraumaPlayingCardBase
+  id: RMCPlayingCardBase
   name: Playing card
   description: A standard playing card.
   categories: [ HideSpawnMenu ]
   components:
   - type: PlayingCard
   - type: Sprite
-    sprite: _Trauma/Objects/Fun/playing_cards.rsi
+    sprite: _RMC14/Objects/Fun/playing_cards.rsi
     state: spades_ace
   - type: Item
     size: Tiny
 
 # Individual card (spawned from deck)
 - type: entity
-  parent: TraumaPlayingCardBase
-  id: TraumaPlayingCard
+  parent: RMCPlayingCardBase
+  id: RMCPlayingCard
   categories: [ HideSpawnMenu ]
 
 # Hand of cards
 - type: entity
   parent: BaseItem
-  id: TraumaPlayingCardHand
+  id: RMCPlayingCardHand
   name: Hand of cards
   description: A hand of playing cards.
   categories: [ HideSpawnMenu ]
   components:
   - type: PlayingCardHand
   - type: Sprite
-    sprite: _Trauma/Objects/Fun/playing_cards.rsi
+    sprite: _RMC14/Objects/Fun/playing_cards.rsi
     state: back_deck
   - type: Item
   - type: UseDelay
@@ -42,15 +42,15 @@
 # Deck of cards
 - type: entity
   parent: BaseItem
-  id: TraumaPlayingCardDeck
+  id: RMCPlayingCardDeck
   name: Deck of cards
-  suffix: Trauma
+  suffix: RMC14
   description: A standard deck of 52 playing cards.
   components:
   - type: PlayingCardDeck
-    cardPrototype: TraumaPlayingCard
+    cardPrototype: RMCPlayingCard
   - type: Sprite
-    sprite: _Trauma/Objects/Fun/playing_cards.rsi
+    sprite: _RMC14/Objects/Fun/playing_cards.rsi
     state: deck
   - type: Item
   - type: UseDelay

@@ -1,8 +1,10 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 
-namespace Content.Shared._Trauma.PlayingCards;
+namespace Content.Shared._RMC14.PlayingCards;
 
 /// <summary>
 /// Componente para um baralho de cartas.
@@ -16,13 +18,13 @@ public sealed partial class PlayingCardDeckComponent : Component
     public List<int> CardOrder = new();
 
     [DataField]
-    public EntProtoId CardPrototype = "TraumaPlayingCard";
+    public EntProtoId CardPrototype = "RMCPlayingCard";
 
     [DataField]
-    public SoundSpecifier? DrawSound = new SoundPathSpecifier("/Audio/_Trauma/Handling/paper_pickup.ogg");
+    public SoundSpecifier? DrawSound = new SoundPathSpecifier("/Audio/_RMC14/Handling/paper_pickup.ogg");
 
     [DataField]
-    public SoundSpecifier? ShuffleSound = new SoundPathSpecifier("/Audio/_Trauma/Handling/paper_drop.ogg");
+    public SoundSpecifier? ShuffleSound = new SoundPathSpecifier("/Audio/_RMC14/Handling/paper_drop.ogg");
 
     [DataField, AutoNetworkedField]
     public int MaxCards = 52;

@@ -1,7 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Portado de https://github.com/RMC-14/RMC-14 (PR #9173)
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 
-namespace Content.Shared._Trauma.PlayingCards;
+namespace Content.Shared._RMC14.PlayingCards;
 
 /// <summary>
 /// Componente para uma mão ou pilha de cartas.
@@ -21,7 +23,7 @@ public sealed partial class PlayingCardHandComponent : Component
     public bool FaceUp;
 
     [DataField]
-    public SoundSpecifier? ShuffleSound = new SoundPathSpecifier("/Audio/_Trauma/Handling/paper_drop.ogg");
+    public SoundSpecifier? ShuffleSound = new SoundPathSpecifier("/Audio/_RMC14/Handling/paper_drop.ogg");
 
     [DataField]
     public float PopupCooldown = 2f;
