@@ -37,7 +37,10 @@ rmc-playing-card-deck-shuffle = Você embaralha {THE($deck)}.
 rmc-playing-card-added-to-deck = Você adiciona a carta ao baralho.
 rmc-playing-card-added-cards-to-deck = Você adiciona {$count} cartas ao baralho.
 rmc-playing-card-deck-pickup = Você recolhe {$count} cartas para o baralho.
-rmc-playing-card-draw-multiple = Você compra {$count} cartas.
+rmc-playing-card-draw-multiple = { $count ->
+    [one] 1 carta
+   *[other] {$count} cartas
+}.
 
 # Mão de cartas
 rmc-playing-card-hand-name = mão de cartas

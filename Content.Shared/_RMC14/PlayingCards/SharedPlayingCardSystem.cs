@@ -231,40 +231,38 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             Priority = 2
         });
 
-        var deckCount = ent.Comp.CardOrder.Count;
+args.Verbs.Add(new AlternativeVerb
+            {
+                Text = Loc.GetString("rmc-playing-card-verb-draw-5"),
+                Category = DrawCategory,
+                Act = () =>
+                {
+                    if (_net.IsServer)
+                        DrawMultiple(ent, user, DrawFiveCount);
+                },
+                Priority = 2
+            });
 
         args.Verbs.Add(new AlternativeVerb
-        {
-            Text = Loc.GetString("rmc-playing-card-verb-draw-5"),
+            {
+                Text = Loc.GetString("rmc-playing-card-verb-draw-half"),
             Category = DrawCategory,
             Act = () =>
             {
                 if (_net.IsServer)
-                    DrawMultiple(ent, user, DrawFiveCount);
-            },
-            Priority = 2
-        });
-
-        args.Verbs.Add(new AlternativeVerb
-        {
-            Text = Loc.GetString("rmc-playing-card-verb-draw-half"),
-            Category = DrawCategory,
-            Act = () =>
-            {
-                if (_net.IsServer)
-                    DrawMultiple(ent, user, Math.Max(1, deckCount / 2));
+                    DrawMultiple(ent, user, Math.Max(1, ent.Comp.CardOrder.Count / 2));
             },
             Priority = 1
         });
 
         args.Verbs.Add(new AlternativeVerb
-        {
-            Text = Loc.GetString("rmc-playing-card-verb-draw-all"),
+            {
+                Text = Loc.GetString("rmc-playing-card-verb-draw-all"),
             Category = DrawCategory,
             Act = () =>
             {
                 if (_net.IsServer)
-                    DrawMultiple(ent, user, deckCount);
+                    DrawMultiple(ent, user, ent.Comp.CardOrder.Count);
             },
             Priority = 0
         });

@@ -66,6 +66,12 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
         if (actualCount <= 0)
             return;
 
+        if (actualCount == 1)
+        {
+            DrawCard(deck, user);
+            return;
+        }
+
         var hand = Spawn(CardHandProto, _transform.GetMapCoordinates(deck));
         if (!TryComp<PlayingCardHandComponent>(hand, out var handComp))
         {
@@ -102,6 +108,14 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
             return;
         }
 
+        // A mao nova recebe duas cartas; respeita o limite MaxCards.
+        if (handComp.Cards.Count + 2 > handComp.MaxCards)
+        {
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-hand-full"), hand, user);
+            QueueDel(hand);
+            return;
+        }
+
         handComp.Cards.Add(EncodeCard(card1.Comp.Suit, card1.Comp.Rank));
         handComp.Cards.Add(EncodeCard(card2.Comp.Suit, card2.Comp.Rank));
         handComp.FaceUp = card1.Comp.FaceUp;
@@ -118,6 +132,12 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
 
     protected override void AddCardToHand(Entity<PlayingCardHandComponent> hand, Entity<PlayingCardComponent> card, EntityUid user)
     {
+        if (hand.Comp.Cards.Count >= hand.Comp.MaxCards)
+        {
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-hand-full"), hand, user);
+            return;
+        }
+
         hand.Comp.Cards.Add(EncodeCard(card.Comp.Suit, card.Comp.Rank));
         Dirty(hand);
         QueueDel(card);
@@ -127,6 +147,12 @@ public sealed partial class PlayingCardSystem : SharedPlayingCardSystem
 
     protected override void MergeHands(Entity<PlayingCardHandComponent> hand1, Entity<PlayingCardHandComponent> hand2, EntityUid user)
     {
+        if (hand1.Comp.Cards.Count + hand2.Comp.Cards.Count > hand1.Comp.MaxCards)
+        {
+            _popup.PopupEntity(Loc.GetString("rmc-playing-card-hand-full"), hand1, user);
+            return;
+        }
+
         hand1.Comp.Cards.AddRange(hand2.Comp.Cards);
         Dirty(hand1);
         QueueDel(hand2);
