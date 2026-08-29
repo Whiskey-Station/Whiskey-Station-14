@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2024-2026 Simple Station
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Portado de https://github.com/Simple-Station/Einstein-Engines
+
+- type: shader
+  id: SaturationScale
+  kind: source
+  path: "/Textures/Shaders/saturationscale.swsl"

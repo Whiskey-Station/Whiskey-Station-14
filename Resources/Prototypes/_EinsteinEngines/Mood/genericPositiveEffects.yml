@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2024-2026 Simple Station
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Portado de https:#github.com/Simple-Station/Einstein-Engines
+# O LEGAL.md deles licencia como AGPL-3.0 tudo que entrou depois do commit
+# 87c70a8, de 2024-02-17. O sistema de humor entrou em 2024-08-20.
+
+- type: moodEffect
+  id: BeingHugged
+  moodChange: 3
+  timeout: 120
+  category: PositiveInteraction
+
+- type: moodEffect
+  id: BeingPet
+  moodChange: 3
+  timeout: 120
+  category: PositiveInteraction
+
+- type: moodEffect
+  id: ArcadePlay
+  moodChange: 3
+  timeout: 480
+
+- type: moodEffect
+  id: GotBlessed
+  moodChange: 3
+  timeout: 480
+
+- type: moodEffect
+  id: PetAnimal
+  moodChange: 3
+  timeout: 300
+
+- type: moodEffect
+  id: SavedLife
+  moodChange: 7
+  timeout: 480
+
+- type: moodEffect
+  id: TraitorFocused # Used for traitors to boost their goals completion.
+  moodChange: 7
+
+- type: moodEffect
+  id: RevolutionFocused # Used for revolution
+  moodChange: 7
+
+- type: moodEffect
+  id: CultFocused
+  moodChange: 10
+
+- type: moodEffect
+  id: TraitSanguine
+  moodChange: 15
+
+- type: moodEffect
+  id: HeirloomSecure
+  category: Heirloom
+  moodChange: 5
+  timeout: 60 # A bit of time before they realize it's gone
+  moodletOnEnd: HeirloomNeutral
+
+- type: moodEffect
+  id: PlasmamanIngestMilk
+  moodChange: 7
+  timeout: 60
+
+- type: moodEffect
+  id: PlasmamanIngestPlasma
+  moodChange: 14
+  timeout: 60

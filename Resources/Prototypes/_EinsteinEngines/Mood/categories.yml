@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2024-2026 Simple Station
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Portado de https:#github.com/Simple-Station/Einstein-Engines
+# O LEGAL.md deles licencia como AGPL-3.0 tudo que entrou depois do commit
+# 87c70a8, de 2024-02-17. O sistema de humor entrou em 2024-08-20.
+
+# Alphabetically Ordered
+- type: moodCategory
+  id: Health
+
+- type: moodCategory
+  id: Heirloom
+
+- type: moodCategory
+  id: Hunger
+
+- type: moodCategory
+  id: LotophagoiAddiction
+
+- type: moodCategory
+  id: NicotineAddiction
+
+- type: moodCategory
+  id: Thirst
+
+# Whiskey: o genericPositiveEffects usa esta categoria em dois modificadores,
+# mas ela não é declarada em lugar nenhum do repositório de origem, então o
+# linter reprova. Declarada aqui, que é o mínimo para o porte carregar.
+- type: moodCategory
+  id: PositiveInteraction
