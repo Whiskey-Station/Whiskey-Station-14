@@ -249,6 +249,8 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
         mainframeRuntime.Sessions.Add(sessionId, session);
         mainframeRuntime.TerminalSessions.Add(terminal, sessionId);
         AssignLink(link, mainframe, actor, sessionId);
+        var connected = new DwaineMainframeSessionConnectedEvent(sessionId, terminal, actor);
+        RaiseLocalEvent(mainframe, ref connected);
         _hardware.UpdateUi(terminal);
         return DwaineConnectResult.Connected;
     }
@@ -307,6 +309,21 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
         }
 
         return session.PendingInput.TryDequeue(out text);
+    }
+
+    public int WriteOutputToAll(EntityUid mainframe, string text)
+    {
+        if (!TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var runtime))
+            return 0;
+
+        var written = 0;
+        foreach (var sessionId in runtime.Sessions.Keys.ToArray())
+        {
+            if (WriteOutput(mainframe, sessionId, text))
+                written++;
+        }
+
+        return written;
     }
 
     public int GetSessionCount(EntityUid mainframe)
