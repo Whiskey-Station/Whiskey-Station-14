@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: entity
+  parent: BaseItem
+  id: WhiskeyDwaineHardDrive
+  name: DWAINE hard drive
+  description: A fixed high-capacity storage volume for a DWAINE mainframe.
+  components:
+  - type: Sprite
+    sprite: Objects/Misc/module.rsi
+    state: generic
+  - type: DwaineStorageMedia
+    kind: HardDrive
+    label: hd0
+    removable: false
+    maxNodes: 8192
+    maxDepth: 32
+  - type: DwaineStorageMediaRuntime
+
+- type: entity
+  parent: BaseItem
+  id: WhiskeyDwaineRemovableDisk
+  name: DWAINE removable disk
+  description: A removable disk with a persistent, server-owned DWAINE volume.
+  components:
+  - type: Sprite
+    sprite: Objects/Misc/cd.rsi
+    state: icon
+  - type: DwaineStorageMedia
+    kind: RemovableDisk
+    label: disk
+    maxNodes: 2048
+    maxDepth: 20
+  - type: DwaineStorageMediaRuntime
+
+- type: entity
+  parent: BaseItem
+  id: WhiskeyDwaineReadOnlyDisk
+  name: read-only DWAINE disk
+  description: A write-protected removable DWAINE volume.
+  components:
+  - type: Sprite
+    sprite: Objects/Misc/cd.rsi
+    state: icon
+  - type: DwaineStorageMedia
+    kind: RemovableDisk
+    label: readonly
+    readOnly: true
+    maxNodes: 2048
+    maxDepth: 20
+  - type: DwaineStorageMediaRuntime
+
+- type: entity
+  parent: BaseItem
+  id: WhiskeyDwaineTape
+  name: DWAINE data tape
+  description: A removable tape-backed DWAINE volume intended for archives and transport.
+  components:
+  - type: Sprite
+    sprite: Objects/Misc/module.rsi
+    state: generic
+  - type: DwaineStorageMedia
+    kind: Tape
+    label: tape
+    maxNodes: 4096
+    maxDepth: 24
+    maxArchiveEntries: 2048
+  - type: DwaineStorageMediaRuntime

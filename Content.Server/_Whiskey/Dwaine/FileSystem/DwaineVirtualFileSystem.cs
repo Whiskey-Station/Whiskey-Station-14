@@ -13,9 +13,12 @@ public sealed class DwaineVirtualFileSystem
 {
     private readonly DwaineVfsLimits _limits;
     private readonly Dictionary<DwaineVfsVolumeId, DwaineVfsVolume> _volumes = new();
+    private readonly Dictionary<DwaineVfsNodeHandle, DwaineVfsVolumeId> _mounts = new();
+    private readonly Dictionary<DwaineVfsVolumeId, DwaineVfsNodeHandle> _mountPoints = new();
 
     public DwaineVfsNodeHandle Root => DwaineVfsNodeHandle.Root;
     public int NodeCount => _volumes.Values.Sum(volume => volume.NodeCount);
+    public int AttachedVolumeCount => _mountPoints.Count;
 
     public DwaineVirtualFileSystem(DwaineFileSystemComponent component, TimeSpan now)
         : this(DwaineVfsLimits.FromComponent(component), now)
@@ -30,6 +33,78 @@ public sealed class DwaineVirtualFileSystem
         BootstrapSystemLayout(now);
         systemVolume.Dirty = false;
         systemVolume.Revision = 0;
+    }
+
+    public DwaineVfsResult TryAttachVolume(
+        string mountPath,
+        DwaineVfsNodeHandle workingDirectory,
+        DwaineVfsVolume volume)
+    {
+        if (volume is null || !volume.Id.IsValid || volume.Id == DwaineVfsVolumeId.System)
+            return DwaineVfsResult.MountUnavailable;
+        if (_volumes.ContainsKey(volume.Id) || _mountPoints.ContainsKey(volume.Id))
+            return DwaineVfsResult.VolumeAlreadyAttached;
+
+        var canonical = TryCanonicalize(mountPath, workingDirectory, out var canonicalPath);
+        if (canonical != DwaineVfsResult.Success)
+            return canonical;
+        foreach (var existingMountPoint in _mounts.Keys)
+        {
+            if (TryGetPath(existingMountPoint, out var existingPath) == DwaineVfsResult.Success
+                && string.Equals(existingPath, canonicalPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return DwaineVfsResult.MountPointBusy;
+            }
+        }
+
+        var resolve = TryResolve(canonicalPath, Root, out var mountPoint);
+        if (resolve != DwaineVfsResult.Success)
+            return resolve;
+        if (mountPoint == Root || mountPoint.Volume != DwaineVfsVolumeId.System)
+            return DwaineVfsResult.MountUnavailable;
+        if (_mounts.ContainsKey(mountPoint))
+            return DwaineVfsResult.MountPointBusy;
+        if (!TryGetNode(mountPoint, out _, out var directory)
+            || directory.Kind != DwaineVfsNodeKind.Directory)
+        {
+            return DwaineVfsResult.NotDirectory;
+        }
+
+        // Hiding an existing tree behind a mount makes cleanup and authorization ambiguous.
+        if (directory.Children.Count != 0)
+            return DwaineVfsResult.MountPointBusy;
+
+        _volumes.Add(volume.Id, volume);
+        _mounts.Add(mountPoint, volume.Id);
+        _mountPoints.Add(volume.Id, mountPoint);
+        return DwaineVfsResult.Success;
+    }
+
+    public DwaineVfsResult TryDetachVolume(DwaineVfsVolumeId volumeId, out DwaineVfsVolume volume)
+    {
+        volume = null!;
+        if (volumeId == DwaineVfsVolumeId.System || !_mountPoints.TryGetValue(volumeId, out var mountPoint))
+            return DwaineVfsResult.VolumeNotAttached;
+        if (!_volumes.TryGetValue(volumeId, out volume!))
+            return DwaineVfsResult.MountUnavailable;
+
+        _mountPoints.Remove(volumeId);
+        _mounts.Remove(mountPoint);
+        _volumes.Remove(volumeId);
+        return DwaineVfsResult.Success;
+    }
+
+    public bool IsVolumeAttached(DwaineVfsVolumeId volumeId)
+    {
+        return _mountPoints.ContainsKey(volumeId);
+    }
+
+    public DwaineVfsResult TryGetMountPath(DwaineVfsVolumeId volumeId, out string path)
+    {
+        path = string.Empty;
+        return _mountPoints.TryGetValue(volumeId, out var mountPoint)
+            ? TryGetPath(mountPoint, out path)
+            : DwaineVfsResult.VolumeNotAttached;
     }
 
     public DwaineVfsResult TryCanonicalize(
@@ -112,6 +187,7 @@ public sealed class DwaineVirtualFileSystem
         var segments = canonical[1..].Split('/');
         var visitedLinks = new HashSet<DwaineVfsNodeHandle>();
         var followedLinks = 0;
+        var linkLimit = volume.Limits.MaxLinkDepth;
         for (var index = 0; index < segments.Length; index++)
         {
             if (current.Kind != DwaineVfsNodeKind.Directory)
@@ -123,6 +199,9 @@ public sealed class DwaineVirtualFileSystem
                 return DwaineVfsResult.NotFound;
             }
 
+            TryEnterMount(ref volume, ref current);
+            linkLimit = Math.Min(linkLimit, volume.Limits.MaxLinkDepth);
+
             var shouldFollow = current.Kind == DwaineVfsNodeKind.SymbolicLink
                                && (followFinalLink || index < segments.Length - 1);
             while (shouldFollow)
@@ -131,7 +210,7 @@ public sealed class DwaineVirtualFileSystem
                 if (!visitedLinks.Add(linkHandle))
                     return DwaineVfsResult.LinkCycle;
 
-                if (++followedLinks > _limits.MaxLinkDepth)
+                if (++followedLinks > linkLimit)
                     return DwaineVfsResult.LinkDepthLimit;
 
                 if (current.LinkTarget is not { } target
@@ -139,6 +218,9 @@ public sealed class DwaineVirtualFileSystem
                 {
                     return DwaineVfsResult.BrokenLink;
                 }
+
+                TryEnterMount(ref volume, ref current);
+                linkLimit = Math.Min(linkLimit, volume.Limits.MaxLinkDepth);
 
                 shouldFollow = current.Kind == DwaineVfsNodeKind.SymbolicLink;
             }
@@ -154,10 +236,7 @@ public sealed class DwaineVirtualFileSystem
         if (!TryGetNode(handle, out var volume, out var node))
             return DwaineVfsResult.InvalidHandle;
 
-        if (volume.Id != DwaineVfsVolumeId.System)
-            return DwaineVfsResult.MountUnavailable;
-
-        if (node.Id == DwaineVfsNodeId.Root)
+        if (volume.Id == DwaineVfsVolumeId.System && node.Id == DwaineVfsNodeId.Root)
         {
             path = "/";
             return DwaineVfsResult.Success;
@@ -178,7 +257,20 @@ public sealed class DwaineVirtualFileSystem
             node = parent;
         }
 
-        path = $"/{string.Join('/', segments)}";
+        var localPath = string.Join('/', segments);
+        if (volume.Id == DwaineVfsVolumeId.System)
+        {
+            path = $"/{localPath}";
+            return DwaineVfsResult.Success;
+        }
+
+        if (!_mountPoints.TryGetValue(volume.Id, out var mountPoint))
+            return DwaineVfsResult.MountUnavailable;
+        var mountResult = TryGetPath(mountPoint, out var mountPath);
+        if (mountResult != DwaineVfsResult.Success)
+            return mountResult;
+
+        path = localPath.Length == 0 ? mountPath : $"{mountPath}/{localPath}";
         return DwaineVfsResult.Success;
     }
 
@@ -410,7 +502,7 @@ public sealed class DwaineVirtualFileSystem
                 : DwaineVfsResult.InvalidType;
 
         var nextLength = append ? existing.Length + text.Length : text.Length;
-        if (nextLength > _limits.MaxTextCharacters)
+        if (nextLength > volume.Limits.MaxTextCharacters)
             return DwaineVfsResult.DataLimit;
 
         var next = append ? existing + text : text;
@@ -568,11 +660,11 @@ public sealed class DwaineVirtualFileSystem
             return DwaineVfsResult.InvalidType;
         }
 
-        if (!fields.ContainsKey(key) && fields.Count >= _limits.MaxRecordEntries)
+        if (!fields.ContainsKey(key) && fields.Count >= volume.Limits.MaxRecordEntries)
             return DwaineVfsResult.DataLimit;
 
         fields[key] = value;
-        if (RecordCharacters(fields) > _limits.MaxRecordCharacters)
+        if (RecordCharacters(fields) > volume.Limits.MaxRecordCharacters)
             return DwaineVfsResult.DataLimit;
 
         if (signal)
@@ -621,7 +713,7 @@ public sealed class DwaineVirtualFileSystem
         var result = TryResolve(path, workingDirectory, out var handle, false);
         if (result != DwaineVfsResult.Success)
             return result;
-        if (handle == Root)
+        if (handle.Node == DwaineVfsNodeId.Root)
             return DwaineVfsResult.RootProtected;
         if (!TryGetNode(handle, out var volume, out var node)
             || node.Parent is not { } parentId
@@ -654,7 +746,7 @@ public sealed class DwaineVirtualFileSystem
         var result = TryResolve(path, workingDirectory, out var handle, false);
         if (result != DwaineVfsResult.Success)
             return result;
-        if (handle == Root)
+        if (handle.Node == DwaineVfsNodeId.Root)
             return DwaineVfsResult.RootProtected;
         if (!TryGetNode(handle, out var volume, out var node)
             || node.Parent is not { } parentId
@@ -665,11 +757,15 @@ public sealed class DwaineVirtualFileSystem
 
         if (IsReadOnly(volume, node) || IsReadOnly(volume, parent))
             return DwaineVfsResult.ReadOnly;
+        if (newName.Length > volume.Limits.MaxNameLength)
+            return DwaineVfsResult.InvalidName;
         if (parent.Children.TryGetValue(newName, out var existingId) && existingId != node.Id)
             return DwaineVfsResult.AlreadyExists;
 
         if (node.Name == newName)
             return DwaineVfsResult.Success;
+        if (!FitsSubtreePath(volume, parent, newName, volume, node))
+            return DwaineVfsResult.InvalidPath;
 
         parent.Children.Remove(node.Name);
         node.Name = newName;
@@ -689,7 +785,7 @@ public sealed class DwaineVirtualFileSystem
         var sourceResult = TryResolve(sourcePath, workingDirectory, out var sourceHandle, false);
         if (sourceResult != DwaineVfsResult.Success)
             return sourceResult;
-        if (sourceHandle == Root)
+        if (sourceHandle.Node == DwaineVfsNodeId.Root)
             return DwaineVfsResult.RootProtected;
         if (!TryGetNode(sourceHandle, out var sourceVolume, out var source)
             || source.Parent is not { } oldParentId
@@ -717,10 +813,23 @@ public sealed class DwaineVirtualFileSystem
 
         if (destinationParent.Children.ContainsKey(destinationName))
             return DwaineVfsResult.AlreadyExists;
+        if (destinationName.Length > destinationVolume.Limits.MaxNameLength)
+            return DwaineVfsResult.InvalidName;
+        if (oldParent.Id != destinationParent.Id
+            && destinationParent.Children.Count >= destinationVolume.Limits.MaxChildrenPerDirectory)
+        {
+            return DwaineVfsResult.ChildLimit;
+        }
+        var destinationValidation = ValidateDestinationPath(destinationVolume, destinationParent, destinationName);
+        if (destinationValidation != DwaineVfsResult.Success)
+            return destinationValidation;
         if (source.Kind == DwaineVfsNodeKind.Directory && IsAncestor(sourceVolume, source.Id, destinationParent.Id))
             return DwaineVfsResult.DestinationInsideSource;
-        if (GetDepth(destinationVolume, destinationParent) + SubtreeHeight(sourceVolume, source) + 1 > _limits.MaxDepth)
+        if (GetDepth(destinationVolume, destinationParent) + SubtreeHeight(sourceVolume, source) + 1
+            > destinationVolume.Limits.MaxDepth)
             return DwaineVfsResult.DepthLimit;
+        if (!FitsSubtreePath(destinationVolume, destinationParent, destinationName, sourceVolume, source))
+            return DwaineVfsResult.InvalidPath;
 
         oldParent.Children.Remove(source.Name);
         source.Parent = destinationParent.Id;
@@ -771,8 +880,14 @@ public sealed class DwaineVirtualFileSystem
             CountSubtree(sourceVolume, source));
         if (containerResult != DwaineVfsResult.Success)
             return containerResult;
-        if (GetDepth(destinationVolume, destinationParent) + SubtreeHeight(sourceVolume, source) + 1 > _limits.MaxDepth)
+        var subtreeValidation = ValidateSubtreeForDestination(sourceVolume, source, destinationVolume.Limits);
+        if (subtreeValidation != DwaineVfsResult.Success)
+            return subtreeValidation;
+        if (GetDepth(destinationVolume, destinationParent) + SubtreeHeight(sourceVolume, source) + 1
+            > destinationVolume.Limits.MaxDepth)
             return DwaineVfsResult.DepthLimit;
+        if (!FitsSubtreePath(destinationVolume, destinationParent, destinationName, sourceVolume, source))
+            return DwaineVfsResult.InvalidPath;
 
         var created = new List<DwaineVfsNodeId>();
         var clone = CloneSubtree(
@@ -829,6 +944,8 @@ public sealed class DwaineVirtualFileSystem
         var validation = ValidateContainerMutation(volume, parent, name, 1);
         if (validation != DwaineVfsResult.Success)
             return validation;
+        if (count > volume.Limits.MaxArchiveEntries || ArchiveHeight(entry) > volume.Limits.MaxArchiveDepth)
+            return DwaineVfsResult.DataLimit;
 
         var metadata = new DwaineVfsMetadata(
             0,
@@ -870,6 +987,8 @@ public sealed class DwaineVirtualFileSystem
 
         if (IsReadOnly(volume, destination))
             return DwaineVfsResult.ReadOnly;
+        if (archive.ArchiveEntries.Sum(CountArchiveEntries) > volume.Limits.MaxArchiveEntries)
+            return DwaineVfsResult.DataLimit;
         var total = archive.ArchiveEntries.Sum(CountMaterializedArchiveNodes);
         if (volume.NodeCount + total > volume.Limits.MaxNodes)
             return DwaineVfsResult.NodeLimit;
@@ -879,7 +998,15 @@ public sealed class DwaineVirtualFileSystem
         {
             if (destination.Children.ContainsKey(entry.Name))
                 return DwaineVfsResult.AlreadyExists;
-            if (GetDepth(volume, destination) + MaterializedArchiveHeight(entry) + 1 > _limits.MaxDepth)
+            var entryValidation = ValidateArchiveForDestination(entry, volume.Limits);
+            if (entryValidation != DwaineVfsResult.Success)
+                return entryValidation;
+            if (GetLocalPathLength(volume, destination) + 1 + MaxArchivePathLength(entry)
+                > volume.Limits.MaxPathLength)
+            {
+                return DwaineVfsResult.InvalidPath;
+            }
+            if (GetDepth(volume, destination) + MaterializedArchiveHeight(entry) + 1 > volume.Limits.MaxDepth)
                 return DwaineVfsResult.DepthLimit;
         }
 
@@ -1045,12 +1172,12 @@ public sealed class DwaineVirtualFileSystem
         var validPayload = request.Kind switch
         {
             DwaineVfsNodeKind.Text or DwaineVfsNodeKind.System => request.Text is not null
-                && request.Text.Length <= _limits.MaxTextCharacters,
-            DwaineVfsNodeKind.Record => request.Fields is null || ValidateFields(request.Fields),
-            DwaineVfsNodeKind.UserData => ValidateUserData(request.UserData),
-            DwaineVfsNodeKind.Signal => ValidateSignal(request.Signal),
-            DwaineVfsNodeKind.ImageMetadata => ValidateImage(request.Image),
-            DwaineVfsNodeKind.Program => ValidateProgram(request.Program),
+                && request.Text.Length <= volume.Limits.MaxTextCharacters,
+            DwaineVfsNodeKind.Record => request.Fields is null || ValidateFields(request.Fields, volume.Limits),
+            DwaineVfsNodeKind.UserData => ValidateUserData(request.UserData, volume.Limits),
+            DwaineVfsNodeKind.Signal => ValidateSignal(request.Signal, volume.Limits),
+            DwaineVfsNodeKind.ImageMetadata => ValidateImage(request.Image, volume.Limits),
+            DwaineVfsNodeKind.Program => ValidateProgram(request.Program, volume.Limits),
             DwaineVfsNodeKind.Directory => true,
             _ => false,
         };
@@ -1064,7 +1191,7 @@ public sealed class DwaineVirtualFileSystem
         string name,
         int nodesRequired)
     {
-        if (!IsValidName(name))
+        if (!IsValidName(name) || name.Length > volume.Limits.MaxNameLength)
             return DwaineVfsResult.InvalidName;
         if (parent.Kind != DwaineVfsNodeKind.Directory)
             return DwaineVfsResult.NotDirectory;
@@ -1078,6 +1205,9 @@ public sealed class DwaineVirtualFileSystem
             return DwaineVfsResult.NodeLimit;
         if (GetDepth(volume, parent) + 1 > volume.Limits.MaxDepth)
             return DwaineVfsResult.DepthLimit;
+        var pathValidation = ValidateDestinationPath(volume, parent, name);
+        if (pathValidation != DwaineVfsResult.Success)
+            return pathValidation;
         return DwaineVfsResult.Success;
     }
 
@@ -1189,16 +1319,16 @@ public sealed class DwaineVirtualFileSystem
         out DwaineVfsArchiveEntry entry)
     {
         entry = null!;
-        if (depth > _limits.MaxArchiveDepth)
+        if (depth > volume.Limits.MaxArchiveDepth)
             return DwaineVfsResult.DepthLimit;
-        if (++count > _limits.MaxArchiveEntries)
+        if (++count > volume.Limits.MaxArchiveEntries)
             return DwaineVfsResult.NodeLimit;
         if ((node.Metadata.Flags & DwaineVfsNodeFlags.Virtual) != 0)
             return DwaineVfsResult.ReadOnly;
 
         var embeddedEntries = node.ArchiveEntries.Select(CloneArchiveEntry).ToArray();
         var embeddedCount = embeddedEntries.Sum(CountArchiveEntries);
-        if (embeddedCount > _limits.MaxArchiveEntries - count)
+        if (embeddedCount > volume.Limits.MaxArchiveEntries - count)
             return DwaineVfsResult.NodeLimit;
         count += embeddedCount;
 
@@ -1291,21 +1421,104 @@ public sealed class DwaineVirtualFileSystem
         };
     }
 
-    private bool ValidateFields(IReadOnlyDictionary<string, string?> fields)
+    private static DwaineVfsResult ValidateSubtreeForDestination(
+        DwaineVfsVolume sourceVolume,
+        DwaineVfsNode source,
+        DwaineVfsLimits limits)
     {
-        return fields.Count <= _limits.MaxRecordEntries
-               && RecordCharacters(fields) <= _limits.MaxRecordCharacters
+        if (source.Name.Length > limits.MaxNameLength
+            || source.Children.Count > limits.MaxChildrenPerDirectory)
+        {
+            return DwaineVfsResult.DataLimit;
+        }
+
+        var payload = ValidateNodePayloadForDestination(source, limits);
+        if (payload != DwaineVfsResult.Success)
+            return payload;
+
+        foreach (var childId in source.Children.Values)
+        {
+            var result = ValidateSubtreeForDestination(sourceVolume, sourceVolume.Nodes[childId], limits);
+            if (result != DwaineVfsResult.Success)
+                return result;
+        }
+
+        return DwaineVfsResult.Success;
+    }
+
+    private static DwaineVfsResult ValidateNodePayloadForDestination(DwaineVfsNode node, DwaineVfsLimits limits)
+    {
+        var valid = node.Kind switch
+        {
+            DwaineVfsNodeKind.Text or DwaineVfsNodeKind.System => node.Text.Length <= limits.MaxTextCharacters,
+            DwaineVfsNodeKind.Record => ValidateFields(node.Fields, limits),
+            DwaineVfsNodeKind.UserData => ValidateUserData(node.UserData, limits),
+            DwaineVfsNodeKind.Signal => ValidateSignal(node.Signal, limits),
+            DwaineVfsNodeKind.ImageMetadata => ValidateImage(node.Image, limits),
+            DwaineVfsNodeKind.Program => ValidateProgram(node.Program, limits),
+            DwaineVfsNodeKind.Archive => node.ArchiveEntries.Sum(CountArchiveEntries) <= limits.MaxArchiveEntries
+                                         && node.ArchiveEntries.All(entry =>
+                                             ValidateArchiveForDestination(entry, limits)
+                                             == DwaineVfsResult.Success),
+            DwaineVfsNodeKind.Directory or DwaineVfsNodeKind.SymbolicLink => true,
+            _ => false,
+        };
+        return valid ? DwaineVfsResult.Success : DwaineVfsResult.DataLimit;
+    }
+
+    private static DwaineVfsResult ValidateArchiveForDestination(
+        DwaineVfsArchiveEntry entry,
+        DwaineVfsLimits limits)
+    {
+        if (entry.Name.Length > limits.MaxNameLength
+            || entry.Children.Count > limits.MaxChildrenPerDirectory
+            || CountArchiveEntries(entry) > limits.MaxArchiveEntries
+            || ArchiveHeight(entry) > limits.MaxArchiveDepth)
+        {
+            return DwaineVfsResult.DataLimit;
+        }
+
+        var valid = entry.Kind switch
+        {
+            DwaineVfsNodeKind.Text or DwaineVfsNodeKind.System => entry.Text.Length <= limits.MaxTextCharacters,
+            DwaineVfsNodeKind.Record => ValidateFields(entry.Fields, limits),
+            DwaineVfsNodeKind.UserData => ValidateUserData(entry.UserData, limits),
+            DwaineVfsNodeKind.Signal => ValidateSignal(entry.Signal, limits),
+            DwaineVfsNodeKind.ImageMetadata => ValidateImage(entry.Image, limits),
+            DwaineVfsNodeKind.Program => ValidateProgram(entry.Program, limits),
+            DwaineVfsNodeKind.Archive => entry.EmbeddedArchiveEntries.All(child =>
+                ValidateArchiveForDestination(child, limits) == DwaineVfsResult.Success),
+            DwaineVfsNodeKind.Directory or DwaineVfsNodeKind.SymbolicLink => true,
+            _ => false,
+        };
+        if (!valid)
+            return DwaineVfsResult.DataLimit;
+
+        foreach (var child in entry.Children)
+        {
+            var result = ValidateArchiveForDestination(child, limits);
+            if (result != DwaineVfsResult.Success)
+                return result;
+        }
+
+        return DwaineVfsResult.Success;
+    }
+
+    private static bool ValidateFields(IReadOnlyDictionary<string, string?> fields, DwaineVfsLimits limits)
+    {
+        return fields.Count <= limits.MaxRecordEntries
+               && RecordCharacters(fields) <= limits.MaxRecordCharacters
                && fields.All(pair => IsValidField(pair.Key, pair.Value));
     }
 
-    private bool ValidateUserData(DwaineVfsUserData userData)
+    private static bool ValidateUserData(DwaineVfsUserData userData, DwaineVfsLimits limits)
     {
         if (userData.RegisteredName is null
             || userData.Assignment is null
             || userData.AccessTags is null
             || userData.RegisteredName.Length > 128
             || userData.Assignment.Length > 128
-            || userData.AccessTags.Count > _limits.MaxRecordEntries)
+            || userData.AccessTags.Count > limits.MaxRecordEntries)
         {
             return false;
         }
@@ -1315,30 +1528,30 @@ public sealed class DwaineVirtualFileSystem
             && tag.All(character => !char.IsControl(character)));
     }
 
-    private bool ValidateSignal(DwaineVfsSignalData signal)
+    private static bool ValidateSignal(DwaineVfsSignalData signal, DwaineVfsLimits limits)
     {
         return signal.EncryptionTag is not null
                && signal.Fields is not null
                && signal.EncryptionTag.Length <= 128
-               && ValidateFields(signal.Fields);
+               && ValidateFields(signal.Fields, limits);
     }
 
-    private bool ValidateImage(DwaineVfsImageMetadata image)
+    private static bool ValidateImage(DwaineVfsImageMetadata image, DwaineVfsLimits limits)
     {
         return image.DisplayName is not null
                && image.Description is not null
                && image.TextPreview is not null
                && image.DisplayName.Length <= 128
                && image.Description.Length <= 2048
-               && image.TextPreview.Length <= _limits.MaxTextCharacters;
+               && image.TextPreview.Length <= limits.MaxTextCharacters;
     }
 
-    private bool ValidateProgram(DwaineVfsProgramData program)
+    private static bool ValidateProgram(DwaineVfsProgramData program, DwaineVfsLimits limits)
     {
         return program.ProgramId is not null
                && program.Source is not null
                && program.ProgramId.Length is > 0 and <= 64
-               && program.Source.Length <= _limits.MaxTextCharacters
+               && program.Source.Length <= limits.MaxTextCharacters
                && program.ProgramId.All(character => character is >= 'a' and <= 'z'
                    or >= '0' and <= '9'
                    or '.' or '-' or '_');
@@ -1377,6 +1590,83 @@ public sealed class DwaineVirtualFileSystem
     private static bool IsReadOnly(DwaineVfsVolume volume, DwaineVfsNode node)
     {
         return volume.ReadOnly || (node.Metadata.Flags & DwaineVfsNodeFlags.ReadOnly) != 0;
+    }
+
+    private static DwaineVfsResult ValidateDestinationPath(
+        DwaineVfsVolume volume,
+        DwaineVfsNode parent,
+        string name)
+    {
+        var parentLength = GetLocalPathLength(volume, parent);
+        return parentLength != int.MaxValue
+               && (long) parentLength + 1 + name.Length <= volume.Limits.MaxPathLength
+            ? DwaineVfsResult.Success
+            : DwaineVfsResult.InvalidPath;
+    }
+
+    private static int GetLocalPathLength(DwaineVfsVolume volume, DwaineVfsNode node)
+    {
+        if (node.Id == DwaineVfsNodeId.Root)
+            return 0;
+
+        var length = 0;
+        var visited = new HashSet<DwaineVfsNodeId>();
+        while (node.Id != DwaineVfsNodeId.Root)
+        {
+            if (!visited.Add(node.Id)
+                || node.Parent is not { } parentId
+                || !volume.Nodes.TryGetValue(parentId, out var parent))
+            {
+                return int.MaxValue;
+            }
+
+            length += node.Name.Length + 1;
+            node = parent;
+        }
+
+        return length;
+    }
+
+    private static bool FitsSubtreePath(
+        DwaineVfsVolume destinationVolume,
+        DwaineVfsNode destinationParent,
+        string destinationName,
+        DwaineVfsVolume sourceVolume,
+        DwaineVfsNode source)
+    {
+        var parentLength = GetLocalPathLength(destinationVolume, destinationParent);
+        if (parentLength == int.MaxValue)
+            return false;
+
+        return (long) parentLength
+               + 1
+               + destinationName.Length
+               + MaxDescendantPathSuffix(sourceVolume, source) <= destinationVolume.Limits.MaxPathLength;
+    }
+
+    private static int MaxDescendantPathSuffix(DwaineVfsVolume volume, DwaineVfsNode node)
+    {
+        if (node.Children.Count == 0)
+            return 0;
+
+        return node.Children.Values.Max(childId =>
+        {
+            var child = volume.Nodes[childId];
+            return 1 + child.Name.Length + MaxDescendantPathSuffix(volume, child);
+        });
+    }
+
+    private void TryEnterMount(ref DwaineVfsVolume volume, ref DwaineVfsNode node)
+    {
+        var handle = new DwaineVfsNodeHandle(volume.Id, node.Id);
+        if (!_mounts.TryGetValue(handle, out var mountedVolumeId)
+            || !_volumes.TryGetValue(mountedVolumeId, out var mountedVolume))
+        {
+            return;
+        }
+
+        volume = mountedVolume;
+        node = mountedVolume.Nodes[DwaineVfsNodeId.Root];
     }
 
     private bool TryGetVolume(DwaineVfsVolumeId id, out DwaineVfsVolume volume)
@@ -1494,5 +1784,13 @@ public sealed class DwaineVirtualFileSystem
     private static int MaterializedArchiveHeight(DwaineVfsArchiveEntry entry)
     {
         return entry.Children.Count == 0 ? 0 : 1 + entry.Children.Max(MaterializedArchiveHeight);
+    }
+
+    private static int MaxArchivePathLength(DwaineVfsArchiveEntry entry)
+    {
+        if (entry.Children.Count == 0)
+            return entry.Name.Length;
+
+        return entry.Name.Length + 1 + entry.Children.Max(MaxArchivePathLength);
     }
 }

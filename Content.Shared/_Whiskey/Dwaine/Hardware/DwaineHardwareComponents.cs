@@ -66,6 +66,8 @@ public sealed partial class DwaineKeyboardInputComponent : Component
 [RegisterComponent]
 public sealed partial class DwaineStorageConnectorComponent : Component
 {
+    public const int HardMaxSlotCount = 32;
+
     [DataField]
     public bool Enabled = true;
 
