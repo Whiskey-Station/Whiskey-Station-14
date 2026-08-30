@@ -8,6 +8,9 @@ on:
 
 jobs:
   add_label:
+    permissions: # Trauma - label creation requires explicit write access.
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
     - uses: actions-ecosystem/action-add-labels@v1
