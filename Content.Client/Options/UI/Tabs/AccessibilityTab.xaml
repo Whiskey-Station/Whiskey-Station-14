@@ -34,6 +34,11 @@
                     <CheckBox Name="DisableSinguloWarpCheckBox"
                         Text="{Loc 'ui-options-disable-singulo-warp'}"
                         ToolTip="{Loc 'ui-options-disable-singulo-warp-tooltip'}" />
+                    <!-- <Whiskey> - desligar o filtro de humor -->
+                    <CheckBox Name="DisableMoodOverlayCheckBox"
+                        Text="{Loc 'ui-options-disable-mood-overlay'}"
+                        ToolTip="{Loc 'ui-options-disable-mood-overlay-tooltip'}" />
+                    <!-- </Whiskey> -->
                 </GridContainer>
                 <Label Text="{Loc 'ui-options-accessibility-header-visuals'}"
                        StyleClasses="LabelKeyText"/>

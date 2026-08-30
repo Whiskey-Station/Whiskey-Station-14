@@ -27,6 +27,13 @@ public sealed partial class AccessibilityTab : Control
         Control.AddOptionCheckBox(CCVars.DisableNightVisionNoise, DisableNightVisionNoiseCheckBox);
         Control.AddOptionCheckBox(CCVars.DisableRainbowOverlay, DisableRainbowOverlayCheckBox);
         Control.AddOptionCheckBox(CCVars.DisableSinguloWarp, DisableSinguloWarpCheckBox);
+        // <Whiskey> - desligar o filtro de humor
+        // invert porque o CVar diz "mostrar" e a caixa, ao lado das outras oito,
+        // diz "desligar". Sem isso ela ficaria com o sentido trocado em relação
+        // às vizinhas, que é o tipo de detalhe que ninguém percebe até marcar a
+        // caixa e o efeito ligar.
+        Control.AddOptionCheckBox(CCVars.MoodVisualEffects, DisableMoodOverlayCheckBox, invert: true);
+        // </Whiskey>
 
         Control.AddOptionPercentSlider(CCVars.ScreenShakeIntensity, ScreenShakeIntensitySlider);
         Control.AddOptionPercentSlider(CCVars.ChatWindowOpacity, ChatWindowOpacitySlider);
