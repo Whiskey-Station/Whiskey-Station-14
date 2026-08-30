@@ -1,0 +1,25 @@
+<DefaultWindow xmlns="https://spacestation14.io"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               MinSize="620 420"
+               SetSize="720 500"
+               Title="{Loc 'dwaine-terminal-window-title'}">
+    <BoxContainer Orientation="Vertical" Margin="8">
+        <GridContainer Columns="2">
+            <Label Text="{Loc 'dwaine-terminal-status-label'}" StyleClasses="LabelKeyText" />
+            <Label Name="Status" HorizontalExpand="True" />
+            <Label Text="{Loc 'dwaine-terminal-display-label'}" StyleClasses="LabelKeyText" />
+            <Label Name="Display" />
+            <Label Text="{Loc 'dwaine-terminal-connectors-label'}" StyleClasses="LabelKeyText" />
+            <Label Name="Connectors" />
+        </GridContainer>
+        <PanelContainer StyleClasses="LowDivider" Margin="0 8" />
+        <ScrollContainer VerticalExpand="True" HorizontalExpand="True">
+            <Label Name="Output" VerticalAlignment="Top" HorizontalExpand="True" />
+        </ScrollContainer>
+        <BoxContainer Orientation="Horizontal" Margin="0 8 0 0">
+            <LineEdit Name="Input" HorizontalExpand="True" PlaceHolder="{Loc 'dwaine-terminal-input-placeholder'}" />
+            <Button Name="Send" Text="{Loc 'dwaine-terminal-send-button'}" Margin="8 0 0 0" />
+            <Button Name="Power" Text="{Loc 'dwaine-terminal-power-button'}" Margin="8 0 0 0" />
+        </BoxContainer>
+    </BoxContainer>
+</DefaultWindow>
