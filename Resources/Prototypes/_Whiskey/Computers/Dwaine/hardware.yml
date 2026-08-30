@@ -55,6 +55,13 @@
     autoBoot: true
     requireStorageConnector: true
   - type: DwaineKernelRuntime
+  - type: DwaineProcessScheduler
+    maxProcesses: 256
+    maxProcessesPerOwner: 32
+    maxDispatchesPerUpdate: 64
+    instructionsPerSlice: 1024
+    instructionsPerProcess: 1000000
+  - type: DwaineProcessRuntime
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineNetworkConnector
