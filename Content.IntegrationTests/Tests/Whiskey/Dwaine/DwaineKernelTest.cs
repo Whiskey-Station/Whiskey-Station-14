@@ -12,6 +12,7 @@ using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
+using Serilog.Events;
 
 namespace Content.IntegrationTests.Tests.Whiskey.Dwaine;
 
@@ -170,6 +171,51 @@ public sealed class DwaineKernelTest : GameTest
             });
             Server.EntMan.DeleteEntity(map);
         });
+    }
+
+    [Test]
+#if DEBUG
+    [Ignore("Release-only fallback; DebugOpt deliberately stops at the lifecycle invariant assertion.")]
+#endif
+    public async Task StaleServicesAreShutdownBeforeBootInRelease()
+    {
+        static bool IgnoreExpectedInvariantLog(string sawmill, LogEvent message)
+        {
+            return sawmill == "whiskey.dwaine.kernel"
+                   && message.RenderMessage().Contains("forcing a bounded cleanup before boot");
+        }
+
+        Pair.ServerLogHandler.JudgeLog += IgnoreExpectedInvariantLog;
+        try
+        {
+            await Server.WaitAssertion(() =>
+            {
+                var maps = Server.System<SharedMapSystem>();
+                var map = maps.CreateMap(out var mapId);
+                var mainframe = Server.EntMan.SpawnEntity(
+                    "WhiskeyDwaineKernelTestMainframe",
+                    new MapCoordinates(Vector2.Zero, mapId));
+                var runtime = Server.EntMan.GetComponent<DwaineKernelRuntimeComponent>(mainframe);
+                var staleService = new RecordingService();
+
+                // Direct registry access deliberately simulates a violated lifecycle invariant.
+                Assert.That(runtime.Services.TryRegister("stale-service", staleService), Is.True);
+                Assert.That(Server.System<DwaineKernelSystem>().TryBoot(mainframe), Is.True);
+                Assert.Multiple(() =>
+                {
+                    Assert.That(staleService.Calls, Is.EqualTo(1));
+                    Assert.That(staleService.LastReason, Is.EqualTo(DwaineKernelShutdownReason.BootFailed));
+                    Assert.That(runtime.Services.Count, Is.Zero);
+                    Assert.That(runtime.State, Is.EqualTo(DwaineSystemState.PowerOnSelfTest));
+                });
+
+                Server.EntMan.DeleteEntity(map);
+            });
+        }
+        finally
+        {
+            Pair.ServerLogHandler.JudgeLog -= IgnoreExpectedInvariantLog;
+        }
     }
 
     [Test]

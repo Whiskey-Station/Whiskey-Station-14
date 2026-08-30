@@ -41,6 +41,7 @@ public sealed class DwaineKernelServiceRegistry
     private readonly Dictionary<string, IDwaineKernelService> _services = new(StringComparer.Ordinal);
     private readonly List<string> _registrationOrder = new();
     private readonly int _capacity;
+    private bool _shuttingDown;
 
     public int Count => _services.Count;
 
@@ -55,8 +56,13 @@ public sealed class DwaineKernelServiceRegistry
     public bool TryRegister(string name, IDwaineKernelService service)
     {
         ArgumentNullException.ThrowIfNull(service);
-        if (!IsValidName(name) || _services.Count >= _capacity || _services.ContainsKey(name))
+        if (_shuttingDown
+            || !IsValidName(name)
+            || _services.Count >= _capacity
+            || _services.ContainsKey(name))
+        {
             return false;
+        }
 
         _services.Add(name, service);
         _registrationOrder.Add(name);
@@ -70,7 +76,7 @@ public sealed class DwaineKernelServiceRegistry
 
     public bool TryUnregister(string name)
     {
-        if (!_services.Remove(name))
+        if (_shuttingDown || !_services.Remove(name))
             return false;
 
         _registrationOrder.Remove(name);
@@ -79,25 +85,42 @@ public sealed class DwaineKernelServiceRegistry
 
     public DwaineKernelServiceFailure[] ShutdownAll(in DwaineKernelShutdownContext context)
     {
-        var failures = new List<DwaineKernelServiceFailure>();
+        if (_shuttingDown || _registrationOrder.Count == 0)
+            return [];
+
+        var pending = new List<(string Name, IDwaineKernelService Service)>(_registrationOrder.Count);
         for (var index = _registrationOrder.Count - 1; index >= 0; index--)
         {
             var name = _registrationOrder[index];
-            if (!_services.TryGetValue(name, out var service))
-                continue;
-
-            try
-            {
-                service.Shutdown(context);
-            }
-            catch (Exception)
-            {
-                failures.Add(new DwaineKernelServiceFailure(name, "shutdown-failed"));
-            }
+            if (_services.TryGetValue(name, out var service))
+                pending.Add((name, service));
         }
 
+        // Shutdown owns an immutable snapshot. Clear the live registry before callbacks so a
+        // reentrant service cannot reorder, remove, duplicate, or add work to this shutdown pass.
         _services.Clear();
         _registrationOrder.Clear();
+        _shuttingDown = true;
+        var failures = new List<DwaineKernelServiceFailure>();
+        try
+        {
+            foreach (var (name, service) in pending)
+            {
+                try
+                {
+                    service.Shutdown(context);
+                }
+                catch (Exception)
+                {
+                    failures.Add(new DwaineKernelServiceFailure(name, "shutdown-failed"));
+                }
+            }
+        }
+        finally
+        {
+            _shuttingDown = false;
+        }
+
         return failures.ToArray();
     }
 

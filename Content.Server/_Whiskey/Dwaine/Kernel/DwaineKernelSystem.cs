@@ -7,6 +7,7 @@ using Content.Shared._Whiskey.Dwaine;
 using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Transport;
+using Robust.Shared.Log;
 using Robust.Shared.Timing;
 using System.Diagnostics;
 using System.Linq;
@@ -22,13 +23,16 @@ public sealed partial class DwaineKernelSystem : EntitySystem
 
     [Dependency] private DwaineHardwareSystem _hardware = default!;
     [Dependency] private DwaineTerminalTransportSystem _transport = default!;
+    [Dependency] private ILogManager _logManager = default!;
     [Dependency] private IGameTiming _timing = default!;
 
     private readonly HashSet<EntityUid> _activeMainframes = new();
+    private ISawmill _log = default!;
 
     public override void Initialize()
     {
         base.Initialize();
+        _log = _logManager.GetSawmill("whiskey.dwaine.kernel");
 
         SubscribeLocalEvent<DwaineKernelComponent, MapInitEvent>(OnKernelMapInit);
         SubscribeLocalEvent<DwaineKernelComponent, ComponentShutdown>(OnKernelShutdown);
@@ -183,6 +187,13 @@ public sealed partial class DwaineKernelSystem : EntitySystem
         Debug.Assert(
             runtime.Services.Count == 0,
             "A non-ready kernel state must never retain services from an earlier boot generation.");
+        if (runtime.Services.Count > 0)
+        {
+            _log.Error(
+                $"DWAINE mainframe {ToPrettyString(mainframe)} retained {runtime.Services.Count} " +
+                "kernel service(s) in a non-ready state; forcing a bounded cleanup before boot.");
+            StopServices(mainframe, runtime, DwaineKernelShutdownReason.BootFailed, now);
+        }
 
         runtime.BootGeneration++;
         if (runtime.BootGeneration == 0)

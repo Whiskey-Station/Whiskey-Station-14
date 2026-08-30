@@ -51,6 +51,38 @@ public sealed class DwaineKernelPrimitivesTest
     }
 
     [Test]
+    public void ServiceRegistryShutdownRejectsReentrantMutationAndRunsSnapshotOnce()
+    {
+        var calls = new List<string>();
+        var registry = new DwaineKernelServiceRegistry(3);
+        var first = new TestService(_ => calls.Add("first"));
+        var mutationResults = new List<bool>();
+        var second = new TestService(context =>
+        {
+            calls.Add("second");
+            mutationResults.Add(registry.TryUnregister("first"));
+            mutationResults.Add(registry.TryRegister("late", first));
+            Assert.That(registry.ShutdownAll(context), Is.Empty);
+        });
+
+        Assert.That(registry.TryRegister("first", first), Is.True);
+        Assert.That(registry.TryRegister("second", second), Is.True);
+        var context = new DwaineKernelShutdownContext(
+            EntityUid.Invalid,
+            8,
+            DwaineKernelShutdownReason.Requested);
+
+        Assert.That(registry.ShutdownAll(context), Is.Empty);
+        Assert.Multiple(() =>
+        {
+            Assert.That(calls, Is.EqualTo(new[] { "second", "first" }));
+            Assert.That(mutationResults, Is.EqualTo(new[] { false, false }));
+            Assert.That(registry.Count, Is.Zero);
+            Assert.That(registry.ShutdownAll(context), Is.Empty);
+        });
+    }
+
+    [Test]
     public void SystemClockUsesOnlyObservedGameTime()
     {
         var clock = new DwaineSystemClock();
