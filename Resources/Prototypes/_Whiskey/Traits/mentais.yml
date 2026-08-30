@@ -19,6 +19,21 @@
     prefix: hallucination-voice-
     count: 14
 
+- type: moodCategory
+  id: WhiskeyDepressao
+
+- type: moodEffect
+  id: WhiskeyDepressaoEpisodio
+  category: WhiskeyDepressao
+  moodChange: -18
+  timeout: 180
+
+- type: localizedDataset
+  id: WhiskeyDepressaoPensamentos
+  values:
+    prefix: depression-thought-
+    count: 20
+
 - type: trait
   id: Schizophrenia
   name: trait-schizophrenia-name
@@ -34,3 +49,17 @@
       messages: WhiskeyAlucinacaoFrases
       minTimeBetweenMessages: 120
       maxTimeBetweenMessages: 420
+
+- type: trait
+  id: Depression
+  name: trait-depression-name
+  description: trait-depression-desc
+  category: Disabilities
+  components:
+    - type: Mood
+    - type: PeriodicMood
+      effect: WhiskeyDepressaoEpisodio
+      minTimeBetween: 240
+      maxTimeBetween: 900
+      messages: WhiskeyDepressaoPensamentos
+      gainMessage: trait-depression-aviso
