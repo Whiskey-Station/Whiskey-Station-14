@@ -870,7 +870,7 @@ public sealed class DwaineVirtualFileSystem
 
         if (IsReadOnly(volume, destination))
             return DwaineVfsResult.ReadOnly;
-        var total = archive.ArchiveEntries.Sum(CountArchiveEntries);
+        var total = archive.ArchiveEntries.Sum(CountMaterializedArchiveNodes);
         if (volume.NodeCount + total > volume.Limits.MaxNodes)
             return DwaineVfsResult.NodeLimit;
         if (destination.Children.Count + archive.ArchiveEntries.Count > volume.Limits.MaxChildrenPerDirectory)
@@ -879,7 +879,7 @@ public sealed class DwaineVirtualFileSystem
         {
             if (destination.Children.ContainsKey(entry.Name))
                 return DwaineVfsResult.AlreadyExists;
-            if (GetDepth(volume, destination) + ArchiveHeight(entry) + 1 > _limits.MaxDepth)
+            if (GetDepth(volume, destination) + MaterializedArchiveHeight(entry) + 1 > _limits.MaxDepth)
                 return DwaineVfsResult.DepthLimit;
         }
 
@@ -1196,6 +1196,12 @@ public sealed class DwaineVirtualFileSystem
         if ((node.Metadata.Flags & DwaineVfsNodeFlags.Virtual) != 0)
             return DwaineVfsResult.ReadOnly;
 
+        var embeddedEntries = node.ArchiveEntries.Select(CloneArchiveEntry).ToArray();
+        var embeddedCount = embeddedEntries.Sum(CountArchiveEntries);
+        if (embeddedCount > _limits.MaxArchiveEntries - count)
+            return DwaineVfsResult.NodeLimit;
+        count += embeddedCount;
+
         var children = new List<DwaineVfsArchiveEntry>();
         foreach (var childId in node.Children.Values)
         {
@@ -1226,6 +1232,7 @@ public sealed class DwaineVirtualFileSystem
             node.Image,
             node.Program,
             linkTarget,
+            embeddedEntries,
             children);
         return DwaineVfsResult.Success;
     }
@@ -1252,6 +1259,7 @@ public sealed class DwaineVirtualFileSystem
         };
         node.Image = entry.Image;
         node.Program = entry.Program;
+        node.ArchiveEntries.AddRange(entry.EmbeddedArchiveEntries.Select(CloneArchiveEntry));
         if (entry.Kind == DwaineVfsNodeKind.SymbolicLink)
         {
             if (TryResolve(entry.LinkTarget, Root, out var target) != DwaineVfsResult.Success)
@@ -1278,6 +1286,7 @@ public sealed class DwaineVirtualFileSystem
             {
                 Fields = new Dictionary<string, string?>(entry.Signal.Fields, StringComparer.Ordinal),
             },
+            EmbeddedArchiveEntries = entry.EmbeddedArchiveEntries.Select(CloneArchiveEntry).ToArray(),
             Children = entry.Children.Select(CloneArchiveEntry).ToArray(),
         };
     }
@@ -1463,11 +1472,27 @@ public sealed class DwaineVirtualFileSystem
 
     private static int CountArchiveEntries(DwaineVfsArchiveEntry entry)
     {
-        return 1 + entry.Children.Sum(CountArchiveEntries);
+        return 1
+               + entry.EmbeddedArchiveEntries.Sum(CountArchiveEntries)
+               + entry.Children.Sum(CountArchiveEntries);
+    }
+
+    private static int CountMaterializedArchiveNodes(DwaineVfsArchiveEntry entry)
+    {
+        return 1 + entry.Children.Sum(CountMaterializedArchiveNodes);
     }
 
     private static int ArchiveHeight(DwaineVfsArchiveEntry entry)
     {
-        return entry.Children.Count == 0 ? 0 : 1 + entry.Children.Max(ArchiveHeight);
+        var childHeight = entry.Children.Count == 0 ? 0 : 1 + entry.Children.Max(ArchiveHeight);
+        var embeddedHeight = entry.EmbeddedArchiveEntries.Count == 0
+            ? 0
+            : 1 + entry.EmbeddedArchiveEntries.Max(ArchiveHeight);
+        return Math.Max(childHeight, embeddedHeight);
+    }
+
+    private static int MaterializedArchiveHeight(DwaineVfsArchiveEntry entry)
+    {
+        return entry.Children.Count == 0 ? 0 : 1 + entry.Children.Max(MaterializedArchiveHeight);
     }
 }

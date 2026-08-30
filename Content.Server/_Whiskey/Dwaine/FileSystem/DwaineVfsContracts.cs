@@ -131,6 +131,7 @@ public sealed record DwaineVfsArchiveEntry(
     DwaineVfsImageMetadata Image,
     DwaineVfsProgramData Program,
     string LinkTarget,
+    IReadOnlyList<DwaineVfsArchiveEntry> EmbeddedArchiveEntries,
     IReadOnlyList<DwaineVfsArchiveEntry> Children);
 
 internal readonly record struct DwaineVfsLimits(

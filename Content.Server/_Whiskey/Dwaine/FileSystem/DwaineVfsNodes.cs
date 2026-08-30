@@ -67,6 +67,7 @@ internal sealed class DwaineVfsNode
         return entry.Name.Length
                + entry.Text.Length
                + entry.Fields.Sum(pair => pair.Key.Length + (pair.Value?.Length ?? 0))
+               + entry.EmbeddedArchiveEntries.Sum(ArchiveSize)
                + entry.Children.Sum(ArchiveSize);
     }
 }

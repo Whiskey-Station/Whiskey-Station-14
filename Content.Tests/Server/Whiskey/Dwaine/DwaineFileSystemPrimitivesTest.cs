@@ -327,6 +327,29 @@ public sealed class DwaineFileSystemPrimitivesTest
     }
 
     [Test]
+    public void ArchivesNestedInsideArchivesPreserveEmbeddedPayload()
+    {
+        var fileSystem = Create();
+        Assert.That(
+            fileSystem.TryCreate(
+                "/tmp/source",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "nested" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateArchive("/tmp/source", "/tmp/inner.arc", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateArchive("/tmp/inner.arc", "/tmp/outer.arc", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryExtractArchive("/tmp/outer.arc", "/home", fileSystem.Root, InitialTime),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryGetArchiveEntries("/home/inner.arc", fileSystem.Root, out var embedded),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(embedded.Single().Text, Is.EqualTo("nested"));
+    }
+
+    [Test]
     public void MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation()
     {
         var fileSystem = Create();
