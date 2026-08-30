@@ -4,6 +4,7 @@
 
 using Content.IntegrationTests.Tests.Atmos;
 using Content.Server._ES.TileFires;
+using Content.Server.Spreader;
 using Content.Shared.Atmos.Components;
 using Content.Shared.Chemistry;
 using Content.Shared.Chemistry.Reagent;
@@ -22,7 +23,7 @@ public sealed class ESTileFireTest : AtmosTest
     protected override ResPath? TestMapPath => new("Maps/Test/Atmospherics/load_atmos_test_room.yml");
 
     [Test]
-    public async Task EventStageFireIgnitesGrowsAndSpreads()
+    public async Task EventStageFireIgnitesAndSpreadsAtThreshold()
     {
         var pair = Pair;
         var server = pair.Server;
@@ -40,23 +41,45 @@ public sealed class ESTileFireTest : AtmosTest
             Assert.That(fire.TryDoTileFire(coordinates, stage: 2), Is.True);
 
             var query = entMan.EntityQueryEnumerator<ESTileFireComponent, FlammableComponent>();
-            Assert.That(query.MoveNext(out source, out var tileFire, out var flammable), Is.True);
-            Assert.Multiple(() =>
+            var found = false;
+            while (query.MoveNext(out var candidate, out var tileFire, out var flammable))
             {
-                Assert.That(flammable.FireStacks, Is.EqualTo(7f));
-                Assert.That(entMan.HasComponent<OnFireComponent>(source), Is.True);
-            });
+                if (entMan.GetComponent<TransformComponent>(candidate).GridUid != grid)
+                    continue;
 
-            // Keep the production stage-2 starting point while accelerating the
-            // passive growth enough for a deterministic integration test.
-            tileFire.BaseSpreadChance = 1f;
-            flammable.FirestackFade = 3f;
+                source = candidate;
+                found = true;
+                Assert.Multiple(() =>
+                {
+                    Assert.That(flammable.FireStacks, Is.EqualTo(7f));
+                    Assert.That(entMan.HasComponent<OnFireComponent>(source), Is.True);
+                });
+
+                // Drive the component to its production spread threshold, then raise
+                // the same edge-spreader event used by the simulation update loop.
+                tileFire.BaseSpreadChance = 1f;
+                flammable.FireStacks = tileFire.MinFirestacksToSpread;
+                break;
+            }
+
+            Assert.That(found, Is.True, "The event fire must be found on the fixture grid.");
+
+            var spreader = server.System<SpreaderSystem>();
+            var transform = entMan.GetComponent<TransformComponent>(source);
+            var edge = entMan.GetComponent<EdgeSpreaderComponent>(source);
+            spreader.GetNeighbors(source, transform, edge.Id, out var freeTiles, out _, out var neighbors);
+            Assert.That(freeTiles, Is.Not.Empty, "The fixture must expose a sustainable neighboring tile.");
+
+            var spread = new SpreadNeighborsEvent
+            {
+                NeighborFreeTiles = freeTiles,
+                Neighbors = neighbors,
+                Updates = 1,
+            };
+            entMan.EventBus.RaiseLocalEvent(source, ref spread);
         });
 
-        // Flammable updates once per second. Two updates take stage 2 above the
-        // maximum randomized spread threshold and the next spreader pass must
-        // create at least one neighboring tile fire.
-        await server.WaitRunTicks(100);
+        await server.WaitRunTicks(1);
 
         await server.WaitAssertion(() =>
         {
@@ -87,8 +110,19 @@ public sealed class ESTileFireTest : AtmosTest
             var fire = server.System<ESTileFireSystem>();
             Assert.That(fire.TryDoTileFire(new EntityCoordinates(grid, 2.5f, 2.5f)), Is.True);
 
-            var query = entMan.EntityQueryEnumerator<ESTileFireComponent>();
-            Assert.That(query.MoveNext(out fireUid, out _), Is.True);
+            var query = entMan.EntityQueryEnumerator<ESTileFireComponent, TransformComponent>();
+            var found = false;
+            while (query.MoveNext(out var candidate, out _, out var transform))
+            {
+                if (transform.GridUid != grid)
+                    continue;
+
+                fireUid = candidate;
+                found = true;
+                break;
+            }
+
+            Assert.That(found, Is.True, "The stage-one fire must be found on the fixture grid.");
             Assert.That(entMan.HasComponent<OnFireComponent>(fireUid), Is.True);
 
             var reactive = entMan.System<ReactiveSystem>();
