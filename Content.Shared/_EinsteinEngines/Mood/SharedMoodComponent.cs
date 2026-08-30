@@ -6,13 +6,15 @@
 // O LEGAL.md deles licencia como AGPL-3.0 tudo que entrou depois do commit
 // 87c70a8, de 2024-02-17. O sistema de humor entrou em 2024-08-20.
 
+using Robust.Shared.GameStates;
+
 namespace Content.Shared._EinsteinEngines.Mood;
 
 /// <summary>
 ///     This component exists solely to network CurrentMoodLevel, so that clients can make use of its value for math Prediction.
 ///     All mood logic is otherwise handled by the Server, and the client is not allowed to know the identity of its mood events.
 /// </summary>
-[RegisterComponent, AutoGenerateComponentState]
+[RegisterComponent, NetworkedComponent, AutoGenerateComponentState]
 public sealed partial class NetMoodComponent : Component
 {
     [DataField, AutoNetworkedField]

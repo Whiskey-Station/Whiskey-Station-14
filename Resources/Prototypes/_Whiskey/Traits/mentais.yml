@@ -13,37 +13,6 @@
   - /Audio/_Goobstation/Hallucinations/im_here1.ogg
   - /Audio/_Goobstation/Hallucinations/turn_around1.ogg
 
-# O StatusEffectSlowdown do repositório é abstract, então não dá para aplicar
-# direto: o engine recusa com "Attempted to resolve invalid EntProtoId". As
-# concretas que existem são todas nomeadas pela causa, vômito, taser, flash, e
-# usar uma delas mostraria o motivo errado. Esta é a do estresse.
-- type: entity
-  parent: StatusEffectSlowdown
-  id: StatusEffectWhiskeyStressSlowdown
-  name: stress slowdown
-
-# O peso do episódio e quanto ele dura vivem aqui, não em código, então
-# balancear é mexer em YAML. Categoria própria para um episódio novo substituir
-# o anterior em vez de empilhar.
-- type: moodCategory
-  id: WhiskeyDepressao
-
-# A duração precisa ser MENOR que o menor intervalo entre episódios, senão o
-# episódio seguinte chega antes do anterior expirar, reinicia o relógio por ser
-# da mesma categoria, e o humor fica preso lá embaixo para sempre. Com 180
-# contra um mínimo de 240, sobra pelo menos um minuto de respiro toda vez.
-- type: moodEffect
-  id: WhiskeyDepressaoEpisodio
-  category: WhiskeyDepressao
-  moodChange: -18
-  timeout: 180
-
-- type: localizedDataset
-  id: WhiskeyDepressaoPensamentos
-  values:
-    prefix: depression-thought-
-    count: 20
-
 - type: localizedDataset
   id: WhiskeyAlucinacaoFrases
   values:
@@ -65,17 +34,3 @@
       messages: WhiskeyAlucinacaoFrases
       minTimeBetweenMessages: 120
       maxTimeBetweenMessages: 420
-
-- type: trait
-  id: Depression
-  name: trait-depression-name
-  description: trait-depression-desc
-  category: Disabilities
-  components:
-    - type: Mood
-    - type: PeriodicMood
-      effect: WhiskeyDepressaoEpisodio
-      minTimeBetween: 240
-      maxTimeBetween: 900
-      messages: WhiskeyDepressaoPensamentos
-      gainMessage: trait-depression-aviso

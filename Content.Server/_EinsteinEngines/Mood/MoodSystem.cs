@@ -101,6 +101,7 @@ public sealed partial class MoodSystem : EntitySystem
     {
         _alerts.ClearAlertCategory(uid, component.MoodCategory);
         RemComp<SaturationScaleOverlayComponent>(uid);
+        RemComp<NetMoodComponent>(uid);
     }
 
     private void OnRemoveEffect(EntityUid uid, MoodComponent component, MoodRemoveEffectEvent args)
@@ -325,7 +326,7 @@ public sealed partial class MoodSystem : EntitySystem
         if (!force)
         {
             newMoodLevel = Math.Clamp(
-                amount + neutral,
+                newMoodLevel,
                 component.MoodThresholds[MoodThreshold.Dead],
                 component.MoodThresholds[MoodThreshold.Perfect]);
         }
@@ -336,6 +337,7 @@ public sealed partial class MoodSystem : EntitySystem
         {
             mood.CurrentMoodLevel = component.CurrentMoodLevel;
             mood.NeutralMoodThreshold = component.MoodThresholds.GetValueOrDefault(MoodThreshold.Neutral);
+            Dirty(uid, mood);
         }
 
         RefreshShaders(uid, component.CurrentMoodLevel);

@@ -46,6 +46,11 @@ public sealed partial class SaturationScaleSystem : EntitySystem
     {
         if (_overlayMan.HasOverlay<SaturationScaleOverlay>() && !moodEffectsEnabled)
             _overlayMan.RemoveOverlay(_overlay);
+        else if (moodEffectsEnabled
+                 && _playerMan.LocalEntity is { } player
+                 && HasComp<SaturationScaleOverlayComponent>(player)
+                 && !_overlayMan.HasOverlay<SaturationScaleOverlay>())
+            _overlayMan.AddOverlay(_overlay);
 
         _moodEffectsEnabled = moodEffectsEnabled;
     }

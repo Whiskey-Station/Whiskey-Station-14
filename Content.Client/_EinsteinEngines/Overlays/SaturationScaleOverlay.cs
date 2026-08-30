@@ -69,11 +69,10 @@ public sealed partial class SaturationScaleOverlay : Overlay
             || _currentSaturation == saturationComp.SaturationScale)
             return;
 
-        var deltaTSlower = args.DeltaSeconds * saturationComp.FadeInMultiplier;
-        var saturationFadeIn = saturationComp.SaturationScale > _currentSaturation
-            ? deltaTSlower : -deltaTSlower;
-
-        _currentSaturation += saturationFadeIn;
+        var delta = args.DeltaSeconds * saturationComp.FadeInMultiplier;
+        _currentSaturation = saturationComp.SaturationScale > _currentSaturation
+            ? MathF.Min(_currentSaturation + delta, saturationComp.SaturationScale)
+            : MathF.Max(_currentSaturation - delta, saturationComp.SaturationScale);
         _shader.SetParameter("saturation", _currentSaturation);
     }
 }
