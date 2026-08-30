@@ -8,6 +8,7 @@ using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Transport;
 using Robust.Shared.Timing;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Content.Server._Whiskey.Dwaine.Kernel;
@@ -81,6 +82,12 @@ public sealed partial class DwaineKernelSystem : EntitySystem
     private void OnKernelShutdown(Entity<DwaineKernelComponent> ent, ref ComponentShutdown args)
     {
         _activeMainframes.Remove(ent.Owner);
+
+        // Entity deletion is owned by the runtime shutdown handler below. This handler exists only
+        // for the exceptional case where the kernel configuration is removed from a live entity.
+        if (TerminatingOrDeleted(ent.Owner))
+            return;
+
         if (TryComp<DwaineKernelRuntimeComponent>(ent, out var runtime))
             StopServices(ent.Owner, runtime, DwaineKernelShutdownReason.EntityRemoved, _timing.CurTime);
     }
@@ -173,8 +180,9 @@ public sealed partial class DwaineKernelSystem : EntitySystem
         }
 
         var now = _timing.CurTime;
-        if (runtime.Services.Count > 0)
-            StopServices(mainframe, runtime, DwaineKernelShutdownReason.BootFailed, now);
+        Debug.Assert(
+            runtime.Services.Count == 0,
+            "A non-ready kernel state must never retain services from an earlier boot generation.");
 
         runtime.BootGeneration++;
         if (runtime.BootGeneration == 0)
@@ -352,6 +360,10 @@ public sealed partial class DwaineKernelSystem : EntitySystem
         }
 
         runtime.Failure = DwaineBootFailure.None;
+        // SystemReady is deliberately event-driven instead of remaining in the per-update set.
+        // DwaineHardwareStatus currently changes readiness only through power transitions, and
+        // every such edge raises DwaineHardwarePowerChangedEvent. Any future hardware-health
+        // source must raise an equivalent authoritative event before it can affect this status.
         _activeMainframes.Remove(mainframe);
         EnterState(
             mainframe,
