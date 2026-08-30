@@ -121,4 +121,111 @@ public sealed class MoodTest : GameTest
             await server.WaitPost(() => cfg.SetCVar(CCVars.MoodEnabled, false));
         }
     }
+
+    /// <summary>
+    /// A escada de humor precisa continuar sendo a do /tg/station.
+    ///
+    /// Os pesos que os modificadores usam no YAML são os defines do TG, de
+    /// <c>MOOD_SAD4</c> a <c>MOOD_HAPPY4</c>. O Einstein trouxe os pesos e
+    /// deixou as faixas dele para trás, e o resultado era que quase nada
+    /// atravessava faixa: um ferimento de -7 deixava a pessoa em Neutro.
+    ///
+    /// Este teste existe para ninguém mexer num dos dois lados sozinho. Quem
+    /// quiser rebalancear tem que trocar peso e faixa juntos, e trocar este
+    /// teste junto, que é o momento em que a pessoa lê o porquê.
+    /// </summary>
+    [Test]
+    public async Task AEscadaDeHumorBateComOsDefinesDoTg()
+    {
+        var padrao = new MoodComponent();
+        var neutro = padrao.MoodThresholds[MoodThreshold.Neutral];
+
+        // Faixa daqui, e o define do TG que ela representa.
+        var esperado = new Dictionary<MoodThreshold, float>
+        {
+            { MoodThreshold.Perfect, 15f },      // MOOD_HAPPY4
+            { MoodThreshold.Exceptional, 10f },  // MOOD_HAPPY3
+            { MoodThreshold.Great, 6f },         // MOOD_HAPPY2
+            { MoodThreshold.Good, 2f },          // MOOD_HAPPY1
+            { MoodThreshold.Neutral, 0f },       // MOOD_NEUTRAL
+            { MoodThreshold.Meh, -3f },          // MOOD_SAD1
+            { MoodThreshold.Bad, -7f },          // MOOD_SAD2
+            { MoodThreshold.Terrible, -15f },    // MOOD_SAD3
+            { MoodThreshold.Horrible, -20f },    // MOOD_SAD4
+        };
+
+        Assert.Multiple(() =>
+        {
+            foreach (var (faixa, define) in esperado)
+            {
+                Assert.That(padrao.MoodThresholds.TryGetValue(faixa, out var valor), Is.True,
+                    $"a faixa {faixa} sumiu do mapa de limiares");
+
+                Assert.That(valor, Is.EqualTo(neutro + define).Within(0.001f),
+                    $"a faixa {faixa} deveria valer {neutro + define}, que é o neutro mais o define {define} do TG");
+            }
+        });
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Todo alerta declarado precisa ter uma faixa capaz de chegar nele.
+    ///
+    /// Isto pega um defeito que veio do próprio Einstein: eles declaravam um
+    /// alerta para a faixa Insane e nunca puseram Insane no mapa de limiares,
+    /// então aquele ícone era inalcançável desde sempre. No TG a insanidade não
+    /// é faixa de humor, é faixa de sanidade, que é um segundo número.
+    ///
+    /// O <see cref="TodoAlertaDeFaixaExiste"/> não pega isso, porque ele
+    /// confere se o prototype do alerta existe, e existir ele existia.
+    /// </summary>
+    [Test]
+    public async Task TodoAlertaApontaParaUmaFaixaQueExiste()
+    {
+        var padrao = new MoodComponent();
+        var orfaos = new List<string>();
+
+        foreach (var faixa in padrao.MoodThresholdsAlerts.Keys)
+        {
+            if (!padrao.MoodThresholds.ContainsKey(faixa))
+                orfaos.Add(faixa.ToString());
+        }
+
+        Assert.That(orfaos, Is.Empty,
+            "alerta declarado para faixa que não existe no mapa de limiares, ou seja ícone que nunca aparece: "
+            + string.Join(", ", orfaos));
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Duas faixas não podem valer o mesmo número.
+    ///
+    /// O <c>GetMoodThreshold</c> escolhe o menor limiar maior ou igual ao
+    /// humor. Com valor repetido, qual das duas ganha depende da ordem de
+    /// iteração do dicionário, e a perdedora vira faixa morta sem erro nenhum.
+    /// Com as faixas apertadas na escala do TG, a distância entre duas delas
+    /// chega a ser de dois pontos, então encostar uma na outra ficou fácil.
+    /// </summary>
+    [Test]
+    public async Task NenhumaFaixaTemOMesmoValor()
+    {
+        var padrao = new MoodComponent();
+        var vistos = new Dictionary<float, MoodThreshold>();
+        var repetidos = new List<string>();
+
+        foreach (var (faixa, valor) in padrao.MoodThresholds)
+        {
+            if (vistos.TryGetValue(valor, out var anterior))
+                repetidos.Add($"{faixa} e {anterior} empatam em {valor}");
+            else
+                vistos[valor] = faixa;
+        }
+
+        Assert.That(repetidos, Is.Empty,
+            "faixas empatadas no mesmo valor, e uma delas nunca vai aparecer: " + string.Join(", ", repetidos));
+
+        await Task.CompletedTask;
+    }
 }
