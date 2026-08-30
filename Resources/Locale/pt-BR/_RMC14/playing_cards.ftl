@@ -33,11 +33,12 @@ rmc-playing-card-deck-examine-pickup = [bold][color=cyan]Na mão e clicar no ch�
 # Ações de baralho
 rmc-playing-card-deck-empty = O baralho está vazio!
 rmc-playing-card-deck-full = O baralho está cheio!
+rmc-playing-card-hand-full = A mão está cheia!
 rmc-playing-card-deck-shuffle = Você embaralha {THE($deck)}.
 rmc-playing-card-added-to-deck = Você adiciona a carta ao baralho.
 rmc-playing-card-added-cards-to-deck = Você adiciona {$count} cartas ao baralho.
 rmc-playing-card-deck-pickup = Você recolhe {$count} cartas para o baralho.
-rmc-playing-card-draw-multiple = { $count ->
+rmc-playing-card-draw-multiple = Você compra { $count ->
     [one] 1 carta
    *[other] {$count} cartas
 }.

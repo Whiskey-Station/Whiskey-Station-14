@@ -231,21 +231,21 @@ public abstract partial class SharedPlayingCardSystem : EntitySystem
             Priority = 2
         });
 
-args.Verbs.Add(new AlternativeVerb
+        args.Verbs.Add(new AlternativeVerb
+        {
+            Text = Loc.GetString("rmc-playing-card-verb-draw-5"),
+            Category = DrawCategory,
+            Act = () =>
             {
-                Text = Loc.GetString("rmc-playing-card-verb-draw-5"),
-                Category = DrawCategory,
-                Act = () =>
-                {
-                    if (_net.IsServer)
-                        DrawMultiple(ent, user, DrawFiveCount);
-                },
-                Priority = 2
-            });
+                if (_net.IsServer)
+                    DrawMultiple(ent, user, DrawFiveCount);
+            },
+            Priority = 2
+        });
 
         args.Verbs.Add(new AlternativeVerb
-            {
-                Text = Loc.GetString("rmc-playing-card-verb-draw-half"),
+        {
+            Text = Loc.GetString("rmc-playing-card-verb-draw-half"),
             Category = DrawCategory,
             Act = () =>
             {
@@ -256,8 +256,8 @@ args.Verbs.Add(new AlternativeVerb
         });
 
         args.Verbs.Add(new AlternativeVerb
-            {
-                Text = Loc.GetString("rmc-playing-card-verb-draw-all"),
+        {
+            Text = Loc.GetString("rmc-playing-card-verb-draw-all"),
             Category = DrawCategory,
             Act = () =>
             {

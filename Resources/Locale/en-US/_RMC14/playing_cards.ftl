@@ -33,6 +33,7 @@ rmc-playing-card-deck-examine-pickup = [bold][color=cyan]In-hand and click on em
 # Deck actions
 rmc-playing-card-deck-empty = The deck is empty!
 rmc-playing-card-deck-full = The deck is full!
+rmc-playing-card-hand-full = The hand is full!
 rmc-playing-card-deck-shuffle = You shuffle {THE($deck)}.
 rmc-playing-card-added-to-deck = You add the card to the deck.
 rmc-playing-card-added-cards-to-deck = You add {$count} cards to the deck.
