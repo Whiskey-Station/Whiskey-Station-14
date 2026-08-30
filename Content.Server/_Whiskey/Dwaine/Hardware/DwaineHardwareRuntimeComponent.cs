@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared._Whiskey.Dwaine;
+using Content.Shared._Whiskey.Dwaine.Hardware;
 
 namespace Content.Server._Whiskey.Dwaine.Hardware;
 
@@ -30,3 +31,20 @@ public readonly record struct DwaineTerminalInputReceivedEvent(EntityUid Actor, 
 /// </summary>
 [ByRefEvent]
 public readonly record struct DwaineHardwarePowerChangedEvent(bool Powered);
+
+/// <summary>
+/// Extension point for server systems to add presentation-only terminal state without
+/// making the physical hardware layer depend on those systems.
+/// </summary>
+[ByRefEvent]
+public record struct DwaineTerminalPresentationEvent
+{
+    public DwaineTerminalConnectionStatus Status = DwaineTerminalConnectionStatus.Disconnected;
+    public string ConnectedMainframe = string.Empty;
+    public DwaineMainframeUiEntry[] AvailableMainframes = [];
+    public string[]? OutputOverride;
+
+    public DwaineTerminalPresentationEvent()
+    {
+    }
+}

@@ -50,6 +50,15 @@ public sealed class DwaineBoundedTextBuffer
         return _lines.ToArray();
     }
 
+    public bool TryDequeue(out string text)
+    {
+        if (!_lines.TryDequeue(out text!))
+            return false;
+
+        _characters -= text.Length;
+        return true;
+    }
+
     public void Clear()
     {
         _lines.Clear();
