@@ -27,3 +27,15 @@ public enum DwaineBootStage : byte
     Shell,
     Faulted,
 }
+
+/// <summary>
+/// Hardware-only state exposed by a DWAINE chassis before an operating system exists.
+/// This is deliberately separate from <see cref="DwaineBootStage"/>: PR 02 never
+/// pretends that POST or a kernel has run.
+/// </summary>
+public enum DwaineHardwareStatus : byte
+{
+    PoweredOff,
+    PowerUnavailable,
+    HardwareReady,
+}

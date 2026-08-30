@@ -1,0 +1,15 @@
+dwaine-terminal-window-title = Terminal de hardware DWAINE
+dwaine-terminal-status-label = Estado do hardware:
+dwaine-terminal-display-label = Tela:
+dwaine-terminal-connectors-label = Conectores:
+dwaine-terminal-input-placeholder = A entrada é validada pelo servidor
+dwaine-terminal-send-button = Enviar
+dwaine-terminal-power-button = Energia
+dwaine-terminal-status-powered-off = desligado
+dwaine-terminal-status-power-unavailable = energia externa indisponível
+dwaine-terminal-status-hardware-ready = hardware pronto (sem sistema operacional)
+dwaine-terminal-display-value = {$columns} x {$rows}
+dwaine-terminal-connectors-value = armazenamento: {$storage} | rede: {$network} | barramento: {$bus}
+
+ent-WhiskeyDwaineTerminal = terminal DWAINE
+    .desc = Um chassi de terminal controlado pelo servidor, aguardando conexão com um mainframe.

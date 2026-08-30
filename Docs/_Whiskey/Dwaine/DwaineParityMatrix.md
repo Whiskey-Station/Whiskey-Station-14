@@ -16,6 +16,7 @@ The external dependency pass classified packet networks, wired data terminals, g
 Status values used during delivery:
 
 - `SPECIFIED`: a PR 01 contract or architectural decision exists and is tested where executable.
+- `IMPLEMENTED`: the assigned runtime behavior exists and is covered by automated tests.
 - `PLANNED`: fully classified behavior assigned to one later PR; not claimed as implemented.
 - `NOT APPLICABLE`: identified reference material with no functional parity obligation; the reason is recorded.
 - PR 15 must replace every `SPECIFIED` or `PLANNED` value with `IMPLEMENTED` or a justified `NOT APPLICABLE`.
@@ -61,109 +62,109 @@ Status values used during delivery:
 | Clean-room functional boundary | all sources; repository license | Pinned-source audit and original AGPL implementation rule | SPECIFIED | 01/15 | Architecture docs review | No DM, protected prose, or assets copied. |
 | Shared/server/client dependency boundary | C3, MF, PROG | Shared contracts; authoritative server; presentation-only client | SPECIFIED | 01/15 | `SharedContractsDoNotReferencePresentationOrAuthorityAssemblies` | No Server/Client cycle. |
 | Architecture identity/version | NS, C3 | `DwaineArchitecturePrototype` `WhiskeyDwaine` | SPECIFIED | 01/15 | `ArchitecturePrototypeMatchesCanonicalSpecification` | Couples docs to Vodka Code 0.1 and `.vodka`. |
-| Computer role | C3 | composed computer hardware entity | PLANNED | 02/15 | Hardware/computer prototype | Not a god component. |
-| Mainframe role | MF | mainframe component plus focused server systems | PLANNED | 02/15 | Hardware/mainframe lifecycle | Owns runtime association, not all logic. |
-| Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | PLANNED | 02/15 | Hardware/terminal lifecycle | Client never authenticates actions. |
-| Display and terminal output | C3, TERM | bounded server output buffer and client presentation state | PLANNED | 02/15 | Hardware/output bounds | HTML is not accepted from players. |
-| Keyboard/input abstraction | C3, TERM | BUI input request validated against user, range and session | PLANNED | 02/15 | Hardware/input authority | Input length bounded. |
+| Computer role | C3 | composed computer hardware entity | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Not a god component. |
+| Mainframe role | MF | mainframe component plus focused server systems | PLANNED | 03/15 | Mainframe/session lifecycle | Owns runtime association, not all logic. |
+| Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer`, `BuiReconnectIsIdempotentAndDestructionCleansPresentationState` | Client never authenticates actions. |
+| Display and terminal output | C3, TERM | bounded server output buffer and client presentation state | IMPLEMENTED | 02/15 | `ServerOutputBufferEnforcesBothBounds` | Presentation uses plain text; session output transport lands in PR 03. |
+| Keyboard/input abstraction | C3, TERM | BUI input request validated against the active server-side UI actor | IMPLEMENTED | 02/15 | `TerminalInputValidationRejectsUnboundedAndMultilineData` | Input length bounded; session ownership is added in PR 03. |
 | Per-user command history | C3, SHELL | bounded shell history owned by server session | PLANNED | 06/15 | Shell/history isolation | Fixes reference indexing/bounds hazards. |
-| Storage interface | C3, MF, MEDIA | explicit storage port and volume attachment | PLANNED | 02/15 | Hardware/storage attach | VFS behavior starts PR 04. |
-| Device bus | PERIPH, DRV | capability-advertising bus components and events | PLANNED | 02/15 | Hardware/device attach/detach | Concrete ABI starts PR 10. |
-| Network interface | PERIPH, DATANET | explicit port/link/topology membership | PLANNED | 02/15 | Hardware/network attach | No global entity scan. |
-| Power state | C3, MF | powered/offline transitions using ECS power events | PLANNED | 02/15 | Hardware/power lifecycle | Loss of power revokes transient state. |
-| Computer construction and repair | BUILD | Whiskey construction graph for frame, board, storage and peripherals | PLANNED | 02/15 | Hardware/build/deconstruct | New `_Whiskey` prototypes only. |
-| Modular peripherals | PERIPH | installable explicit device components | PLANNED | 02/15 | Hardware/peripheral constraints | Cards do not execute gameplay logic themselves. |
-| Portable/luggable computer | C3 | portable terminal hardware profile with cell power | PLANNED | 02/15 | Hardware/portable lifecycle | Reuses the same terminal/runtime contracts. |
-| Terminal connect/disconnect/reconnect | TERM, MF | validated session state machine | PLANNED | 02/15 | Hardware/connect suite | Includes invalid targets and deletion. |
-| Multiple terminals per mainframe | MF, KERNEL | indexed server sessions per mainframe | PLANNED | 02/15 | Hardware/multi-terminal | Isolation tested again in PR 05 and PR 11. |
-| Connection heartbeat and timeout | TERM, MF | `IGameTiming` deadlines and explicit heartbeat messages | PLANNED | 02/15 | Hardware/timeout/reconnect | No frame-time dependency. |
-| Device connection records | MF | generation-checked connection records scoped to mainframe | PLANNED | 02/15 | Hardware/stale connection | Never accepts client-selected ownership. |
-| POWER → POST | C3, MF | deterministic hardware POST stage | PLANNED | 03/15 | Kernel/boot | Failed storage and power cases included. |
-| Network bootloader/recovery | OS, MEDIA, MF | bootloader that discovers authorized recovery media/services | PLANNED | 03/15 | Kernel/netboot recovery | Recovery does not trust remote file types blindly. |
-| Kernel startup | KERNEL | bounded server kernel runtime | PLANNED | 03/15 | Kernel/startup/failure | Per-mainframe state. |
-| Login/shell handoff | KERNEL, OS | kernel-controlled process handoff | PLANNED | 03/15 | Kernel/boot E2E | Authentication semantics land PR 05. |
-| Reboot and failed boot | MF, OS | cleanup-first reboot/fault transitions | PLANNED | 03/15 | Kernel/reboot/fault | No orphan processes or sessions. |
-| Program file abstraction | PROG | executable descriptors resolved through VFS | PLANNED | 03/15 | Kernel/program resolution | Native implementations registered server-side. |
-| PID and PPID | PROG, KERNEL | server-assigned stable process identifiers | PLANNED | 03/15 | Kernel/PID uniqueness | Client PID is never authoritative. |
-| Process owner | PROG, KERNEL | authoritative principal reference | PLANNED | 03/15 | Kernel/process ownership | Revalidated on every control operation. |
-| Process states | PROG, MF | Created/Ready/Running/Waiting/Stopped/Exited/Faulted | PLANNED | 03/15 | Kernel/state transitions | Explicit state machine. |
-| stdin/stdout/stderr | SHELL, PROG | bounded kernel stream endpoints | PLANNED | 03/15 | Kernel/streams | Replaces ad-hoc pipe text. |
-| Process start time, exit code, cwd, environment | PROG, SHELL | deterministic metadata and bounded environment | PLANNED | 03/15 | Kernel/process metadata | Start time from `IGameTiming`. |
-| Scheduler/processing list | MF, KERNEL | fair bounded ready/wait queues | PLANNED | 03/15 | Kernel/scheduler/churn | No arbitrary long-lived `Task`. |
-| Spawn and fork | SYSCALL, PROG | kernel spawn with parent and inherited authority policy | PLANNED | 03/15 | Kernel/spawn/fork | Limits per user and mainframe. |
-| Exit, kill, child list | SYSCALL, PROG | ownership-checked process control | PLANNED | 03/15 | Kernel/exit/kill/list | Cleanup is idempotent. |
-| Inter-process signal/reply | MF, PROG | typed bounded kernel messages | PLANNED | 03/15 | Kernel/IPC malformed payload | No privileged object deserialization. |
-| Process directory (`/proc`) | NS, MF | read-only VFS process views generated by kernel | PLANNED | 04/15 | VFS/proc lifecycle | Views cannot outlive processes. |
+| Storage interface | C3, MF, MEDIA | explicit physical storage connector | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | VFS and media behavior land in PR 06 and PR 07. |
+| Device bus | PERIPH, DRV | bounded physical bus endpoint | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Capability ABI starts PR 12. |
+| Network interface | PERIPH, DATANET | explicit physical connector, network label and link range | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Session topology lands in PR 03; routed networking in PR 13. |
+| Power state | C3, MF | powered/offline transitions using ECS power events | IMPLEMENTED | 02/15 | `PowerLifecycleAndInvalidEntityAreServerAuthoritative` | Transient hardware presentation state is cleared on deletion. |
+| Computer construction and repair | BUILD | Whiskey construction graph for frame, board, storage and peripherals | PLANNED | 14/15 | Hardware/build/deconstruct | New `_Whiskey` prototypes only. |
+| Modular peripherals | PERIPH | installable explicit device components | PLANNED | 14/15 | Hardware/peripheral constraints | Cards do not execute gameplay logic themselves. |
+| Portable/luggable computer | C3 | portable terminal hardware profile with cell power | PLANNED | 14/15 | Hardware/portable lifecycle | Reuses the same terminal/runtime contracts. |
+| Terminal connect/disconnect/reconnect | TERM, MF | validated session state machine | PLANNED | 03/15 | Transport/connect suite | Includes invalid targets and deletion. |
+| Multiple terminals per mainframe | MF, KERNEL | indexed server sessions per mainframe | PLANNED | 03/15 | Transport/multi-terminal | Isolation tested again with authentication and networking. |
+| Connection heartbeat and timeout | TERM, MF | `IGameTiming` lifecycle validation | PLANNED | 03/15 | Transport/timeout/reconnect | No frame-time dependency. |
+| Device connection records | MF | generation-checked connection records scoped to mainframe | PLANNED | 03/15 | Transport/stale connection | Never accepts client-selected ownership. |
+| POWER → POST | C3, MF | deterministic hardware POST stage | PLANNED | 04/15 | Kernel/boot | Failed storage and power cases included. |
+| Network bootloader/recovery | OS, MEDIA, MF | bootloader that discovers authorized recovery media/services | PLANNED | 04/15 | Kernel/netboot recovery | Recovery does not trust remote file types blindly. |
+| Kernel startup | KERNEL | bounded server kernel runtime | PLANNED | 04/15 | Kernel/startup/failure | Per-mainframe state. |
+| Login/shell handoff | KERNEL, OS | kernel-controlled process handoff | PLANNED | 04/15 | Kernel/boot E2E | Authentication semantics land PR 08. |
+| Reboot and failed boot | MF, OS | cleanup-first reboot/fault transitions | PLANNED | 04/15 | Kernel/reboot/fault | No orphan processes or sessions. |
+| Program file abstraction | PROG | executable descriptors resolved through VFS | PLANNED | 05/15 | Process/program descriptor | Native implementations registered server-side. |
+| PID and PPID | PROG, KERNEL | server-assigned stable process identifiers | PLANNED | 05/15 | Process/PID uniqueness | Client PID is never authoritative. |
+| Process owner | PROG, KERNEL | authoritative principal reference | PLANNED | 05/15 | Process/ownership | Revalidated on every control operation. |
+| Process states | PROG, MF | Created/Ready/Running/Waiting/Stopped/Exited/Faulted | PLANNED | 05/15 | Process/state transitions | Explicit state machine. |
+| stdin/stdout/stderr | SHELL, PROG | bounded kernel stream endpoints | PLANNED | 05/15 | Process/streams | Replaces ad-hoc pipe text. |
+| Process start time, exit code, cwd, environment | PROG, SHELL | deterministic metadata and bounded environment | PLANNED | 05/15 | Process/metadata | Start time from `IGameTiming`. |
+| Scheduler/processing list | MF, KERNEL | fair bounded ready/wait queues | PLANNED | 05/15 | Process/scheduler/churn | No arbitrary long-lived `Task`. |
+| Spawn and fork | SYSCALL, PROG | kernel spawn with parent and inherited authority policy | PLANNED | 05/15 | Process/spawn/fork | Limits per user and mainframe. |
+| Exit, kill, child list | SYSCALL, PROG | ownership-checked process control | PLANNED | 05/15 | Process/exit/kill/list | Cleanup is idempotent. |
+| Inter-process signal/reply | MF, PROG | typed bounded kernel messages | PLANNED | 05/15 | Process/IPC malformed payload | No privileged object deserialization. |
+| Process directory (`/proc`) | NS, MF | read-only VFS process views generated by kernel | PLANNED | 06/15 | VFS/proc lifecycle | Views cannot outlive processes. |
 
 ## Virtual filesystem, users, and permissions
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Root and directory tree | VFS, OS | per-volume VFS tree with explicit root | PLANNED | 04/15 | VFS/root/tree | Pure server state. |
-| Absolute and relative paths | OS, NS | canonical path parser | PLANNED | 04/15 | VFS/path table | Authorization occurs after canonicalization. |
-| `.` and `..` | OS | normalized traversal with root confinement | PLANNED | 04/15 | VFS/dot/root escape | Cannot escape volume root. |
-| Filename validation | PROG, OS | normalized bounded names with reserved-character policy | PLANNED | 04/15 | VFS/invalid names | Locale-independent comparison. |
-| Create/read/write/append/delete | SYSCALL, VFS | VFS node operations | PLANNED | 04/15 | VFS/CRUD | Atomic failure semantics. |
-| Rename/copy/move | UTIL, VFS | VFS-native operations preserving defined metadata | PLANNED | 04/15 | VFS/move/copy cleanup | Cross-volume behavior explicit. |
-| List/mkdir | UTIL, VFS | permission-aware enumeration and creation | PLANNED | 04/15 | VFS/list/mkdir | Results bounded. |
-| Symbolic directory links | VFS | VFS symlink nodes | PLANNED | 04/15 | VFS/link/broken/cycle | Depth and cycle detection. |
-| Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | PLANNED | 04/15 | VFS/mount/unmount | Remote driver mount behavior completes PR 12. |
-| Volumes and storage quotas | VFS, MEDIA | bounded volumes with byte/node quotas | PLANNED | 04/15 | VFS/quota/mass creation | No unbounded file creation. |
-| Metadata: date, owner, group, mode | VFS | typed immutable/read-write metadata policy | PLANNED | 04/15 | VFS/metadata | Ownership enforcement completes PR 05. |
-| Directory depth and archive depth | VFS | configurable hard depth ceilings | PLANNED | 04/15 | VFS/depth exhaustion | Reference limits are behavioral evidence, not copied implementation. |
-| Text file | VFS | UTF-8 text node | PLANNED | 04/15 | VFS/text round trip | Bounded text. |
-| Record file | VFS | ordered bounded key/value record node | PLANNED | 04/15 | VFS/record round trip | Safe value types only. |
-| User-data file | VFS | protected account/session record schema | PLANNED | 05/15 | Auth/user data isolation | No plaintext password. |
-| Clone/genome record | VFS | typed opaque station record payload | PLANNED | 13/15 | Driver/medical record capability | Only if a Whiskey cloning integration exists. |
-| Image-like metadata file | VFS | metadata/preview descriptor, not imported imagery | PLANNED | 04/15 | VFS/image metadata | No Goon asset copied. |
-| Galactic-position record | VFS, TELE | typed coordinate document | PLANNED | 13/15 | Driver/telesci coordinates | Validated by driver capability. |
-| Signal file | VFS, PACKET | bounded structured message document | PLANNED | 11/15 | Network/signal serialization | No privileged runtime object fields. |
-| Archive file | VFS, UTIL | bounded archive of VFS nodes | PLANNED | 04/15 | VFS/archive cycles/quota | Extract/copy semantics tested. |
-| Program/script file | PROG, SHELL | executable descriptor and `.vodka` source node | PLANNED | 07/15 | Vodka/source execution | Native program registry is not player-writable code. |
-| Mountpoint file proxy | DRV, VFS | capability-backed mounted volume adapter | PLANNED | 12/15 | Storage/device removal | Revokes on device loss. |
-| Guardbot task payload | GUARDBOT, VFS | typed device document through guardbot driver | PLANNED | 13/15 | Driver/guardbot task | Never exposes bot entity IDs to scripts. |
-| Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc/mail` | PLANNED | 04/15 | VFS/bootstrap layout | Each directory gets explicit modes and owner. |
-| Temporary and full users | KERNEL | unauthenticated terminal session and authenticated account | PLANNED | 05/15 | Auth/temp/full login | Temporary identity has minimal authority. |
-| UID and username | KERNEL, VFS | server-assigned UID plus validated display/login name | PLANNED | 05/15 | Auth/UID uniqueness | Client username is input, not identity proof. |
-| Groups and sysop/root-like account | NS, KERNEL | typed groups and privileged system principal | PLANNED | 05/15 | Auth/group/root | Least privilege; no magic client flag. |
-| Card/login authentication | OS, TERM | server-validated station identity credential adapter | PLANNED | 05/15 | Auth/card success/failure | Password auth, if enabled, uses a verifier hash. |
-| Login/logout/session expiry | KERNEL, TERM | authoritative session lifecycle | PLANNED | 05/15 | Auth/login/logout/expiry | Disconnect and deletion clean up sessions. |
-| File owner/group/mode enforcement | NS, PROG | centralized VFS authorization service | PLANNED | 05/15 | Auth/VFS permission matrix | Read, write, execute and metadata checks separate. |
-| Process ownership enforcement | KERNEL, SYSCALL | kernel authorization policy | PLANNED | 05/15 | Auth/process control | Parenthood alone does not elevate authority. |
-| `chmod` semantics | UTIL, NS | mode-changing utility and syscall policy | PLANNED | 05/15 | Auth/chmod | Octal input validated. |
-| `chown` semantics | UTIL, NS | privileged owner/group change | PLANNED | 05/15 | Auth/chown | Cannot forge nonexistent users/groups. |
-| `su` semantics | UTIL, TERM | explicit privilege elevation through fresh credential proof | PLANNED | 05/15 | Auth/su/revocation | Audited and session-scoped. |
-| Deleted-user and disconnect cleanup | KERNEL | process/session/VFS reference cleanup | PLANNED | 05/15 | Auth/deleted user/disconnect | No stale principal objects. |
+| Root and directory tree | VFS, OS | per-volume VFS tree with explicit root | PLANNED | 06/15 | VFS/root/tree | Pure server state. |
+| Absolute and relative paths | OS, NS | canonical path parser | PLANNED | 06/15 | VFS/path table | Authorization occurs after canonicalization. |
+| `.` and `..` | OS | normalized traversal with root confinement | PLANNED | 06/15 | VFS/dot/root escape | Cannot escape volume root. |
+| Filename validation | PROG, OS | normalized bounded names with reserved-character policy | PLANNED | 06/15 | VFS/invalid names | Locale-independent comparison. |
+| Create/read/write/append/delete | SYSCALL, VFS | VFS node operations | PLANNED | 06/15 | VFS/CRUD | Atomic failure semantics. |
+| Rename/copy/move | UTIL, VFS | VFS-native operations preserving defined metadata | PLANNED | 06/15 | VFS/move/copy cleanup | Cross-volume behavior explicit. |
+| List/mkdir | UTIL, VFS | permission-aware enumeration and creation | PLANNED | 06/15 | VFS/list/mkdir | Results bounded. |
+| Symbolic directory links | VFS | VFS symlink nodes | PLANNED | 06/15 | VFS/link/broken/cycle | Depth and cycle detection. |
+| Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | PLANNED | 07/15 | VFS/mount/unmount | Logical mount contracts start in PR 06; media-backed behavior completes PR 07. |
+| Volumes and storage quotas | VFS, MEDIA | bounded volumes with byte/node quotas | PLANNED | 07/15 | VFS/quota/mass creation | No unbounded file creation. |
+| Metadata: date, owner, group, mode | VFS | typed immutable/read-write metadata policy | PLANNED | 06/15 | VFS/metadata | Ownership enforcement completes PR 08. |
+| Directory depth and archive depth | VFS | configurable hard depth ceilings | PLANNED | 06/15 | VFS/depth exhaustion | Reference limits are behavioral evidence, not copied implementation. |
+| Text file | VFS | UTF-8 text node | PLANNED | 06/15 | VFS/text round trip | Bounded text. |
+| Record file | VFS | ordered bounded key/value record node | PLANNED | 06/15 | VFS/record round trip | Safe value types only. |
+| User-data file | VFS | protected account/session record schema | PLANNED | 08/15 | Auth/user data isolation | No plaintext password. |
+| Clone/genome record | VFS | typed opaque station record payload | PLANNED | 14/15 | Driver/medical record capability | Only if a Whiskey cloning integration exists. |
+| Image-like metadata file | VFS | metadata/preview descriptor, not imported imagery | PLANNED | 06/15 | VFS/image metadata | No Goon asset copied. |
+| Galactic-position record | VFS, TELE | typed coordinate document | PLANNED | 15/15 | Driver/telesci coordinates | Validated by driver capability. |
+| Signal file | VFS, PACKET | bounded structured message document | PLANNED | 13/15 | Network/signal serialization | No privileged runtime object fields. |
+| Archive file | VFS, UTIL | bounded archive of VFS nodes | PLANNED | 06/15 | VFS/archive cycles/quota | Extract/copy semantics tested. |
+| Program/script file | PROG, SHELL | executable descriptor and `.vodka` source node | PLANNED | 10/15 | Vodka/source representation | Native program registry is not player-writable code. |
+| Mountpoint file proxy | DRV, VFS | capability-backed mounted volume adapter | PLANNED | 07/15 | Storage/device removal | Revokes on device loss. |
+| Guardbot task payload | GUARDBOT, VFS | typed device document through guardbot driver | PLANNED | 15/15 | Driver/guardbot task | Never exposes bot entity IDs to scripts. |
+| Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc/mail` | PLANNED | 06/15 | VFS/bootstrap layout | Each directory gets explicit modes and owner. |
+| Temporary and full users | KERNEL | unauthenticated terminal session and authenticated account | PLANNED | 08/15 | Auth/temp/full login | Temporary identity has minimal authority. |
+| UID and username | KERNEL, VFS | server-assigned UID plus validated display/login name | PLANNED | 08/15 | Auth/UID uniqueness | Client username is input, not identity proof. |
+| Groups and sysop/root-like account | NS, KERNEL | typed groups and privileged system principal | PLANNED | 08/15 | Auth/group/root | Least privilege; no magic client flag. |
+| Card/login authentication | OS, TERM | server-validated station identity credential adapter | PLANNED | 08/15 | Auth/card success/failure | Password auth, if enabled, uses a verifier hash. |
+| Login/logout/session expiry | KERNEL, TERM | authoritative session lifecycle | PLANNED | 08/15 | Auth/login/logout/expiry | Disconnect and deletion clean up sessions. |
+| File owner/group/mode enforcement | NS, PROG | centralized VFS authorization service | PLANNED | 08/15 | Auth/VFS permission matrix | Read, write, execute and metadata checks separate. |
+| Process ownership enforcement | KERNEL, SYSCALL | kernel authorization policy | PLANNED | 08/15 | Auth/process control | Parenthood alone does not elevate authority. |
+| `chmod` semantics | UTIL, NS | mode-changing utility and syscall policy | PLANNED | 08/15 | Auth/chmod | Octal input validated. |
+| `chown` semantics | UTIL, NS | privileged owner/group change | PLANNED | 08/15 | Auth/chown | Cannot forge nonexistent users/groups. |
+| `su` semantics | UTIL, TERM | explicit privilege elevation through fresh credential proof | PLANNED | 08/15 | Auth/su/revocation | Audited and session-scoped. |
+| Deleted-user and disconnect cleanup | KERNEL | process/session/VFS reference cleanup | PLANNED | 08/15 | Auth/deleted user/disconnect | No stale principal objects. |
 
 ## Shell and builtins
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Interactive shell | SHELL | server shell process | PLANNED | 06/15 | Shell/E2E | Presents an operational prompt. |
-| Tokenization, quoting and escaping | SHELL, PROG | dedicated bounded lexer | PLANNED | 06/15 | Shell/parser table | No HTML execution. |
-| Arguments and environment | SHELL | bounded argument vector and environment | PLANNED | 06/15 | Shell/argv/env | Server-owned process state. |
-| Working directory | SHELL, UTIL | canonical VFS cwd | PLANNED | 06/15 | Shell/cwd | Cannot reference unmounted roots. |
-| PATH-like command resolution | SHELL | `/bin`, current directory and explicit path resolution | PLANNED | 06/15 | Shell/resolution | Execute permission checked. |
-| Pipes and stream chaining | SHELL | bounded stdout-to-stdin pipelines | PLANNED | 06/15 | Shell/pipeline limits | Maximum stages configured. |
-| Command substitution | SHELL | bounded nested child process capture | PLANNED | 06/15 | Shell/substitution depth | No recursive unbounded evaluation. |
-| Output redirection to VFS | SHELL | explicit redirection syntax and VFS write | PLANNED | 06/15 | Shell/redirection permissions | Replaces reference fallback ambiguity. |
-| Exit status and stderr | SHELL | conventional integer status and separate stderr | PLANNED | 06/15 | Shell/status/streams | Stable command errors. |
-| `break` builtin | BUILTIN | break current script/loop context | PLANNED | 06/15 | Shell/builtin break | Invalid outside context. |
-| `cls` / `clear` builtin | BUILTIN | clear terminal presentation | PLANNED | 06/15 | Shell/builtin clear | Presentation request remains server-authorized. |
-| `echo` builtin | BUILTIN | bounded stdout output, newline option | PLANNED | 06/15 | Shell/builtin echo | Supports pipelines. |
-| `else` builtin | BUILTIN | shell compatibility conditional branch | PLANNED | 06/15 | Shell/builtin else | Vodka Code has structured `else`. |
-| `eval` builtin | BUILTIN | evaluates only shell/Vodka expressions, never host code | PLANNED | 06/15 | Shell/builtin eval safety | No Roslyn/reflection/native eval. |
-| `goonsay` novelty builtin | BUILTIN | clean-room Whiskey novelty equivalent | PLANNED | 06/15 | Shell/builtin novelty | Original name/output is not copied; compatibility topic documented. |
-| `history` builtin | BUILTIN | list/clear bounded per-user history | PLANNED | 06/15 | Shell/builtin history | Correct isolation and eviction. |
-| `if` builtin | BUILTIN | shell compatibility conditional | PLANNED | 06/15 | Shell/builtin if | Predicate errors are explicit. |
-| `logout` / `logoff` builtin | BUILTIN | kernel logout request | PLANNED | 06/15 | Shell/builtin logout | Cleans child processes. |
-| `man` / `help` builtin | BUILTIN, DOC | localized command/Vodka help index | PLANNED | 06/15 | Shell/builtin man | Content matches implemented commands only. |
-| `mesg` builtin | BUILTIN | opt in/out of user messages | PLANNED | 06/15 | Shell/builtin mesg | Session and persisted preference policy tested. |
-| `sleep` builtin | BUILTIN | logical-time process wait | PLANNED | 06/15 | Shell/builtin sleep/cancel | Uses `IGameTiming`, capped. |
-| `talk` builtin | BUILTIN | bounded user-to-user mainframe message | PLANNED | 06/15 | Shell/builtin talk authorization | Cannot message disconnected/private targets. |
-| `unset` builtin | BUILTIN | remove environment/local variables | PLANNED | 06/15 | Shell/builtin unset | System variables protected. |
-| `while` builtin | BUILTIN | bounded shell compatibility loop | PLANNED | 06/15 | Shell/builtin loop budget | Cannot monopolize server. |
-| `who` builtin | BUILTIN | permission-safe session listing | PLANNED | 06/15 | Shell/builtin who | Does not leak privileged session details. |
+| Interactive shell | SHELL | server shell process | PLANNED | 09/15 | Shell/E2E | Presents an operational prompt. |
+| Tokenization, quoting and escaping | SHELL, PROG | dedicated bounded lexer | PLANNED | 09/15 | Shell/parser table | No HTML execution. |
+| Arguments and environment | SHELL | bounded argument vector and environment | PLANNED | 09/15 | Shell/argv/env | Server-owned process state. |
+| Working directory | SHELL, UTIL | canonical VFS cwd | PLANNED | 09/15 | Shell/cwd | Cannot reference unmounted roots. |
+| PATH-like command resolution | SHELL | `/bin`, current directory and explicit path resolution | PLANNED | 09/15 | Shell/resolution | Execute permission checked. |
+| Pipes and stream chaining | SHELL | bounded stdout-to-stdin pipelines | PLANNED | 09/15 | Shell/pipeline limits | Maximum stages configured. |
+| Command substitution | SHELL | bounded nested child process capture | PLANNED | 09/15 | Shell/substitution depth | No recursive unbounded evaluation. |
+| Output redirection to VFS | SHELL | explicit redirection syntax and VFS write | PLANNED | 09/15 | Shell/redirection permissions | Replaces reference fallback ambiguity. |
+| Exit status and stderr | SHELL | conventional integer status and separate stderr | PLANNED | 09/15 | Shell/status/streams | Stable command errors. |
+| `break` builtin | BUILTIN | break current script/loop context | PLANNED | 09/15 | Shell/builtin break | Invalid outside context. |
+| `cls` / `clear` builtin | BUILTIN | clear terminal presentation | PLANNED | 09/15 | Shell/builtin clear | Presentation request remains server-authorized. |
+| `echo` builtin | BUILTIN | bounded stdout output, newline option | PLANNED | 09/15 | Shell/builtin echo | Supports pipelines. |
+| `else` builtin | BUILTIN | shell compatibility conditional branch | PLANNED | 09/15 | Shell/builtin else | Vodka Code has structured `else`. |
+| `eval` builtin | BUILTIN | evaluates only shell/Vodka expressions, never host code | PLANNED | 09/15 | Shell/builtin eval safety | No Roslyn/reflection/native eval. |
+| `goonsay` novelty builtin | BUILTIN | clean-room Whiskey novelty equivalent | PLANNED | 09/15 | Shell/builtin novelty | Original name/output is not copied; compatibility topic documented. |
+| `history` builtin | BUILTIN | list/clear bounded per-user history | PLANNED | 09/15 | Shell/builtin history | Correct isolation and eviction. |
+| `if` builtin | BUILTIN | shell compatibility conditional | PLANNED | 09/15 | Shell/builtin if | Predicate errors are explicit. |
+| `logout` / `logoff` builtin | BUILTIN | kernel logout request | PLANNED | 09/15 | Shell/builtin logout | Cleans child processes. |
+| `man` / `help` builtin | BUILTIN, DOC | localized command/Vodka help index | PLANNED | 09/15 | Shell/builtin man | Content matches implemented commands only. |
+| `mesg` builtin | BUILTIN | opt in/out of user messages | PLANNED | 09/15 | Shell/builtin mesg | Session and persisted preference policy tested. |
+| `sleep` builtin | BUILTIN | logical-time process wait | PLANNED | 09/15 | Shell/builtin sleep/cancel | Uses `IGameTiming`, capped. |
+| `talk` builtin | BUILTIN | bounded user-to-user mainframe message | PLANNED | 09/15 | Shell/builtin talk authorization | Cannot message disconnected/private targets. |
+| `unset` builtin | BUILTIN | remove environment/local variables | PLANNED | 09/15 | Shell/builtin unset | System variables protected. |
+| `while` builtin | BUILTIN | bounded shell compatibility loop | PLANNED | 09/15 | Shell/builtin loop budget | Cannot monopolize server. |
+| `who` builtin | BUILTIN | permission-safe session listing | PLANNED | 09/15 | Shell/builtin who | Does not leak privileged session details. |
 
 ## Vodka Code and scripting operators
 
