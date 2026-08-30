@@ -55,6 +55,29 @@ public sealed partial class PeriodicMoodComponent : Component
     public ProtoId<LocalizedDatasetPrototype>? Messages;
 
     /// <summary>
+    /// Onde a frase aparece: popup em cima do personagem quando ligado, linha
+    /// de chat quando desligado. **Um ou outro, nunca os dois.**
+    ///
+    /// Desligado por padrão, e a escolha tem motivo. O popup do SS14 dura
+    /// 0,04 segundo por caractere, com teto de 5, então um pensamento de 50
+    /// caracteres pisca em 2 segundos. Isso serve para susto, que é o caso das
+    /// vozes da esquizofrenia, e não serve para pensamento que a pessoa
+    /// deveria absorver.
+    ///
+    /// No chat ele fica, e a cor abaixo é o que impede dele se perder no meio
+    /// dos comunicados da estação.
+    /// </summary>
+    [DataField]
+    public bool Popup;
+
+    /// <summary>
+    /// Cor da linha no chat. Existe para o pensamento não se confundir com
+    /// comunicado da estação nem com fala de outra pessoa.
+    /// </summary>
+    [DataField]
+    public Color MessageColor = Color.FromHex("#9A8CA8");
+
+    /// <summary>
     /// Aviso mostrado uma vez, quando a pessoa ganha isto. Serve para deixar
     /// claro que é interpretação de papel, que é o que o TG faz com a quirk
     /// equivalente.
