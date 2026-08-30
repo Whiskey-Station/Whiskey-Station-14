@@ -11,6 +11,7 @@ using Content.Shared.Roles;
 using NUnit.Framework;
 using Robust.Client.UserInterface;
 using Robust.Shared.Configuration;
+using Robust.Shared.Localization;
 using Robust.Shared.Prototypes;
 
 namespace Content.IntegrationTests.Tests.Chat;
@@ -18,6 +19,7 @@ namespace Content.IntegrationTests.Tests.Chat;
 public sealed class ChatHighlightTest : GameTest
 {
     [SidedDependency(Side.Client)] private readonly IConfigurationManager _configManager = null!;
+    [SidedDependency(Side.Client)] private readonly ILocalizationManager _localization = null!;
     [SidedDependency(Side.Client)] private readonly IUserInterfaceManager _uiManager = null!;
     private static readonly ProtoId<JobPrototype> Captain = "Captain";
 
@@ -75,13 +77,14 @@ public sealed class ChatHighlightTest : GameTest
         );
         Assert.That(highlightsField, Is.Not.Null);
         var activeHighlights = (List<string>)highlightsField.GetValue(chatController)!;
+        var localizedCaptain = GetLocalizedCaptainHighlight();
 
         // Check that custom and auto highlights are loaded
         // Custom:
         Assert.That(activeHighlights, Contains.Item("ling"));
         Assert.That(activeHighlights, Contains.Item("rev"));
         // Auto:
-        Assert.That(activeHighlights, Contains.Item("Captain"));
+        Assert.That(activeHighlights, Contains.Item(localizedCaptain));
         Assert.That(activeHighlights, Contains.Item("(?<!\\w)Cap(?!\\w)")); // "Cap" becomes regex-escaped and word-bounded
 
         // 5. Disable auto-fill highlights and verify auto-filled highlights are removed
@@ -90,7 +93,7 @@ public sealed class ChatHighlightTest : GameTest
         activeHighlights = (List<string>)highlightsField.GetValue(chatController)!;
         Assert.That(activeHighlights, Contains.Item("ling"));
         Assert.That(activeHighlights, Contains.Item("rev"));
-        Assert.That(activeHighlights, Is.Not.Contains("Captain"));
+        Assert.That(activeHighlights, Is.Not.Contains(localizedCaptain));
     }
 
     [Test]
@@ -153,9 +156,16 @@ public sealed class ChatHighlightTest : GameTest
 
         // - Active highlights list must now merge both custom and auto-filled ones
         activeHighlights = (List<string>)highlightsField.GetValue(chatController)!;
+        var localizedCaptain = GetLocalizedCaptainHighlight();
         Assert.That(activeHighlights, Contains.Item("ling"));
         Assert.That(activeHighlights, Contains.Item("rev"));
-        Assert.That(activeHighlights, Contains.Item("Captain"));
+        Assert.That(activeHighlights, Contains.Item(localizedCaptain));
         Assert.That(activeHighlights, Contains.Item("(?<!\\w)Cap(?!\\w)"));
+    }
+
+    private string GetLocalizedCaptainHighlight()
+    {
+        var jobMatches = _localization.GetString("highlights-captain");
+        return jobMatches.Split(", ", StringSplitOptions.TrimEntries)[0];
     }
 }
