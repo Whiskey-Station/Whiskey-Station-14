@@ -138,6 +138,37 @@ public sealed class MoodTest : GameTest
     }
 
     /// <summary>
+    /// Todo modificador de humor precisa de descrição na tradução.
+    ///
+    /// O MoodEffectPrototype monta a descrição como `mood-effect-{ID}`. Sem a
+    /// chave, o painel de humor mostra o nome cru do prototype na tela do
+    /// jogador e o servidor loga erro a cada vez que ele abre o alerta.
+    ///
+    /// Isto pegou dois defeitos meus: eu criei dois modificadores e não escrevi
+    /// a chave de nenhum. Só apareceu testando em jogo.
+    /// </summary>
+    [Test]
+    public async Task TodoModificadorDeHumorTemDescricao()
+    {
+        var server = Server;
+        var protos = server.ProtoMan;
+        var loc = server.ResolveDependency<ILocalizationManager>();
+        var faltando = new List<string>();
+
+        await server.WaitPost(() =>
+        {
+            foreach (var efeito in protos.EnumeratePrototypes<MoodEffectPrototype>())
+            {
+                if (!loc.TryGetString($"mood-effect-{efeito.ID}", out _))
+                    faltando.Add(efeito.ID);
+            }
+        });
+
+        Assert.That(faltando, Is.Empty,
+            "modificador sem descrição na tradução: " + string.Join(", ", faltando));
+    }
+
+    /// <summary>
     /// Todo modificador de humor que aponta uma categoria precisa que ela
     /// exista.
     ///

@@ -52,3 +52,8 @@ mood-effect-HeirloomSecure = Minha herança está segura, e com ela a memória d
 mood-effect-HeirloomLost = Não estou achando a minha herança. Como o passado fica seguro agora?
 
 mood-effect-SurgeryPain = A cirurgia dói.
+
+# Whiskey: o HeirloomNeutral existe como modificador no repositório de origem
+# e não tem descrição nem lá, então o painel de humor mostraria o nome cru na
+# tela. Escrita aqui, no mesmo tom das outras duas de herança.
+mood-effect-HeirloomNeutral = Preciso saber onde a minha herança está.

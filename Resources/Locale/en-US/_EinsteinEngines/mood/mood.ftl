@@ -164,3 +164,8 @@ mood-effect-DeepFriedEffect =
     I ate something deep fried! It was the tastiest thing I've ever had in my life!
 mood-effect-TastyEffect =
     That was really tasty!
+
+# Whiskey: o HeirloomNeutral existe como modificador no repositório de origem
+# e não tem descrição nem lá, então o painel de humor mostraria o nome cru na
+# tela. Escrita aqui, no mesmo tom das outras duas de herança.
+mood-effect-HeirloomNeutral = I need to know where my heirloom is.
