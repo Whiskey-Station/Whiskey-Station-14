@@ -16,6 +16,7 @@ public sealed partial class DwaineProcessRuntimeComponent : Component
     internal readonly Queue<DwaineProcessId> ReadyQueue = new();
     internal readonly HashSet<DwaineProcessId> Queued = new();
     internal readonly Queue<DwaineProcessId> CompletedOrder = new();
+    internal int CompletedProcessCount;
 }
 
 internal sealed class DwaineProcessRecord

@@ -179,7 +179,9 @@ public sealed partial class DwaineProcessSystem : EntitySystem
 
     public DwaineProcessControlResult TryExit(EntityUid mainframe, DwaineProcessId processId, int exitCode = 0)
     {
-        if (!TryGetRuntimeProcess(mainframe, processId, out var runtime, out var process))
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
+            return DwaineProcessControlResult.MainframeUnavailable;
+        if (!runtime.Processes.TryGetValue(processId, out var process))
             return DwaineProcessControlResult.ProcessNotFound;
 
         if (process.IsTerminal)
@@ -202,7 +204,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         DwaineProcessId requesterId,
         DwaineProcessId targetId)
     {
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime) || !runtime.Online)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
             return DwaineProcessControlResult.MainframeUnavailable;
 
         if (!runtime.Processes.TryGetValue(requesterId, out var requester)
@@ -235,7 +237,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         DwaineProcessId requesterId,
         DwaineProcessId targetId)
     {
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime) || !runtime.Online)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
             return DwaineProcessControlResult.MainframeUnavailable;
 
         if (!runtime.Processes.TryGetValue(requesterId, out var requester)
@@ -268,7 +270,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         DwaineProcessId requesterId,
         DwaineProcessId targetId)
     {
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime) || !runtime.Online)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
             return DwaineProcessControlResult.MainframeUnavailable;
 
         if (!runtime.Processes.TryGetValue(requesterId, out var requester)
@@ -311,7 +313,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         out DwaineProcessResult result)
     {
         result = default;
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime) || !runtime.Online)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
             return DwaineProcessWaitStatus.MainframeUnavailable;
 
         if (!runtime.Processes.TryGetValue(parentId, out var parent) || parent.IsTerminal)
@@ -356,7 +358,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         string type,
         string payload)
     {
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime) || !runtime.Online)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
             return DwaineProcessMessageResult.MainframeUnavailable;
 
         if (!runtime.Processes.TryGetValue(senderId, out var sender)
@@ -418,7 +420,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
 
     public bool TryReap(EntityUid mainframe, DwaineProcessOwner requester, DwaineProcessId processId)
     {
-        if (!TryComp<DwaineProcessRuntimeComponent>(mainframe, out var runtime)
+        if (!TryGetOnlineRuntime(mainframe, out var runtime)
             || !runtime.Processes.TryGetValue(processId, out var process)
             || !process.IsTerminal
             || requester != DwaineProcessOwner.System && requester != process.Owner)
@@ -626,6 +628,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         TimeSpan now)
     {
         var descendants = new List<DwaineProcessRecord>();
+        var terminating = new HashSet<DwaineProcessId> { process.Id };
         var pending = new Stack<DwaineProcessId>(process.Children);
         while (pending.TryPop(out var childId))
         {
@@ -633,6 +636,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                 continue;
 
             descendants.Add(child);
+            terminating.Add(child.Id);
             foreach (var grandchild in child.Children)
                 pending.Push(grandchild);
         }
@@ -650,11 +654,12 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                     143,
                     DwaineProcessExitReason.ParentExited,
                     "parent-exited",
-                    now);
+                    now,
+                    terminating);
             }
         }
 
-        CompleteSingle(mainframe, runtime, process, state, exitCode, reason, errorCode, now);
+        CompleteSingle(mainframe, runtime, process, state, exitCode, reason, errorCode, now, terminating);
     }
 
     private void CompleteSingle(
@@ -665,7 +670,8 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         int exitCode,
         DwaineProcessExitReason reason,
         string errorCode,
-        TimeSpan now)
+        TimeSpan now,
+        IReadOnlySet<DwaineProcessId>? terminating = null)
     {
         if (process.IsTerminal)
             return;
@@ -691,6 +697,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         process.ErrorCode = NormalizeCode(errorCode, string.Empty);
         process.CompletedAt = now;
         process.WaitingFor = null;
+        runtime.CompletedProcessCount++;
         SetState(mainframe, runtime, process, state);
 
         var delivered = false;
@@ -698,13 +705,17 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             && runtime.Processes.TryGetValue(parentId, out var parent)
             && parent.WaitingFor == process.Id)
         {
-            parent.LastWaitResult = process.Result();
             parent.WaitingFor = null;
             parent.Children.Remove(process.Id);
-            if (parent.State == DwaineProcessState.Waiting)
+            var parentWillTerminate = terminating?.Contains(parent.Id) == true;
+            if (!parentWillTerminate)
             {
-                SetState(mainframe, runtime, parent, DwaineProcessState.Ready);
-                EnqueueReady(mainframe, runtime, parent);
+                parent.LastWaitResult = process.Result();
+                if (parent.State == DwaineProcessState.Waiting)
+                {
+                    SetState(mainframe, runtime, parent, DwaineProcessState.Ready);
+                    EnqueueReady(mainframe, runtime, parent);
+                }
             }
 
             delivered = true;
@@ -765,6 +776,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         runtime.ReadyQueue.Clear();
         runtime.Queued.Clear();
         runtime.CompletedOrder.Clear();
+        runtime.CompletedProcessCount = 0;
         runtime.Online = false;
         runtime.BootGeneration = 0;
     }
@@ -860,11 +872,24 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         out DwaineProcessRuntimeComponent runtime,
         out DwaineProcessRecord process)
     {
-        if (!TryComp(mainframe, out runtime!)
+        if (!TryGetOnlineRuntime(mainframe, out runtime!)
             || !runtime.Processes.TryGetValue(processId, out process!))
         {
             runtime = null!;
             process = null!;
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryGetOnlineRuntime(EntityUid mainframe, out DwaineProcessRuntimeComponent runtime)
+    {
+        if (TerminatingOrDeleted(mainframe)
+            || !TryComp(mainframe, out runtime!)
+            || !runtime.Online)
+        {
+            runtime = null!;
             return false;
         }
 
@@ -950,6 +975,8 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         process.Stdout.Clear();
         process.Stderr.Clear();
         process.Mailbox.Clear();
+        if (process.IsTerminal && runtime.CompletedProcessCount > 0)
+            runtime.CompletedProcessCount--;
     }
 
     private static void PruneCompleted(
@@ -965,10 +992,9 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                 continue;
             }
 
-            var completedCount = runtime.Processes.Values.Count(entry => entry.IsTerminal);
             var expired = process.CompletedAt is { } completedAt
                           && now - completedAt >= limits.CompletedRetention;
-            if (completedCount <= limits.CompletedProcessLimit && !expired)
+            if (runtime.CompletedProcessCount <= limits.CompletedProcessLimit && !expired)
                 break;
 
             runtime.CompletedOrder.Dequeue();

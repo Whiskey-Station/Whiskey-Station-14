@@ -230,6 +230,71 @@ public sealed class DwaineProcessTest : GameTest
     }
 
     [Test]
+    public async Task CascadeDoesNotRequeueAWaitingDescendantThatIsAlsoTerminating()
+    {
+        EntityUid map = EntityUid.Invalid;
+        EntityUid mainframe = EntityUid.Invalid;
+        DwaineProcessId rootId = default;
+        DwaineProcessId middleId = default;
+        DwaineProcessId leafId = default;
+        var middleProgram = new WaitingProgram();
+
+        await SpawnReadyMainframe(uid =>
+        {
+            mainframe = uid.Mainframe;
+            map = uid.Map;
+        });
+
+        await Server.WaitAssertion(() =>
+        {
+            var processes = Server.System<DwaineProcessSystem>();
+            var owner = new DwaineProcessOwner(23);
+            Assert.That(processes.TrySpawn(mainframe, Request(owner, "root", new HoldProgram()), out rootId),
+                Is.EqualTo(DwaineProcessSpawnResult.Success));
+            Assert.That(processes.TrySpawn(
+                    mainframe,
+                    Request(owner, "middle", middleProgram, rootId),
+                    out middleId),
+                Is.EqualTo(DwaineProcessSpawnResult.Success));
+            Assert.That(processes.TrySpawn(
+                    mainframe,
+                    Request(owner, "leaf", new HoldProgram(), middleId),
+                    out leafId),
+                Is.EqualTo(DwaineProcessSpawnResult.Success));
+            middleProgram.Child = leafId;
+        });
+
+        await Server.WaitRunTicks(1);
+        await Server.WaitAssertion(() =>
+        {
+            var processes = Server.System<DwaineProcessSystem>();
+            var runtime = Server.EntMan.GetComponent<DwaineProcessRuntimeComponent>(mainframe);
+            Assert.That(processes.TryGetProcess(mainframe, middleId, out var waiting), Is.True);
+            Assert.That(waiting.State, Is.EqualTo(DwaineProcessState.Waiting));
+
+            Assert.That(processes.TryKill(mainframe, rootId, middleId),
+                Is.EqualTo(DwaineProcessControlResult.Success));
+            Assert.Multiple(() =>
+            {
+                Assert.That(processes.TryGetProcess(mainframe, middleId, out var middle), Is.True);
+                Assert.That(middle.State, Is.EqualTo(DwaineProcessState.Exited));
+                Assert.That(processes.TryGetProcess(mainframe, leafId, out _), Is.False);
+                Assert.That(runtime.ReadyQueue, Does.Not.Contain(middleId));
+                Assert.That(runtime.Queued, Does.Not.Contain(middleId));
+                Assert.That(runtime.CompletedProcessCount, Is.EqualTo(1));
+            });
+
+            Assert.That(processes.TryReap(mainframe, new DwaineProcessOwner(23), middleId), Is.True);
+            Assert.That(runtime.CompletedProcessCount, Is.Zero);
+            Assert.That(processes.TryExit(mainframe, rootId), Is.EqualTo(DwaineProcessControlResult.Success));
+            Assert.That(runtime.CompletedProcessCount, Is.EqualTo(1));
+            Assert.That(processes.TryReap(mainframe, new DwaineProcessOwner(23), rootId), Is.True);
+            Assert.That(runtime.CompletedProcessCount, Is.Zero);
+            Server.EntMan.DeleteEntity(map);
+        });
+    }
+
+    [Test]
     public async Task FaultStopContinueInstructionBudgetAndIpcAreContained()
     {
         EntityUid map = EntityUid.Invalid;
@@ -399,6 +464,8 @@ public sealed class DwaineProcessTest : GameTest
                 Assert.That(allocated, Has.Count.EqualTo(128));
                 Assert.That(processes.GetActiveProcessCount(mainframe), Is.Zero);
                 Assert.That(processes.GetProcessTable(mainframe), Is.Empty);
+                Assert.That(Server.EntMan.GetComponent<DwaineProcessRuntimeComponent>(mainframe)
+                    .CompletedProcessCount, Is.Zero);
             });
             Server.EntMan.DeleteEntity(map);
         });
