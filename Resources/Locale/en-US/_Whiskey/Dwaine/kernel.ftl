@@ -1,0 +1,13 @@
+dwaine-kernel-diagnostic-post = power-on self-test started
+dwaine-kernel-diagnostic-bootloader = bootloader selected the configured local boot source
+dwaine-kernel-diagnostic-initialize = kernel initialization started
+dwaine-kernel-diagnostic-ready = system ready
+dwaine-kernel-diagnostic-shutdown = clean shutdown started
+dwaine-kernel-diagnostic-reboot = clean reboot started
+dwaine-kernel-diagnostic-off = system stopped
+dwaine-kernel-diagnostic-power-lost = power lost; transient kernel state was cleared
+dwaine-kernel-diagnostic-panic = controlled kernel panic; reboot required
+dwaine-kernel-diagnostic-hardware-failed = POST failed: required mainframe hardware is unavailable
+dwaine-kernel-diagnostic-storage-failed = POST failed: no usable storage connector is available
+dwaine-kernel-diagnostic-initialize-failed = kernel initialization failed safely
+dwaine-kernel-diagnostic-service-failed = service shutdown failed safely: {$service}
