@@ -942,7 +942,8 @@ public sealed partial class NativeAntagBridgeSystem : EntitySystem
         // the operative's current world position, so every recipient can hear
         // it without networking the operative herself.
         var coordinates = new EntityCoordinates(mapUid, _transform.GetWorldPosition(sourceTransform));
-        var stream = _audio.PlayStatic(sound, Filter.Broadcast(), coordinates, true, parameters)?.Entity;
+        var recipients = Filter.Broadcast().RemovePlayerByAttachedEntity(source);
+        var stream = _audio.PlayStatic(sound, recipients, coordinates, true, parameters)?.Entity;
         if (stream is not { } streamUid)
             return false;
         component.AudioStreams[command.Token] = streamUid;

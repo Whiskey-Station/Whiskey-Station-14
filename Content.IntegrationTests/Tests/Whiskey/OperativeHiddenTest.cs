@@ -25,6 +25,7 @@ using Content.Shared.Humanoid;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Inventory;
+using Content.Shared.Interaction;
 using Content.Shared.Interaction.Components;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
@@ -480,6 +481,20 @@ public sealed class OperativeHiddenTest : GameTest
                 Assert.That(patientMind.Comp.CurrentEntity, Is.EqualTo(patient));
                 Assert.That(server.EntMan.HasComponent<HandsComponent>(patient), Is.True,
                     "the conscious patient must retain hands for relayed weapons");
+            });
+
+            var pen = server.EntMan.SpawnEntity("Pen", map.GridCoords);
+            server.System<SharedInteractionSystem>().UserInteraction(
+                operative,
+                server.EntMan.GetComponent<TransformComponent>(pen).Coordinates,
+                pen);
+            var hands = server.System<SharedHandsSystem>();
+            Assert.Multiple(() =>
+            {
+                Assert.That(hands.GetActiveItem((patient, null)), Is.EqualTo(pen),
+                    "the operative's click must use the puppet's active hand");
+                Assert.That(hands.GetActiveItem((operative, null)), Is.Null,
+                    "remote interaction must not use the operative body's hands");
             });
 
             var smallDamage = new DamageSpecifier();
@@ -965,7 +980,7 @@ public sealed class OperativeHiddenTest : GameTest
     }
 
     [Test]
-    public async Task PositionalRadioIsBroadcastToOperativeAndNearbyListener()
+    public async Task PositionalRadioIsBroadcastToEveryoneExceptOperative()
     {
         var pair = Pair;
         var server = pair.Server;
@@ -986,7 +1001,7 @@ public sealed class OperativeHiddenTest : GameTest
             var native = server.EntMan.GetComponent<NativeAntagComponent>(operative);
             Assert.That(native.AudioStreams.TryGetValue(1, out var disclosureStream), Is.True,
                 "attaching a player must start the continuous disclosure radio");
-            AssertBroadcastRecipients(server, disclosureStream, operative, listener);
+            AssertBroadcastRecipientsExceptOperative(server, disclosureStream, operative, listener);
             disclosureNet = server.EntMan.GetNetEntity(disclosureStream);
 
             var language = server.ProtoMan.Index(UniversalLanguage);
@@ -995,7 +1010,7 @@ public sealed class OperativeHiddenTest : GameTest
 
             Assert.That(native.AudioStreams.TryGetValue(2, out var speechStream), Is.True,
                 "speaking must start the random 1.5/2 second radio cue");
-            AssertBroadcastRecipients(server, speechStream, operative, listener);
+            AssertBroadcastRecipientsExceptOperative(server, speechStream, operative, listener);
             speechNet = server.EntMan.GetNetEntity(speechStream);
         });
 
@@ -1019,7 +1034,7 @@ public sealed class OperativeHiddenTest : GameTest
         await server.RemoveDummySession(operativeSession, removeUser: true);
     }
 
-    private static void AssertBroadcastRecipients(
+    private static void AssertBroadcastRecipientsExceptOperative(
         RobustIntegrationTest.ServerIntegrationInstance server,
         EntityUid stream,
         EntityUid operative,
@@ -1039,7 +1054,8 @@ public sealed class OperativeHiddenTest : GameTest
             Assert.That(audio.Params.Volume, Is.EqualTo(-7f));
             Assert.That(audio.Flags.HasFlag(AudioFlags.NoOcclusion), Is.False,
                 "walls must keep the engine's low-pass occlusion enabled");
-            Assert.That(audio.IncludedEntities, Does.Contain(operative));
+            Assert.That(audio.IncludedEntities, Does.Not.Contain(operative),
+                "the Hidden Operative must not receive their own disclosure radio");
             Assert.That(audio.IncludedEntities, Does.Contain(listener),
                 "a second attached player must receive the radio audio state");
         });
