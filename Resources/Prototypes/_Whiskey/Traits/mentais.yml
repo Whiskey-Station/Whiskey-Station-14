@@ -28,11 +28,15 @@
 - type: moodCategory
   id: WhiskeyDepressao
 
+# A duração precisa ser MENOR que o menor intervalo entre episódios, senão o
+# episódio seguinte chega antes do anterior expirar, reinicia o relógio por ser
+# da mesma categoria, e o humor fica preso lá embaixo para sempre. Com 180
+# contra um mínimo de 240, sobra pelo menos um minuto de respiro toda vez.
 - type: moodEffect
   id: WhiskeyDepressaoEpisodio
   category: WhiskeyDepressao
   moodChange: -18
-  timeout: 300
+  timeout: 180
 
 - type: localizedDataset
   id: WhiskeyDepressaoPensamentos

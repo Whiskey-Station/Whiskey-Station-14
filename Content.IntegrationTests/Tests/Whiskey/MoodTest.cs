@@ -102,6 +102,53 @@ public sealed class MoodTest : GameTest
     }
 
     /// <summary>
+    /// O modificador tem que expirar antes do próximo episódio chegar.
+    ///
+    /// Modificadores da mesma categoria se substituem, e a substituição
+    /// reinicia o relógio. Se a duração for maior ou igual ao menor intervalo
+    /// entre episódios, o seguinte chega antes do anterior expirar e o humor
+    /// fica preso lá embaixo para sempre, com a tela cinza sem voltar.
+    ///
+    /// Isto foi defeito real e só apareceu testando em jogo: nenhum teste
+    /// olhava a relação entre os dois números, porque cada um sozinho parecia
+    /// razoável.
+    /// </summary>
+    [Test]
+    public async Task OModificadorExpiraAntesDoProximoEpisodio()
+    {
+        var server = Server;
+        var protos = server.ProtoMan;
+        var problemas = new List<string>();
+
+        await server.WaitPost(() =>
+        {
+            foreach (var traco in protos.EnumeratePrototypes<Content.Shared.Traits.TraitPrototype>())
+            {
+                var nome = server.EntMan.ComponentFactory.GetComponentName(typeof(PeriodicMoodComponent));
+                if (!traco.Components.TryGetComponent(nome, out var bruto))
+                    continue;
+
+                var periodico = (PeriodicMoodComponent) bruto;
+                if (!protos.TryIndex<MoodEffectPrototype>(periodico.Effect, out var efeito))
+                    continue;
+
+                // Sem categoria eles não se substituem, então não trava.
+                if (efeito.Category is null || efeito.Timeout == 0)
+                    continue;
+
+                if (efeito.Timeout >= periodico.MinTimeBetween)
+                {
+                    problemas.Add(
+                        $"{traco.ID}: o modificador {efeito.ID} dura {efeito.Timeout}s e o " +
+                        $"episódio pode voltar em {periodico.MinTimeBetween}s, então o humor nunca recupera");
+                }
+            }
+        });
+
+        Assert.That(problemas, Is.Empty, string.Join(" | ", problemas));
+    }
+
+    /// <summary>
     /// Toda frase que o dataset promete tem que existir na tradução.
     ///
     /// O dataset é prefixo mais contagem, então subir a contagem sem escrever
