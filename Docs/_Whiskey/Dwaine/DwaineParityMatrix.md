@@ -25,7 +25,7 @@ Status values used during delivery:
 - `IMPLEMENTED`: the assigned runtime behavior exists and is covered by automated tests.
 - `PLANNED`: fully classified behavior assigned to one later PR; not claimed as implemented.
 - `NOT APPLICABLE`: identified reference material with no functional parity obligation; the reason is recorded.
-- PR 15 must replace every `SPECIFIED` or `PLANNED` value with `IMPLEMENTED` or a justified `NOT APPLICABLE`.
+- The release gate after PR 15 must replace every `SPECIFIED` or `PLANNED` value with `IMPLEMENTED` or a justified `NOT APPLICABLE`; PR 15 remains a development PR for advanced integrations and diagnostics.
 
 ## Source index
 
@@ -119,8 +119,8 @@ Status values used during delivery:
 | Rename/copy/move | UTIL, VFS | VFS-native operations with stable source handles and independent deep copies | IMPLEMENTED | 06/15 | `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove`, `CopyIsIndependentAndMoveRejectsDescendantDestinations` | Descendant destinations are rejected; cross-volume moves return an explicit result used by PR 07. |
 | List/mkdir | UTIL, VFS | sorted bounded enumeration and optional parent creation | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `DirectoryDeletionRequiresExplicitRecursiveCleanup` | Permission decisions consume the metadata hooks in PR 08. |
 | Symbolic directory links | VFS | stable-handle symbolic links with no-follow-final operations | IMPLEMENTED | 06/15 | `LinksDetectCyclesDepthAndBrokenTargetsWithoutFollowingFinalWhenRequested` | Broken targets, cycles and maximum traversal depth produce distinct controlled errors. |
-| Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | PLANNED | 07/15 | VFS/mount/unmount | Logical mount contracts start in PR 06; media-backed behavior completes PR 07. |
-| Volumes and storage quotas | VFS, MEDIA | bounded volumes with byte/node quotas | PLANNED | 07/15 | VFS/quota/mass creation | No unbounded file creation. |
+| Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | IMPLEMENTED | 07/15 | `MountedVolumesSupportRelativePathsCrossVolumeCopiesAndStableHandles`, `ShutdownUnmountsButKeepsInsertedPersistentMedia` | Mountpoints cannot hide non-empty trees; normal unmount is denied while a live process uses the volume as cwd. |
+| Volumes and storage quotas | VFS, MEDIA | bounded per-medium volumes with node, path, payload, child, link and archive quotas | IMPLEMENTED | 07/15 | `MountedVolumeReadOnlyAndPerVolumeLimitsAreEnforced`, `MountedVolumeStructuralLimitsCannotBeBypassedByRenameMoveOrCopy`, `RemovableDiskPersistsAcrossFlushEjectAndReinsert` | Detached handles are revoked and every media volume retains its own independently clamped limits; rename, move and copy cannot bypass structural quotas. |
 | Metadata: date, owner, group, mode | VFS | typed owner/group/mode/flags plus authoritative game-time creation/modification values | IMPLEMENTED | 06/15 | `MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation` | Central ownership/mode authorization consumes these hooks in PR 08. |
 | Directory depth and archive depth | VFS | configuration clamped by non-bypassable server hard ceilings | IMPLEMENTED | 06/15 | `NodeAndDepthLimitsContainMassCreation`, `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Traversals are bounded independently from client input. |
 | Text file | VFS | bounded text node with overwrite and append | IMPLEMENTED | 06/15 | `RecordAndTextMutationsAreBoundedAndAtomic` | Overflow is rejected without truncating or replacing existing content. |
@@ -133,7 +133,7 @@ Status values used during delivery:
 | Archive file | VFS, UTIL | bounded recursively copied archive metadata with controlled extraction | IMPLEMENTED | 06/15 | `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Entry/depth/node quotas apply; an archive cannot be written into the source subtree. Media persistence lands in PR 07. |
 | Program/script file | PROG, SHELL | bounded executable descriptor and source node prepared for `.vodka` | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Native descriptors are immutable through text writes; the Vodka lexer/runtime remain PRs 10/11. |
 | System/virtual file | NS, KERNEL | flagged system node and read-only virtual record representation | IMPLEMENTED | 06/15 | `MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation`, `ProcessWorkingDirectoriesAndProcViewsUseValidatedServerHandles` | Virtual process records are generated server-side and are never client-authored. |
-| Mountpoint file proxy | DRV, VFS | capability-backed mounted volume adapter | PLANNED | 07/15 | Storage/device removal | Revokes on device loss. |
+| Mountpoint file proxy | DRV, VFS | server-owned mounted-volume adapter with opaque volume/node handles | IMPLEMENTED | 07/15 | `DetachInvalidatesHandlesAndReattachPreservesMediaState`, `MediaAndMainframeDestructionCleanBothSidesOfTheRelationship`, `ExternalContainerRemovalInvalidatesMountAndBothRelationshipIndexes` | Device loss or removal outside the normal ejection API detaches the volume, clears both relationship indexes and immediately invalidates handles in that mainframe VFS. |
 | Guardbot task payload | GUARDBOT, VFS | typed device document through guardbot driver | PLANNED | 15/15 | Driver/guardbot task | Never exposes bot entity IDs to scripts. |
 | Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc`, `/etc/mail` | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `StructuralLimitClampsAlwaysPreserveTheCanonicalSystemTree` | Structural minimum clamps guarantee the complete layout even under undersized prototype configuration. |
 | Temporary and full users | KERNEL | unauthenticated terminal session and authenticated account | PLANNED | 08/15 | Auth/temp/full login | Temporary identity has minimal authority. |
@@ -184,41 +184,41 @@ All rows below describe functional equivalents. Vodka Code uses the grammar in `
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Lexer, source locations and diagnostics | OP, SHELL | Vodka lexer with line/column spans | SPECIFIED | 07/15 | Vodka/lexer/error corpus | Specification 0.1 is normative. |
-| Parser and AST/IR | OP, SHELL | purpose-built Vodka parser and representation | SPECIFIED | 07/15 | Vodka/parser/AST | No arbitrary C# compilation. |
-| Variables, literals and lexical scopes | OP | `let`, assignment, integer, boolean, string, null | SPECIFIED | 07/15 | Vodka/runtime values | Bounded per process. |
-| Structured `if` / `else` | BUILTIN, OP | Vodka conditional statements | SPECIFIED | 07/15 | Vodka/conditionals | Boolean conditions only. |
-| Structured `while`, `break`, `continue` | BUILTIN, SHELL | budgeted Vodka control flow | SPECIFIED | 07/15 | Vodka/infinite loop termination | Every iteration consumes instructions. |
-| Return and exit semantics | SHELL, SYSCALL | script result and process exit code | SPECIFIED | 07/15 | Vodka/return/exit | Stable parent notification. |
-| Instruction, recursion, source, output and process limits | NS, SHELL | VM resource governor | SPECIFIED | 07/15 | Vodka/resource exhaustion | Defaults recorded in language spec. |
-| `+` add/concatenate | OP | typed `+` | PLANNED | 08/15 | Vodka/operator add | Mixed types rejected. |
-| `-` subtract | OP | checked integer subtraction | PLANNED | 08/15 | Vodka/operator subtract | String slicing becomes explicit library behavior. |
-| `*` multiply | OP | checked integer multiplication | PLANNED | 08/15 | Vodka/operator multiply | String repeat becomes explicit bounded function. |
-| `/` divide | OP | checked integer division | PLANNED | 08/15 | Vodka/operator divide/zero | String split becomes explicit library behavior. |
-| `%` modulo | OP | checked integer remainder | PLANNED | 08/15 | Vodka/operator modulo/zero | Zero is a runtime error. |
-| `rand` | OP | seeded deterministic random function | PLANNED | 08/15 | Vodka/random reproducibility | No ambient RNG. |
-| `and` | OP | short-circuit boolean conjunction | PLANNED | 08/15 | Vodka/operator and | Bitwise operations, if added, use distinct names. |
-| `or` | OP | short-circuit boolean disjunction | PLANNED | 08/15 | Vodka/operator or | Deterministic order. |
-| `xor` / `eor` | OP | boolean exclusive-or | PLANNED | 08/15 | Vodka/operator xor | Compatibility alias may be library-only. |
-| `not` / `!` | OP | boolean negation | PLANNED | 08/15 | Vodka/operator not | Strict boolean type. |
-| `eq` | OP | `==` equality | PLANNED | 08/15 | Vodka/operator equality | Same-kind comparison. |
-| `ne` | OP | `!=` inequality | PLANNED | 08/15 | Vodka/operator inequality | Same-kind comparison. |
-| `gt` | OP | `>` relation | PLANNED | 08/15 | Vodka/operator greater | Ordinal strings. |
-| `ge` | OP | `>=` relation | PLANNED | 08/15 | Vodka/operator greater-equal | Ordinal strings. |
-| `lt` | OP | `<` relation | PLANNED | 08/15 | Vodka/operator less | Ordinal strings. |
-| `le` | OP | `<=` relation | PLANNED | 08/15 | Vodka/operator less-equal | Ordinal strings. |
-| file `e` predicate | OP | `fs.exists(path)` | PLANNED | 08/15 | Vodka/file exists permissions | Cannot reveal inaccessible nodes. |
-| file `d` predicate | OP | `fs.is_directory(path)` | PLANNED | 08/15 | Vodka/file directory | Canonical path. |
-| file `f` predicate | OP | `fs.is_file(path)` | PLANNED | 08/15 | Vodka/file regular | Canonical path. |
-| file `x` predicate | OP | `fs.is_executable(path)` | PLANNED | 08/15 | Vodka/file executable | Includes execute permission. |
-| `to` / `value` assignment | OP | declaration and assignment statements | PLANNED | 08/15 | Vodka/assignment/scope | No implicit undeclared global. |
-| quoted string escape operator | OP | Vodka string literals and escapes | PLANNED | 08/15 | Vodka/string escapes | Lexer owns quoting. |
-| `del` stack operation | OP | compatibility stack library `drop` | PLANNED | 08/15 | Vodka/stack drop | Bounded explicit compatibility library. |
-| `#` stack depth | OP | compatibility stack library `depth` | PLANNED | 08/15 | Vodka/stack depth | Does not conflict with comments. |
-| `dup` stack operation | OP | compatibility stack library `dup` | PLANNED | 08/15 | Vodka/stack dup/limit | Checks data limit. |
-| `.` stack pop/print | OP | compatibility stack library `pop` plus output | PLANNED | 08/15 | Vodka/stack pop/underflow | Safe error on underflow. |
-| `.s` stack print | OP | compatibility stack library `inspect` | PLANNED | 08/15 | Vodka/stack inspect/output cap | Player-safe output. |
-| Full script fixtures | SHELL, DOC | at least 50 `.vodka` programs | PLANNED | 08/15 | Vodka/fixture suite | Includes branches, files and exhaustion. |
+| Lexer, source locations and diagnostics | OP, SHELL | Vodka lexer with line/column spans | SPECIFIED | 10/15 | Vodka/lexer/error corpus | Specification 0.1 is normative. |
+| Parser and AST/IR | OP, SHELL | purpose-built Vodka parser and representation | SPECIFIED | 10/15 | Vodka/parser/AST | No arbitrary C# compilation. |
+| Variables, literals and lexical scopes | OP | `let`, assignment, integer, boolean, string, null | SPECIFIED | 11/15 | Vodka/runtime values | Bounded per process. |
+| Structured `if` / `else` | BUILTIN, OP | Vodka conditional statements | SPECIFIED | 11/15 | Vodka/conditionals | Boolean conditions only. |
+| Structured `while`, `break`, `continue` | BUILTIN, SHELL | budgeted Vodka control flow | SPECIFIED | 11/15 | Vodka/infinite loop termination | Every iteration consumes instructions. |
+| Return and exit semantics | SHELL, SYSCALL | script result and process exit code | SPECIFIED | 11/15 | Vodka/return/exit | Stable parent notification. |
+| Instruction, recursion, source, output and process limits | NS, SHELL | VM resource governor | SPECIFIED | 11/15 | Vodka/resource exhaustion | Defaults recorded in language spec. |
+| `+` add/concatenate | OP | typed `+` | PLANNED | 11/15 | Vodka/operator add | Mixed types rejected. |
+| `-` subtract | OP | checked integer subtraction | PLANNED | 11/15 | Vodka/operator subtract | String slicing becomes explicit library behavior. |
+| `*` multiply | OP | checked integer multiplication | PLANNED | 11/15 | Vodka/operator multiply | String repeat becomes explicit bounded function. |
+| `/` divide | OP | checked integer division | PLANNED | 11/15 | Vodka/operator divide/zero | String split becomes explicit library behavior. |
+| `%` modulo | OP | checked integer remainder | PLANNED | 11/15 | Vodka/operator modulo/zero | Zero is a runtime error. |
+| `rand` | OP | seeded deterministic random function | PLANNED | 11/15 | Vodka/random reproducibility | No ambient RNG. |
+| `and` | OP | short-circuit boolean conjunction | PLANNED | 11/15 | Vodka/operator and | Bitwise operations, if added, use distinct names. |
+| `or` | OP | short-circuit boolean disjunction | PLANNED | 11/15 | Vodka/operator or | Deterministic order. |
+| `xor` / `eor` | OP | boolean exclusive-or | PLANNED | 11/15 | Vodka/operator xor | Compatibility alias may be library-only. |
+| `not` / `!` | OP | boolean negation | PLANNED | 11/15 | Vodka/operator not | Strict boolean type. |
+| `eq` | OP | `==` equality | PLANNED | 11/15 | Vodka/operator equality | Same-kind comparison. |
+| `ne` | OP | `!=` inequality | PLANNED | 11/15 | Vodka/operator inequality | Same-kind comparison. |
+| `gt` | OP | `>` relation | PLANNED | 11/15 | Vodka/operator greater | Ordinal strings. |
+| `ge` | OP | `>=` relation | PLANNED | 11/15 | Vodka/operator greater-equal | Ordinal strings. |
+| `lt` | OP | `<` relation | PLANNED | 11/15 | Vodka/operator less | Ordinal strings. |
+| `le` | OP | `<=` relation | PLANNED | 11/15 | Vodka/operator less-equal | Ordinal strings. |
+| file `e` predicate | OP | `fs.exists(path)` | PLANNED | 11/15 | Vodka/file exists permissions | Cannot reveal inaccessible nodes. |
+| file `d` predicate | OP | `fs.is_directory(path)` | PLANNED | 11/15 | Vodka/file directory | Canonical path. |
+| file `f` predicate | OP | `fs.is_file(path)` | PLANNED | 11/15 | Vodka/file regular | Canonical path. |
+| file `x` predicate | OP | `fs.is_executable(path)` | PLANNED | 11/15 | Vodka/file executable | Includes execute permission. |
+| `to` / `value` assignment | OP | declaration and assignment statements | PLANNED | 11/15 | Vodka/assignment/scope | No implicit undeclared global. |
+| quoted string escape operator | OP | Vodka string literals and escapes | PLANNED | 11/15 | Vodka/string escapes | Lexer owns quoting. |
+| `del` stack operation | OP | compatibility stack library `drop` | PLANNED | 11/15 | Vodka/stack drop | Bounded explicit compatibility library. |
+| `#` stack depth | OP | compatibility stack library `depth` | PLANNED | 11/15 | Vodka/stack depth | Does not conflict with comments. |
+| `dup` stack operation | OP | compatibility stack library `dup` | PLANNED | 11/15 | Vodka/stack dup/limit | Checks data limit. |
+| `.` stack pop/print | OP | compatibility stack library `pop` plus output | PLANNED | 11/15 | Vodka/stack pop/underflow | Safe error on underflow. |
+| `.s` stack print | OP | compatibility stack library `inspect` | PLANNED | 11/15 | Vodka/stack inspect/output cap | Player-safe output. |
+| Full script fixtures | SHELL, DOC | at least 50 `.vodka` programs | PLANNED | 11/15 | Vodka/fixture suite | Includes branches, files and exhaustion. |
 
 ## Core utilities
 
@@ -250,144 +250,144 @@ The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Syscall dispatcher and stable errors | SYSCALL, NS | typed Vodka syscall registry/result codes | PLANNED | 10/15 | Syscall/valid/invalid | No arbitrary reflection dispatch. |
-| `MSG_TERM` | SYSCALL | capability-scoped terminal output/file delivery | PLANNED | 10/15 | Syscall/msg-term | Process cannot select an unrelated terminal. |
-| `ULOGIN` | SYSCALL | kernel authentication request | PLANNED | 10/15 | Syscall/login spoof denial | Identity derived server-side. |
-| `UGROUP` | SYSCALL | privileged group update | PLANNED | 10/15 | Syscall/group authorization | Cannot self-elevate. |
-| `ULIST` | SYSCALL | permission-safe session listing | PLANNED | 10/15 | Syscall/user list | Bounded/redacted. |
-| `UMSG` | SYSCALL | authenticated user message | PLANNED | 10/15 | Syscall/user message | Honors recipient policy. |
-| `UINPUT` | SYSCALL | trusted driver-to-session input bridge | PLANNED | 10/15 | Syscall/input capability | Not exposed as client identity override. |
-| `DMSG` | SYSCALL | message an opaque device handle | PLANNED | 10/15 | Syscall/device message | No raw `EntityUid`. |
-| `DLIST` | SYSCALL | list authorized device capabilities | PLANNED | 10/15 | Syscall/device list | Topology and permissions filter results. |
-| `DGET` | SYSCALL | acquire device capability by discoverable address/type | PLANNED | 10/15 | Syscall/device get | Generation checked. |
-| `DSCAN` | SYSCALL | bounded topology rescan | PLANNED | 10/15 | Syscall/device scan | Rate limited. |
-| `EXIT` | SYSCALL | exit calling process | PLANNED | 10/15 | Syscall/exit | Caller derived from execution context. |
-| `TSPAWN` | SYSCALL | spawn authorized executable | PLANNED | 10/15 | Syscall/spawn limits | Execute and ownership checks. |
-| `TFORK` | SYSCALL | fork current runtime where supported | PLANNED | 10/15 | Syscall/fork depth | Vodka context copied within data limits. |
-| `TKILL` | SYSCALL | ownership-checked child/process kill | PLANNED | 10/15 | Syscall/kill authorization | Stale PID safe. |
-| `TLIST` | SYSCALL | list visible child processes | PLANNED | 10/15 | Syscall/task list | Does not leak other users. |
-| `FGET` | SYSCALL | permission-checked VFS stat/read handle | PLANNED | 10/15 | Syscall/file get | No direct mutable node exposure. |
-| `FKILL` | SYSCALL | permission-checked VFS delete | PLANNED | 10/15 | Syscall/file kill | Root/proc/run protected. |
-| `FMODE` | SYSCALL | mode metadata update | PLANNED | 10/15 | Syscall/file mode | Uses centralized policy. |
-| `FOWNER` | SYSCALL | owner/group metadata update | PLANNED | 10/15 | Syscall/file owner | Uses centralized policy. |
-| `FWRITE` | SYSCALL | create/replace/append through bounded VFS API | PLANNED | 10/15 | Syscall/file write | Atomic and quota-aware. |
-| `CONFGET` | SYSCALL | read authorized configuration document | PLANNED | 10/15 | Syscall/config authorization | No host configuration exposure. |
-| `MOUNT` | SYSCALL | attach mountable device capability | PLANNED | 10/15 | Syscall/mount capability | Full media semantics PR 12. |
-| `TEXIT` message | SYSCALL, SHELL | child-exit notification | PLANNED | 10/15 | Syscall/message child exit | Typed kernel event. |
-| `RECVFILE` message | SYSCALL, SHELL | bounded file-transfer notification | PLANNED | 10/15 | Syscall/message file | Data copied/validated. |
-| `BREAK` message | SYSCALL, SHELL | cancellation/break request | PLANNED | 10/15 | Syscall/message break | Cooperates with process cancellation. |
-| `REPLY` message | SYSCALL, DRV | typed request/reply response | PLANNED | 10/15 | Syscall/message reply correlation | Correlation IDs unguessable/scoped. |
-| 1,000-call stress and malformed handles | SYSCALL | ABI stress/security suite | PLANNED | 10/15 | Syscall/stress | Includes disappearing devices and concurrency. |
+| Syscall dispatcher and stable errors | SYSCALL, NS | typed Vodka syscall registry/result codes | PLANNED | 12/15 | Syscall/valid/invalid | No arbitrary reflection dispatch. |
+| `MSG_TERM` | SYSCALL | capability-scoped terminal output/file delivery | PLANNED | 12/15 | Syscall/msg-term | Process cannot select an unrelated terminal. |
+| `ULOGIN` | SYSCALL | kernel authentication request | PLANNED | 12/15 | Syscall/login spoof denial | Identity derived server-side. |
+| `UGROUP` | SYSCALL | privileged group update | PLANNED | 12/15 | Syscall/group authorization | Cannot self-elevate. |
+| `ULIST` | SYSCALL | permission-safe session listing | PLANNED | 12/15 | Syscall/user list | Bounded/redacted. |
+| `UMSG` | SYSCALL | authenticated user message | PLANNED | 12/15 | Syscall/user message | Honors recipient policy. |
+| `UINPUT` | SYSCALL | trusted driver-to-session input bridge | PLANNED | 12/15 | Syscall/input capability | Not exposed as client identity override. |
+| `DMSG` | SYSCALL | message an opaque device handle | PLANNED | 12/15 | Syscall/device message | No raw `EntityUid`. |
+| `DLIST` | SYSCALL | list authorized device capabilities | PLANNED | 12/15 | Syscall/device list | Topology and permissions filter results. |
+| `DGET` | SYSCALL | acquire device capability by discoverable address/type | PLANNED | 12/15 | Syscall/device get | Generation checked. |
+| `DSCAN` | SYSCALL | bounded topology rescan | PLANNED | 12/15 | Syscall/device scan | Rate limited. |
+| `EXIT` | SYSCALL | exit calling process | PLANNED | 12/15 | Syscall/exit | Caller derived from execution context. |
+| `TSPAWN` | SYSCALL | spawn authorized executable | PLANNED | 12/15 | Syscall/spawn limits | Execute and ownership checks. |
+| `TFORK` | SYSCALL | fork current runtime where supported | PLANNED | 12/15 | Syscall/fork depth | Vodka context copied within data limits. |
+| `TKILL` | SYSCALL | ownership-checked child/process kill | PLANNED | 12/15 | Syscall/kill authorization | Stale PID safe. |
+| `TLIST` | SYSCALL | list visible child processes | PLANNED | 12/15 | Syscall/task list | Does not leak other users. |
+| `FGET` | SYSCALL | permission-checked VFS stat/read handle | PLANNED | 12/15 | Syscall/file get | No direct mutable node exposure. |
+| `FKILL` | SYSCALL | permission-checked VFS delete | PLANNED | 12/15 | Syscall/file kill | Root/proc/run protected. |
+| `FMODE` | SYSCALL | mode metadata update | PLANNED | 12/15 | Syscall/file mode | Uses centralized policy. |
+| `FOWNER` | SYSCALL | owner/group metadata update | PLANNED | 12/15 | Syscall/file owner | Uses centralized policy. |
+| `FWRITE` | SYSCALL | create/replace/append through bounded VFS API | PLANNED | 12/15 | Syscall/file write | Atomic and quota-aware. |
+| `CONFGET` | SYSCALL | read authorized configuration document | PLANNED | 12/15 | Syscall/config authorization | No host configuration exposure. |
+| `MOUNT` | SYSCALL | attach mountable device capability | PLANNED | 12/15 | Syscall/mount capability | Consumes the complete server-authoritative media semantics delivered by PR 07. |
+| `TEXIT` message | SYSCALL, SHELL | child-exit notification | PLANNED | 12/15 | Syscall/message child exit | Typed kernel event. |
+| `RECVFILE` message | SYSCALL, SHELL | bounded file-transfer notification | PLANNED | 12/15 | Syscall/message file | Data copied/validated. |
+| `BREAK` message | SYSCALL, SHELL | cancellation/break request | PLANNED | 12/15 | Syscall/message break | Cooperates with process cancellation. |
+| `REPLY` message | SYSCALL, DRV | typed request/reply response | PLANNED | 12/15 | Syscall/message reply correlation | Correlation IDs unguessable/scoped. |
+| 1,000-call stress and malformed handles | SYSCALL | ABI stress/security suite | PLANNED | 12/15 | Syscall/stress | Includes disappearing devices and concurrency. |
 
 ## Networking
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Network addresses and device tags | PACKET, MF | server-assigned unique address plus typed capability tags | PLANNED | 11/15 | Network/address uniqueness | Duplicate protection and deterministic conflict policy. |
-| Wired datanet topology | DATANET, MF | explicit graph of connected data ports/links | PLANNED | 11/15 | Network/wired partitions | Never a global entity query. |
-| Radio topology/frequencies | PACKET, PERIPH, DRV | frequency-scoped links with range/interference policy | PLANNED | 11/15 | Network/radio range/jammer | Uses relevant Robust abstractions. |
-| Terminal/mainframe addressing | TERM, MF | connection endpoint identities bound to sessions | PLANNED | 11/15 | Network/two terminals/mainframes | Session cannot migrate by forged address. |
-| Discovery ping and filtered scan | TERM, KERNEL, PACKET | bounded discovery request/reply | PLANNED | 11/15 | Network/discovery/rate limit | Amplification prevention retained semantically. |
-| Request/reply correlation | DRV, PACKET | bounded pending-request table and logical timeout | PLANNED | 11/15 | Network/request timeout | Cleans on disconnect. |
-| Packet/file payload | PACKET, TERM | validated DTO payload and bounded VFS transfer | PLANNED | 11/15 | Network/malformed/oversize | No privileged object graph deserialization. |
-| Routing by address/tag | PACKET | indexed exact/tag routing | PLANNED | 11/15 | Network/routing/isolation | Broadcast only when protocol explicitly permits. |
-| Network partitions and reconnect | DATANET, MF | topology-change events and deterministic disconnect/recovery | PLANNED | 11/15 | Network/partition/reconnect | Processes receive stable failure. |
-| Packet loss/timeout behavior | PACKET | explicit bounded failure contract | PLANNED | 11/15 | Network/loss behavior | No hidden infinite retry. |
-| Cross-network denial | PACKET, DATANET | membership/routing boundary | PLANNED | 11/15 | Network/cross-network denial | Capability cannot bypass topology. |
-| Wireless, wired and omni adapters | PERIPH | port profiles over common DWAINE network API | PLANNED | 11/15 | Network/adapter profiles | Hardware constraints remain explicit. |
-| Network radio mount/channel files | DRV | capability-backed channel endpoints | PLANNED | 11/15 | Network/radio VFS | Frequency and payload bounds. |
-| Packet sniffer | APPS, PACKET | permission-gated diagnostic capture | PLANNED | 11/15 | Network/sniffer redaction | Privileged fields and secrets redacted. |
-| Network metrics | PACKET | counters for messages, drops, broadcasts and queue pressure | PLANNED | 14/15 | Hardening/network metrics | Debug-only exposure is access controlled. |
+| Network addresses and device tags | PACKET, MF | server-assigned unique address plus typed capability tags | PLANNED | 13/15 | Network/address uniqueness | Duplicate protection and deterministic conflict policy. |
+| Wired datanet topology | DATANET, MF | explicit graph of connected data ports/links | PLANNED | 13/15 | Network/wired partitions | Never a global entity query. |
+| Radio topology/frequencies | PACKET, PERIPH, DRV | frequency-scoped links with range/interference policy | PLANNED | 13/15 | Network/radio range/jammer | Uses relevant Robust abstractions. |
+| Terminal/mainframe addressing | TERM, MF | connection endpoint identities bound to sessions | PLANNED | 13/15 | Network/two terminals/mainframes | Session cannot migrate by forged address. |
+| Discovery ping and filtered scan | TERM, KERNEL, PACKET | bounded discovery request/reply | PLANNED | 13/15 | Network/discovery/rate limit | Amplification prevention retained semantically. |
+| Request/reply correlation | DRV, PACKET | bounded pending-request table and logical timeout | PLANNED | 13/15 | Network/request timeout | Cleans on disconnect. |
+| Packet/file payload | PACKET, TERM | validated DTO payload and bounded VFS transfer | PLANNED | 13/15 | Network/malformed/oversize | No privileged object graph deserialization. |
+| Routing by address/tag | PACKET | indexed exact/tag routing | PLANNED | 13/15 | Network/routing/isolation | Broadcast only when protocol explicitly permits. |
+| Network partitions and reconnect | DATANET, MF | topology-change events and deterministic disconnect/recovery | PLANNED | 13/15 | Network/partition/reconnect | Processes receive stable failure. |
+| Packet loss/timeout behavior | PACKET | explicit bounded failure contract | PLANNED | 13/15 | Network/loss behavior | No hidden infinite retry. |
+| Cross-network denial | PACKET, DATANET | membership/routing boundary | PLANNED | 13/15 | Network/cross-network denial | Capability cannot bypass topology. |
+| Wireless, wired and omni adapters | PERIPH | port profiles over common DWAINE network API | PLANNED | 13/15 | Network/adapter profiles | Hardware constraints remain explicit. |
+| Network radio mount/channel files | DRV | capability-backed channel endpoints | PLANNED | 13/15 | Network/radio VFS | Frequency and payload bounds. |
+| Packet sniffer | APPS, PACKET | permission-gated diagnostic capture | PLANNED | 13/15 | Network/sniffer redaction | Privileged fields and secrets redacted. |
+| Network metrics | PACKET | counters for messages, drops, broadcasts and queue pressure | PLANNED | 15/15 | Hardening/network metrics | Debug-only exposure is access controlled. |
 
 ## Storage media and services
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Fixed disks and memory cores | MEDIA, MF | persistent internal storage entity/volume | PLANNED | 12/15 | Storage/core insert/remove/persist | Removal safely halts runtime. |
-| Floppy/removable disks | MEDIA, PERIPH | removable bounded volume media | PLANNED | 12/15 | Storage/disk lifecycle | Read-only and copy-protection policy. |
-| Tapes and tape drive | MEDIA, PERIPH, MACHINE | removable sequential/profiled media volume | PLANNED | 12/15 | Storage/tape lifecycle | Boot, tools and research profiles use original content. |
-| Boot/recovery tape | MEDIA, OS | signed/authorized recovery volume | PLANNED | 12/15 | Storage/recovery boot | Untrusted media cannot inject host code. |
-| Databank remote storage | MACHINE, DRV | network storage service and mounted volume | PLANNED | 12/15 | Storage/databank sync/removal | Persistence and disconnect semantics tested. |
-| Archive persistence | VFS, UTIL, MEDIA | archives stored across media lifecycle | PLANNED | 12/15 | Storage/archive persistence | Quota/depth enforced. |
-| Email backend | EMAIL | mailbox service over VFS records | PLANNED | 12/15 | Service/email send/receive/delete | Users, groups and destinations validated. |
-| Email client protocol | EMAIL, DRV | terminal/service API for index/get/send/delete | PLANNED | 12/15 | Service/email protocol | Original UI text/localization. |
-| Group and broadcast mail | EMAIL | authorized distribution groups | PLANNED | 12/15 | Service/email groups/isolation | Prevents unauthorized broadcast. |
-| Document store and help records | DOC, VFS | localized generated manuals and user documents | PLANNED | 12/15 | Service/documents persistence | No reference prose copied. |
-| Access/system logging service | LOG | bounded append-only structured logs | PLANNED | 12/15 | Service/log write/query/rotation | Permissions and retention enforced. |
-| Log reader/mount/archive exchange | LOG, DRV | capability-backed log query and export | PLANNED | 12/15 | Service/log reader malformed query | No arbitrary entity lookup. |
-| Printer service and spool | DRV, MACHINE | bounded print queue and printer driver | PLANNED | 12/15 | Service/printer status/queue/device loss | Queue cannot grow without bound. |
-| Service terminals | DRV | noninteractive least-privilege service sessions | PLANNED | 12/15 | Service/terminal identity/cleanup | No implicit sysop login. |
-| System records and MOTD/help | MEDIA, DOC | original localized system documents | PLANNED | 12/15 | Service/bootstrap documents | Reflects implemented behavior only. |
+| Fixed disks and memory cores | MEDIA, MF | persistent fixed-media entity and bounded volume | IMPLEMENTED | 07/15 | `SlotsKindsAndReadOnlyMediaAreValidatedServerSide`, `ProductionPrototypesComposeDrivesAndEveryMediaKind` | Fixed media cannot be normally ejected; destruction cleans both sides without leaving a mounted volume. Bootstrap program content remains owned by its program/service PR. |
+| Floppy/removable disks | MEDIA, PERIPH | removable bounded volume media held in physical ECS container slots | IMPLEMENTED | 07/15 | `RemovableDiskPersistsAcrossFlushEjectAndReinsert`, `SlotsKindsAndReadOnlyMediaAreValidatedServerSide` | Read-only media, slot collisions, dirty eject denial and reinsertion persistence are enforced server-side. |
+| Tapes and tape drive | MEDIA, PERIPH, MACHINE | removable tape-profile media volume | IMPLEMENTED | 07/15 | `SlotsKindsAndReadOnlyMediaAreValidatedServerSide` | The audited tape is a data-volume/profile carrier rather than a separate sequential-access protocol; specialized boot/research contents land with their owning subsystems. |
+| Boot/recovery tape | MEDIA, OS | authorized recovery-media profile over the PR 07 tape volume | PLANNED | 15/15 | Storage/recovery boot | Untrusted media cannot inject host code; this waits for the real shell/program registry. |
+| Databank remote storage | MACHINE, DRV | network storage service and mounted volume | PLANNED | 14/15 | Storage/databank sync/removal | Builds on PR 07 mounts and PR 13 networking; persistence and disconnect semantics are tested. |
+| Archive persistence | VFS, UTIL, MEDIA | archives stored across removal, flush, reinsertion and reboot | IMPLEMENTED | 07/15 | `ArchivesNestedInsideArchivesPreserveEmbeddedPayload`, `RemovableDiskPersistsAcrossFlushEjectAndReinsert` | Nested archive payload, quota/depth and deep-copy boundaries are preserved. |
+| Email backend | EMAIL | mailbox service over VFS records | PLANNED | 14/15 | Service/email send/receive/delete | Users, groups and destinations validated. |
+| Email client protocol | EMAIL, DRV | terminal/service API for index/get/send/delete | PLANNED | 14/15 | Service/email protocol | Original UI text/localization. |
+| Group and broadcast mail | EMAIL | authorized distribution groups | PLANNED | 14/15 | Service/email groups/isolation | Prevents unauthorized broadcast. |
+| Document store and help records | DOC, VFS | localized generated manuals and user documents | PLANNED | 14/15 | Service/documents persistence | No reference prose copied. |
+| Access/system logging service | LOG | bounded append-only structured logs | PLANNED | 14/15 | Service/log write/query/rotation | Permissions and retention enforced. |
+| Log reader/mount/archive exchange | LOG, DRV | capability-backed log query and export | PLANNED | 14/15 | Service/log reader malformed query | No arbitrary entity lookup. |
+| Printer service and spool | DRV, MACHINE | bounded print queue and printer driver | PLANNED | 14/15 | Service/printer status/queue/device loss | Queue cannot grow without bound. |
+| Service terminals | DRV | noninteractive least-privilege service sessions | PLANNED | 14/15 | Service/terminal identity/cleanup | No implicit sysop login. |
+| System records and MOTD/help | MEDIA, DOC | original localized system documents | PLANNED | 14/15 | Service/bootstrap documents | Reflects implemented behavior only. |
 
 ## Station devices, drivers, and Computer3 applications
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Base driver status/message contract | DRV | typed Vodka Device ABI adapter | PLANNED | 10/15 | Driver/base malformed/offline | Explicit capability per command. |
-| User-terminal driver | DRV | terminal session capability | PLANNED | 10/15 | Driver/user terminal | Cannot impersonate another user. |
-| Databank driver | DRV, MACHINE | network storage driver | PLANNED | 12/15 | Driver/databank | Mount lifecycle authoritative. |
-| Printer driver | DRV, MACHINE | printer status/spool driver | PLANNED | 12/15 | Driver/printer | Bounded queue. |
-| Logreader driver | LOG | log query/export driver | PLANNED | 12/15 | Driver/logreader | Permission isolated. |
-| Radio driver | DRV, PACKET | frequency/channel messaging driver | PLANNED | 11/15 | Driver/radio | Topology and authorization checked. |
-| Service-terminal driver | DRV | least-privilege service invocation driver | PLANNED | 12/15 | Driver/service terminal | No blanket root account. |
-| Communication-dish driver | DRV, APPS | communications report capability | PLANNED | 13/15 | Driver/communications dish | Uses existing Whiskey communications where appropriate. |
-| Telepad driver and `teleman` interface | DRV, TELE | coordinate/send/receive/portal/scan capability | PLANNED | 13/15 | Driver/telesci commands/offline/access | Strong access and safety policy. |
-| Long-range destination records | TELE, VFS | validated named coordinate documents | PLANNED | 13/15 | Driver/telesci record | No raw world coordinates from client. |
-| Nuclear-charge driver and manager | DRV, MACHINE | multi-authorization audited device capability | PLANNED | 13/15 | Driver/nuke auth/timer/abort | Uses existing nuke safety/access rules. |
-| Guardbot dock driver and `prman` | DRV, GUARDBOT | explicit bot task/status/recall capability | PLANNED | 13/15 | Driver/guardbot upload/wake/wipe/recall | No arbitrary bot entity access. |
-| Guardbot task documents | GUARDBOT, DOC | typed task/config documents | PLANNED | 13/15 | Driver/guardbot task validation | Original examples only. |
-| IR security detector driver | DRV, MACHINE | sensor status capability | PLANNED | 13/15 | Driver/IR detector | Reference activate/deactivate stubs are not claimed. |
-| APC remote-power driver | DRV, EXTERNAL | scoped equipment/light/environment control capability | PLANNED | 13/15 | Driver/APC access/offline | Uses explicit APC network membership. |
-| HEPT emitter driver and manager | DRV, MACHINE | explicit emitter capability if Whiskey has a matching machine | PLANNED | 13/15 | Driver/HEPT | PR 15 may mark N/A only with repository evidence. |
-| H7 automated security init | DRV, EXTERNAL | bounded event-driven sensor/APC/guardbot automation | PLANNED | 13/15 | Driver/H7 multi-device automation | Demonstrates emergent Vodka automation safely. |
-| Generic test apparatus driver | DRV, MACHINE | typed sensor/enactor ABI: info/status/peek/poke/read/pulse | PLANNED | 13/15 | Driver/test apparatus matrix | Field schema is per device capability. |
-| Pitching machine | MACHINE, ART | enactor driver profile | PLANNED | 13/15 | Driver/pitcher | Bounded actuation. |
-| Impact pad | MACHINE, ART | sensor driver profile | PLANNED | 13/15 | Driver/impact sensor | Bounded readings. |
-| Electrical apparatus | MACHINE, ART | sensor/enactor profile | PLANNED | 13/15 | Driver/electrical apparatus | Validated fields. |
-| X-ray scanner | MACHINE, ART | research sensor profile | PLANNED | 13/15 | Driver/xray | Privacy/access enforced. |
-| Heater plate | MACHINE, ART | bounded heater enactor profile | PLANNED | 13/15 | Driver/heater safety | Server clamps safe range. |
-| Laser emitter/receiver | MACHINE, ART | explicit paired sensor/enactor profiles | PLANNED | 13/15 | Driver/laser pair | Topology and safety checked. |
-| Gas sensor | MACHINE, ART | atmosphere-reading profile | PLANNED | 13/15 | Driver/gas sensor | Safe bounded data. |
-| Mechanics I/O block | MACHINE, ART | explicit logic I/O capability | PLANNED | 13/15 | Driver/mechanics I/O | No universal arbitrary event API. |
-| Artifact console and `gptio` | ART | artifact research coordinator and apparatus capabilities | PLANNED | 13/15 | Driver/artifact workflow | Integrates only supported Whiskey artifact mechanics. |
-| Medical records application | APPS | permission-scoped medical record service/driver | PLANNED | 13/15 | Driver/medical records | Uses Whiskey data models, not copied UI. |
-| Security records application | APPS | permission-scoped security record service/driver | PLANNED | 13/15 | Driver/security records | Audit trail required. |
-| Bank/account records application | APPS | permission-scoped economy account service/driver | PLANNED | 13/15 | Driver/bank transfers/logs | Monetary mutations transactional. |
-| Job-control application | APPS | command/job-management capability | PLANNED | 13/15 | Driver/job control access | Uses current Whiskey job systems. |
-| Communications application | APPS | announcements/report communication service | PLANNED | 13/15 | Driver/communications authorization | Existing station policy preserved. |
-| Engine-control application | APPS | explicit engine telemetry/control drivers | PLANNED | 13/15 | Driver/engine controls | No universal machinery API. |
-| Writer/editor application | APPS | terminal document create/edit workflow | PLANNED | 12/15 | Service/document editor | Bounded and VFS-backed. |
-| Signal catcher | APPS, PACKET | permission-gated bounded receive queue | PLANNED | 13/15 | Driver/signal catcher | No unrestricted eavesdropping. |
-| Ping utility application | APPS, PACKET | diagnostic request/reply tool | PLANNED | 11/15 | Network/ping tool | Rate limited. |
-| File-transfer application | APPS, TERM | VFS/network transfer command | PLANNED | 11/15 | Network/file transfer | Validates size, type and destination. |
-| SigPal signal viewer | APPS, PACKET | structured signal inspection tool | PLANNED | 13/15 | Driver/signal viewer redaction | Secrets redacted. |
-| SigCraft signal authoring | APPS, PACKET | schema-validated signal construction tool | PLANNED | 13/15 | Driver/signal craft authorization | Cannot fabricate privileged capabilities. |
-| Disease research compatibility entry | APPS | supported research service alias or justified N/A | PLANNED | 13/15 | Driver/research alias | Reference type has no independent implementation. |
-| Artifact research compatibility entry | APPS, ART | artifact service launcher | PLANNED | 13/15 | Driver/artifact launcher | Uses actual Whiskey driver. |
-| Manifest application | APPS | read-only crew manifest service | PLANNED | 13/15 | Driver/manifest privacy | Redacts protected data. |
-| Robotics research compatibility entry | APPS, GUARDBOT | robotics/guardbot service launcher | PLANNED | 13/15 | Driver/robotics launcher | Reference type has minimal independent behavior. |
-| Code reader/authentication disks | APPS, MEDIA | validated code-document reader if supported | PLANNED | 13/15 | Driver/code reader | Never imports reference codes/content. |
+| Base driver status/message contract | DRV | typed Vodka Device ABI adapter | PLANNED | 12/15 | Driver/base malformed/offline | Explicit capability per command. |
+| User-terminal driver | DRV | terminal session capability | PLANNED | 12/15 | Driver/user terminal | Cannot impersonate another user. |
+| Databank driver | DRV, MACHINE | network storage driver | PLANNED | 14/15 | Driver/databank | Mount lifecycle authoritative. |
+| Printer driver | DRV, MACHINE | printer status/spool driver | PLANNED | 14/15 | Driver/printer | Bounded queue. |
+| Logreader driver | LOG | log query/export driver | PLANNED | 14/15 | Driver/logreader | Permission isolated. |
+| Radio driver | DRV, PACKET | frequency/channel messaging driver | PLANNED | 13/15 | Driver/radio | Topology and authorization checked. |
+| Service-terminal driver | DRV | least-privilege service invocation driver | PLANNED | 14/15 | Driver/service terminal | No blanket root account. |
+| Communication-dish driver | DRV, APPS | communications report capability | PLANNED | 14/15 | Driver/communications dish | Uses existing Whiskey communications where appropriate. |
+| Telepad driver and `teleman` interface | DRV, TELE | coordinate/send/receive/portal/scan capability | PLANNED | 15/15 | Driver/telesci commands/offline/access | Strong access and safety policy. |
+| Long-range destination records | TELE, VFS | validated named coordinate documents | PLANNED | 15/15 | Driver/telesci record | No raw world coordinates from client. |
+| Nuclear-charge driver and manager | DRV, MACHINE | multi-authorization audited device capability | PLANNED | 15/15 | Driver/nuke auth/timer/abort | Uses existing nuke safety/access rules. |
+| Guardbot dock driver and `prman` | DRV, GUARDBOT | explicit bot task/status/recall capability | PLANNED | 15/15 | Driver/guardbot upload/wake/wipe/recall | No arbitrary bot entity access. |
+| Guardbot task documents | GUARDBOT, DOC | typed task/config documents | PLANNED | 15/15 | Driver/guardbot task validation | Original examples only. |
+| IR security detector driver | DRV, MACHINE | sensor status capability | PLANNED | 15/15 | Driver/IR detector | Reference activate/deactivate stubs are not claimed. |
+| APC remote-power driver | DRV, EXTERNAL | scoped equipment/light/environment control capability | PLANNED | 15/15 | Driver/APC access/offline | Uses explicit APC network membership. |
+| HEPT emitter driver and manager | DRV, MACHINE | explicit emitter capability if Whiskey has a matching machine | PLANNED | 15/15 | Driver/HEPT | PR 15 may mark N/A only with repository evidence. |
+| H7 automated security init | DRV, EXTERNAL | bounded event-driven sensor/APC/guardbot automation | PLANNED | 15/15 | Driver/H7 multi-device automation | Demonstrates emergent Vodka automation safely. |
+| Generic test apparatus driver | DRV, MACHINE | typed sensor/enactor ABI: info/status/peek/poke/read/pulse | PLANNED | 15/15 | Driver/test apparatus matrix | Field schema is per device capability. |
+| Pitching machine | MACHINE, ART | enactor driver profile | PLANNED | 15/15 | Driver/pitcher | Bounded actuation. |
+| Impact pad | MACHINE, ART | sensor driver profile | PLANNED | 15/15 | Driver/impact sensor | Bounded readings. |
+| Electrical apparatus | MACHINE, ART | sensor/enactor profile | PLANNED | 15/15 | Driver/electrical apparatus | Validated fields. |
+| X-ray scanner | MACHINE, ART | research sensor profile | PLANNED | 15/15 | Driver/xray | Privacy/access enforced. |
+| Heater plate | MACHINE, ART | bounded heater enactor profile | PLANNED | 15/15 | Driver/heater safety | Server clamps safe range. |
+| Laser emitter/receiver | MACHINE, ART | explicit paired sensor/enactor profiles | PLANNED | 15/15 | Driver/laser pair | Topology and safety checked. |
+| Gas sensor | MACHINE, ART | atmosphere-reading profile | PLANNED | 15/15 | Driver/gas sensor | Safe bounded data. |
+| Mechanics I/O block | MACHINE, ART | explicit logic I/O capability | PLANNED | 15/15 | Driver/mechanics I/O | No universal arbitrary event API. |
+| Artifact console and `gptio` | ART | artifact research coordinator and apparatus capabilities | PLANNED | 15/15 | Driver/artifact workflow | Integrates only supported Whiskey artifact mechanics. |
+| Medical records application | APPS | permission-scoped medical record service/driver | PLANNED | 14/15 | Driver/medical records | Uses Whiskey data models, not copied UI. |
+| Security records application | APPS | permission-scoped security record service/driver | PLANNED | 14/15 | Driver/security records | Audit trail required. |
+| Bank/account records application | APPS | permission-scoped economy account service/driver | PLANNED | 14/15 | Driver/bank transfers/logs | Monetary mutations transactional. |
+| Job-control application | APPS | command/job-management capability | PLANNED | 14/15 | Driver/job control access | Uses current Whiskey job systems. |
+| Communications application | APPS | announcements/report communication service | PLANNED | 14/15 | Driver/communications authorization | Existing station policy preserved. |
+| Engine-control application | APPS | explicit engine telemetry/control drivers | PLANNED | 15/15 | Driver/engine controls | No universal machinery API. |
+| Writer/editor application | APPS | terminal document create/edit workflow | PLANNED | 14/15 | Service/document editor | Bounded and VFS-backed. |
+| Signal catcher | APPS, PACKET | permission-gated bounded receive queue | PLANNED | 14/15 | Driver/signal catcher | No unrestricted eavesdropping. |
+| Ping utility application | APPS, PACKET | diagnostic request/reply tool | PLANNED | 13/15 | Network/ping tool | Rate limited. |
+| File-transfer application | APPS, TERM | VFS/network transfer command | PLANNED | 13/15 | Network/file transfer | Validates size, type and destination. |
+| SigPal signal viewer | APPS, PACKET | structured signal inspection tool | PLANNED | 14/15 | Driver/signal viewer redaction | Secrets redacted. |
+| SigCraft signal authoring | APPS, PACKET | schema-validated signal construction tool | PLANNED | 14/15 | Driver/signal craft authorization | Cannot fabricate privileged capabilities. |
+| Disease research compatibility entry | APPS | supported research service alias or justified N/A | PLANNED | 15/15 | Driver/research alias | Reference type has no independent implementation. |
+| Artifact research compatibility entry | APPS, ART | artifact service launcher | PLANNED | 15/15 | Driver/artifact launcher | Uses actual Whiskey driver. |
+| Manifest application | APPS | read-only crew manifest service | PLANNED | 14/15 | Driver/manifest privacy | Redacts protected data. |
+| Robotics research compatibility entry | APPS, GUARDBOT | robotics/guardbot service launcher | PLANNED | 15/15 | Driver/robotics launcher | Reference type has minimal independent behavior. |
+| Code reader/authentication disks | APPS, MEDIA | validated code-document reader if supported | PLANNED | 15/15 | Driver/code reader | Never imports reference codes/content. |
 
 ## Hardening, acceptance, and classified non-functional material
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Parser and path fuzzing | SHELL, VFS | malformed-input corpora and property tests | PLANNED | 14/15 | Hardening/fuzz | Includes Unicode, depth and cycle cases. |
-| Network message fuzzing | PACKET, DRV | bounded DTO fuzz corpus | PLANNED | 14/15 | Hardening/network fuzz | No privileged deserialization. |
-| Process and VM stress | MF, KERNEL, SHELL | 512-process and hostile-script scenarios | PLANNED | 14/15 | Hardening/process stress | Scheduler remains bounded. |
-| Four mainframes / 32 terminals / 128 sessions | MF, TERM | scale integration scenario | PLANNED | 14/15 | Hardening/many terminals | Includes partitions and reconnects. |
-| Thousands of files and concurrent devices | VFS, DRV | quota/performance scenario | PLANNED | 14/15 | Hardening/VFS/device stress | Allocation and asymptotic review. |
-| Repeated boot/shutdown/round restart | MF, KERNEL | lifecycle soak test | PLANNED | 14/15 | Hardening/cleanup soak | No subscriptions or sessions leak. |
-| Runtime diagnostics | PACKET, KERNEL | process, instruction, load, message and VFS counters | PLANNED | 14/15 | Hardening/metrics | Access-controlled debug surface. |
-| End-to-end player smoke route | all functional sources | power → connect → boot → login → shell → VFS → Vodka → device → service → reconnect | PLANNED | 15/15 | DWAINE/E2E smoke | Persistent consistency verified. |
-| Final HEAD re-audit | all sources | rerun pinned methodology against then-current Goon HEAD | PLANNED | 15/15 | Parity ledger audit | New findings must be implemented/classified. |
-| Showcase/user guide | DOC and implemented Whiskey code | `DWAINE_VODKA_CODE_SHOWCASE.txt` with exact commands | PLANNED | 15/15 | Showcase command validation | No fictional commands. |
+| Parser and path fuzzing | SHELL, VFS | malformed-input corpora and property tests | PLANNED | RELEASE GATE | Hardening/fuzz | Includes Unicode, depth and cycle cases. |
+| Network message fuzzing | PACKET, DRV | bounded DTO fuzz corpus | PLANNED | RELEASE GATE | Hardening/network fuzz | No privileged deserialization. |
+| Process and VM stress | MF, KERNEL, SHELL | 512-process and hostile-script scenarios | PLANNED | RELEASE GATE | Hardening/process stress | Scheduler remains bounded. |
+| Four mainframes / 32 terminals / 128 sessions | MF, TERM | scale integration scenario | PLANNED | RELEASE GATE | Hardening/many terminals | Includes partitions and reconnects. |
+| Thousands of files and concurrent devices | VFS, DRV | quota/performance scenario | PLANNED | RELEASE GATE | Hardening/VFS/device stress | Allocation and asymptotic review. |
+| Repeated boot/shutdown/round restart | MF, KERNEL | lifecycle soak test | PLANNED | RELEASE GATE | Hardening/cleanup soak | No subscriptions or sessions leak. |
+| Runtime diagnostics | PACKET, KERNEL | process, instruction, load, message and VFS counters | PLANNED | 15/15 | Hardening/metrics | Access-controlled server-side debug surface is a functional PR 15 deliverable. |
+| End-to-end player smoke route | all functional sources | power → connect → boot → login → shell → VFS → Vodka → device → service → reconnect | PLANNED | RELEASE GATE | DWAINE/E2E smoke | Persistent consistency verified. |
+| Final HEAD re-audit | all sources | rerun pinned methodology against then-current Goon HEAD | PLANNED | RELEASE GATE | Parity ledger audit | New findings must be implemented/classified in the owning layer. |
+| Local teaching guide | DOC and implemented Whiskey code | `Docs/DWAINE_VODKA_CODE_TEACHING_LOCAL.txt` generated from exact registered commands/contracts | PLANNED | RELEASE GATE | Teaching command validation | No fictional commands, paths, drivers, syscalls or devices. |
 | Legacy ThinkDOS as a separate operating system | C3 and `base_os.dm` | DWAINE hardware/VFS/shell absorbs relevant behavior | NOT APPLICABLE | 01/15 | Matrix review | Goal is DWAINE; recreating a second obsolete OS adds no DWAINE capability. |
 | Reference `file_run` command | TERM | none | NOT APPLICABLE | 01/15 | Matrix review | The audited command is explicitly inoperative, so there is no functional behavior to reproduce. |
 | Adventure-zone lore records and random mail prose | EXTERNAL, DOC | original Whiskey documents where gameplay needs fixtures | NOT APPLICABLE | 01/15 | License review | Creative text is not a subsystem and is not copied. |
 | Existing Goon maps and placements | EXTERNAL and repository maps | Whiskey `_Whiskey` prototypes/maps only where maintainers permit | NOT APPLICABLE | 01/15 | License review | Placement data adds no new runtime feature and is not imported. |
 | Goon sprites, sounds, computer ambience, and AI skin reward | C3, external assets/reward references | original/licensed Whiskey presentation assets only | NOT APPLICABLE | 01/15 | License review | Functional state does not depend on protected media. |
-| `DWAINE for Dummies` and guardbot book prose | repository-wide book search | original in-game help plus PR 15 showcase guide | NOT APPLICABLE | 01/15 | License review | The educational function is implemented; source prose is not copied. |
+| `DWAINE for Dummies` and guardbot book prose | repository-wide book search | original in-game help plus release-gate teaching guide | NOT APPLICABLE | 01/15 | License review | The educational function is implemented; source prose is not copied. |
 
 ## Closure rule
 
