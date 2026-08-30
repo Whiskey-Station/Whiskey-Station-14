@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# As fontes de pressão mental. Cada uma é um tipo de coisa que pesa na cabeça
+# de alguém, e o que a diferencia das outras não é só o peso: é o RITMO com que
+# sai. Susto passa rápido, ter visto alguém morrer não.
+#
+# É essa diferença de ritmo que uma barra única não consegue representar, e é
+# metade do motivo de este sistema existir.
+
+- type: pressureSource
+  id: WhiskeyPressaoMorte
+  # Pesada e teimosa: entra forte e sai devagar. Ver alguém morrer é a coisa
+  # mais pesada que acontece numa rodada normal.
+  weight: 25
+  cap: 60
+  decay: 0.5
+  description: pressure-source-morte
+
+- type: pressureSource
+  id: WhiskeyPressaoEscuro
+  # Leve, constante e com teto baixo. O escuro incomoda e nunca vira trauma:
+  # sem o teto por fonte, meia hora no escuro empataria com ter visto alguém
+  # morrer, e a origem deixaria de significar coisa nenhuma.
+  weight: 4
+  cap: 20
+  decay: 2
+  description: pressure-source-escuro
+
+- type: pressureSource
+  id: WhiskeyPressaoDor
+  # Média e rápida de sair, porque a dor passa quando o ferimento é tratado.
+  weight: 12
+  cap: 35
+  decay: 3
+  description: pressure-source-dor
+
+- type: pressureSource
+  id: WhiskeyPressaoSolidao
+  # Fraca por vez e com teto alto: ficar sozinho não assusta, mas acumula.
+  # É a única daqui que outro jogador resolve só de aparecer.
+  weight: 3
+  cap: 45
+  decay: 1
+  description: pressure-source-solidao
