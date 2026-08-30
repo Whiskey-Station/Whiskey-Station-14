@@ -55,6 +55,8 @@
     autoBoot: true
     requireStorageConnector: true
   - type: DwaineKernelRuntime
+  - type: DwaineFileSystem
+  - type: DwaineFileSystemRuntime
   - type: DwaineProcessScheduler
     maxProcesses: 256
     maxProcessesPerOwner: 32

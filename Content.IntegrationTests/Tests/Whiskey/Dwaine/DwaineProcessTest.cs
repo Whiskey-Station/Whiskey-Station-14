@@ -38,6 +38,9 @@ public sealed class DwaineProcessTest : GameTest
             kernelInitializationDurationSeconds: 0.01
             shutdownDurationSeconds: 0.01
           - type: DwaineKernelRuntime
+          - type: DwaineFileSystem
+            maxNodes: 256
+          - type: DwaineFileSystemRuntime
           - type: DwaineProcessScheduler
             maxProcesses: 8
             maxProcessesPerOwner: 4
