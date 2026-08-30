@@ -5,6 +5,12 @@
 
 Audit baseline: Goonstation commit [`20b3e8f442da6c6992b2ca5ca191029465575465`](https://github.com/goonstation/goonstation/tree/20b3e8f442da6c6992b2ca5ca191029465575465), audited on 2026-08-30 for Whiskey PR 01/15.
 
+PRs 06/15 and 07/15 also performed a delta review against Goonstation HEAD
+[`6206d395b4fba7169d00692a213770cabe48d8d3`](https://github.com/goonstation/goonstation/tree/6206d395b4fba7169d00692a213770cabe48d8d3)
+on 2026-08-30, including every `mainframe2/filetypes` implementation, the OS path parsers, disks,
+hard drives, tapes and their repository-wide consumers. The pinned PR 01 baseline remains the stable
+clean-room citation set; the delta review found no conflicting VFS/media behavior that changes these contracts.
+
 This is a clean-room behavioral inventory, not a porting ledger. Goonstation's repository is licensed [CC BY-NC-SA 3.0 US](https://github.com/goonstation/goonstation/blob/20b3e8f442da6c6992b2ca5ca191029465575465/LICENSE); no source, prose, map, sprite, or sound from it is incorporated here. All Whiskey implementation code and player-facing content will be original and AGPL-3.0-or-later.
 
 ## Audit coverage
@@ -67,7 +73,7 @@ Status values used during delivery:
 | Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer`, `BuiReconnectIsIdempotentAndDestructionCleansPresentationState` | Client never authenticates actions. |
 | Display and terminal output | C3, TERM | bounded server output buffer and client presentation state | IMPLEMENTED | 02/15 | `ServerOutputBufferEnforcesBothBounds` | Presentation uses plain text; session output transport lands in PR 03. |
 | Keyboard/input abstraction | C3, TERM | BUI input request validated against the active server-side UI actor | IMPLEMENTED | 02/15 | `TerminalInputValidationRejectsUnboundedAndMultilineData` | Input length bounded; session ownership is added in PR 03. |
-| Per-user command history | C3, SHELL | bounded shell history owned by server session | PLANNED | 06/15 | Shell/history isolation | Fixes reference indexing/bounds hazards. |
+| Per-user command history | C3, SHELL | bounded shell history owned by server session | PLANNED | 09/15 | Shell/history isolation | Fixes reference indexing/bounds hazards. |
 | Storage interface | C3, MF, MEDIA | explicit physical storage connector | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | VFS and media behavior land in PR 06 and PR 07. |
 | Device bus | PERIPH, DRV | bounded physical bus endpoint | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Capability ABI starts PR 12. |
 | Network interface | PERIPH, DATANET | explicit physical connector, network label and link range | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Session topology lands in PR 03; routed networking in PR 13. |
@@ -94,41 +100,42 @@ Status values used during delivery:
 | Process owner | PROG, KERNEL | opaque authoritative principal reference with control and IPC checks | IMPLEMENTED | 05/15 | `FaultStopContinueInstructionBudgetAndIpcAreContained`, `ProcessLimitsAndOneHundredTwentyEightProcessChurnStayBounded` | PR 08 maps authenticated accounts to owner references; the client never assigns runtime ownership. |
 | Process states | PROG, MF | Created/Ready/Running/Waiting/Stopped/Exited/Faulted state machine | IMPLEMENTED | 05/15 | `ParentChildWaitKillAndCleanupAreDeterministic`, `FaultStopContinueInstructionBudgetAndIpcAreContained` | Every scheduler/control transition is explicit and observable through a server event. |
 | stdin/stdout/stderr | SHELL, PROG | independent bounded FIFO text streams that reject overflow | IMPLEMENTED | 05/15 | `TextStreamsRejectOverflowWithoutLosingUnreadData`, `CreationSchedulingStreamsMetadataAndPidUniqueness` | Unread output is never silently evicted to accept newer output. |
-| Process start time, exit code, cwd, environment | PROG, SHELL | game-time metadata, terminal result, opaque cwd handle and bounded copy-on-spawn environment | IMPLEMENTED | 05/15 | `EnvironmentsAreBoundedValidatedAndClonedByValue`, `CreationSchedulingStreamsMetadataAndPidUniqueness` | PR 06 resolves the opaque cwd handle against the VFS. |
+| Process start time, exit code, cwd, environment | PROG, SHELL | game-time metadata, terminal result, VFS-validated opaque cwd handle and bounded copy-on-spawn environment | IMPLEMENTED | 05/15 + 06/15 | `EnvironmentsAreBoundedValidatedAndClonedByValue`, `CreationSchedulingStreamsMetadataAndPidUniqueness`, `ProcessWorkingDirectoriesAndProcViewsUseValidatedServerHandles` | PR 06 rejects nonexistent, cross-volume-unavailable and non-directory working handles before process creation. |
 | Scheduler/processing list | MF, KERNEL | fair bounded per-mainframe ready queue with one logical program step per dispatch | IMPLEMENTED | 05/15 | `ProcessLimitsAndOneHundredTwentyEightProcessChurnStayBounded` | Uses no arbitrary background `Task`, wall clock, or direct `frameTime` accounting. |
 | Spawn and child creation | SYSCALL, PROG | validated kernel spawn with parent, inherited environment and owner policy | IMPLEMENTED | 05/15 | `ParentChildWaitKillAndCleanupAreDeterministic`, `ProcessLimitsAndOneHundredTwentyEightProcessChurnStayBounded` | Per-owner and per-mainframe limits are clamped by hard server ceilings; syscall façades arrive in PR 12. |
 | Exit, kill, wait and child lifecycle | SYSCALL, PROG | ownership-checked control with recursive cancellation and deterministic reaping | IMPLEMENTED | 05/15 | `ParentChildWaitKillAndCleanupAreDeterministic`, `RebootAndDestructionCancelAllProcessesWithoutPidReuse` | Awaited results are delivered once; kernel shutdown and entity deletion revoke the whole table. |
 | Inter-process signal/reply | MF, PROG | typed bounded mailbox messages between authorized related/owned processes | IMPLEMENTED | 05/15 | `MailboxesRejectMalformedAndOverCapacityMessages`, `FaultStopContinueInstructionBudgetAndIpcAreContained` | Payloads are plain bounded text; no privileged object or `EntityUid` deserialization. |
-| Process directory (`/proc`) | NS, MF | read-only VFS process views generated by kernel | PLANNED | 06/15 | VFS/proc lifecycle | Views cannot outlive processes. |
+| Process directory (`/proc`) | NS, MF | read-only virtual VFS process views generated from authoritative process events | IMPLEMENTED | 06/15 | `ProcessWorkingDirectoriesAndProcViewsUseValidatedServerHandles` | Views carry PID/state/boot generation, disappear on reap and are cleared across kernel generations. |
 
 ## Virtual filesystem, users, and permissions
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Root and directory tree | VFS, OS | per-volume VFS tree with explicit root | PLANNED | 06/15 | VFS/root/tree | Pure server state. |
-| Absolute and relative paths | OS, NS | canonical path parser | PLANNED | 06/15 | VFS/path table | Authorization occurs after canonicalization. |
-| `.` and `..` | OS | normalized traversal with root confinement | PLANNED | 06/15 | VFS/dot/root escape | Cannot escape volume root. |
-| Filename validation | PROG, OS | normalized bounded names with reserved-character policy | PLANNED | 06/15 | VFS/invalid names | Locale-independent comparison. |
-| Create/read/write/append/delete | SYSCALL, VFS | VFS node operations | PLANNED | 06/15 | VFS/CRUD | Atomic failure semantics. |
-| Rename/copy/move | UTIL, VFS | VFS-native operations preserving defined metadata | PLANNED | 06/15 | VFS/move/copy cleanup | Cross-volume behavior explicit. |
-| List/mkdir | UTIL, VFS | permission-aware enumeration and creation | PLANNED | 06/15 | VFS/list/mkdir | Results bounded. |
-| Symbolic directory links | VFS | VFS symlink nodes | PLANNED | 06/15 | VFS/link/broken/cycle | Depth and cycle detection. |
+| Root and directory tree | VFS, OS | bounded logical volume tree with explicit root and stable node identity | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `StructuralLimitClampsAlwaysPreserveTheCanonicalSystemTree` | Pure server state; physical volume attachment remains PR 07. |
+| Absolute and relative paths | OS, NS | deterministic canonical path parser resolved from an opaque server cwd handle | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove` | Authorization is deliberately layered after canonicalization in PR 08. |
+| `.` and `..` | OS | lexical normalization with explicit root-escape rejection | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined` | Repeated separators and `.` normalize; `..` can never traverse above root. |
+| Filename validation | PROG, OS | length-bounded names with control, separator and reserved-name rejection; case-insensitive lookup | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove` | Comparison is ordinal and locale-independent; case-only rename preserves identity. |
+| Create/read/write/append/delete | SYSCALL, VFS | typed bounded node operations with explicit result codes | IMPLEMENTED | 06/15 | `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove`, `DirectoryDeletionRequiresExplicitRecursiveCleanup`, `RecordAndTextMutationsAreBoundedAndAtomic` | Failed writes and record mutations preserve the previous value; root and non-empty directories are protected. |
+| Rename/copy/move | UTIL, VFS | VFS-native operations with stable source handles and independent deep copies | IMPLEMENTED | 06/15 | `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove`, `CopyIsIndependentAndMoveRejectsDescendantDestinations` | Descendant destinations are rejected; cross-volume moves return an explicit result used by PR 07. |
+| List/mkdir | UTIL, VFS | sorted bounded enumeration and optional parent creation | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `DirectoryDeletionRequiresExplicitRecursiveCleanup` | Permission decisions consume the metadata hooks in PR 08. |
+| Symbolic directory links | VFS | stable-handle symbolic links with no-follow-final operations | IMPLEMENTED | 06/15 | `LinksDetectCyclesDepthAndBrokenTargetsWithoutFollowingFinalWhenRequested` | Broken targets, cycles and maximum traversal depth produce distinct controlled errors. |
 | Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | PLANNED | 07/15 | VFS/mount/unmount | Logical mount contracts start in PR 06; media-backed behavior completes PR 07. |
 | Volumes and storage quotas | VFS, MEDIA | bounded volumes with byte/node quotas | PLANNED | 07/15 | VFS/quota/mass creation | No unbounded file creation. |
-| Metadata: date, owner, group, mode | VFS | typed immutable/read-write metadata policy | PLANNED | 06/15 | VFS/metadata | Ownership enforcement completes PR 08. |
-| Directory depth and archive depth | VFS | configurable hard depth ceilings | PLANNED | 06/15 | VFS/depth exhaustion | Reference limits are behavioral evidence, not copied implementation. |
-| Text file | VFS | UTF-8 text node | PLANNED | 06/15 | VFS/text round trip | Bounded text. |
-| Record file | VFS | ordered bounded key/value record node | PLANNED | 06/15 | VFS/record round trip | Safe value types only. |
-| User-data file | VFS | protected account/session record schema | PLANNED | 08/15 | Auth/user data isolation | No plaintext password. |
+| Metadata: date, owner, group, mode | VFS | typed owner/group/mode/flags plus authoritative game-time creation/modification values | IMPLEMENTED | 06/15 | `MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation` | Central ownership/mode authorization consumes these hooks in PR 08. |
+| Directory depth and archive depth | VFS | configuration clamped by non-bypassable server hard ceilings | IMPLEMENTED | 06/15 | `NodeAndDepthLimitsContainMassCreation`, `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Traversals are bounded independently from client input. |
+| Text file | VFS | bounded text node with overwrite and append | IMPLEMENTED | 06/15 | `RecordAndTextMutationsAreBoundedAndAtomic` | Overflow is rejected without truncating or replacing existing content. |
+| Record file | VFS | bounded ordinal key/value record node copied at API boundaries | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs`, `RecordAndTextMutationsAreBoundedAndAtomic` | Safe nullable string values only; rejected mutations are atomic. |
+| User-data file | VFS | typed name/assignment/access-tag payload copied at API boundaries | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Credentials are not part of this file payload; protected account storage and verification remain PR 08. |
 | Clone/genome record | VFS | typed opaque station record payload | PLANNED | 14/15 | Driver/medical record capability | Only if a Whiskey cloning integration exists. |
-| Image-like metadata file | VFS | metadata/preview descriptor, not imported imagery | PLANNED | 06/15 | VFS/image metadata | No Goon asset copied. |
+| Image-like metadata file | VFS | bounded display/description/text-preview metadata, not imported imagery | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | No Goon asset copied and no arbitrary binary decoder is exposed. |
 | Galactic-position record | VFS, TELE | typed coordinate document | PLANNED | 15/15 | Driver/telesci coordinates | Validated by driver capability. |
-| Signal file | VFS, PACKET | bounded structured message document | PLANNED | 13/15 | Network/signal serialization | No privileged runtime object fields. |
-| Archive file | VFS, UTIL | bounded archive of VFS nodes | PLANNED | 06/15 | VFS/archive cycles/quota | Extract/copy semantics tested. |
-| Program/script file | PROG, SHELL | executable descriptor and `.vodka` source node | PLANNED | 10/15 | Vodka/source representation | Native program registry is not player-writable code. |
+| Signal file | VFS, PACKET | bounded structured message metadata document | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | VFS payload has no privileged runtime fields; network serialization and delivery remain PR 13. |
+| Archive file | VFS, UTIL | bounded recursively copied archive metadata with controlled extraction | IMPLEMENTED | 06/15 | `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Entry/depth/node quotas apply; an archive cannot be written into the source subtree. Media persistence lands in PR 07. |
+| Program/script file | PROG, SHELL | bounded executable descriptor and source node prepared for `.vodka` | IMPLEMENTED | 06/15 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Native descriptors are immutable through text writes; the Vodka lexer/runtime remain PRs 10/11. |
+| System/virtual file | NS, KERNEL | flagged system node and read-only virtual record representation | IMPLEMENTED | 06/15 | `MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation`, `ProcessWorkingDirectoriesAndProcViewsUseValidatedServerHandles` | Virtual process records are generated server-side and are never client-authored. |
 | Mountpoint file proxy | DRV, VFS | capability-backed mounted volume adapter | PLANNED | 07/15 | Storage/device removal | Revokes on device loss. |
 | Guardbot task payload | GUARDBOT, VFS | typed device document through guardbot driver | PLANNED | 15/15 | Driver/guardbot task | Never exposes bot entity IDs to scripts. |
-| Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc/mail` | PLANNED | 06/15 | VFS/bootstrap layout | Each directory gets explicit modes and owner. |
+| Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc`, `/etc/mail` | IMPLEMENTED | 06/15 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `StructuralLimitClampsAlwaysPreserveTheCanonicalSystemTree` | Structural minimum clamps guarantee the complete layout even under undersized prototype configuration. |
 | Temporary and full users | KERNEL | unauthenticated terminal session and authenticated account | PLANNED | 08/15 | Auth/temp/full login | Temporary identity has minimal authority. |
 | UID and username | KERNEL, VFS | server-assigned UID plus validated display/login name | PLANNED | 08/15 | Auth/UID uniqueness | Client username is input, not identity proof. |
 | Groups and sysop/root-like account | NS, KERNEL | typed groups and privileged system principal | PLANNED | 08/15 | Auth/group/root | Least privilege; no magic client flag. |

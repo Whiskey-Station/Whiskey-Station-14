@@ -24,12 +24,12 @@ public readonly record struct DwaineProcessOwner(ulong Value)
 }
 
 /// <summary>
-/// Opaque placeholder until PR 06 supplies real VFS directory handles.
+/// Opaque reference to a VFS volume and directory node. The filesystem validates both values server-side.
 /// </summary>
-public readonly record struct DwaineWorkingDirectoryHandle(ulong Value)
+public readonly record struct DwaineWorkingDirectoryHandle(ulong Volume, ulong Node)
 {
-    public static readonly DwaineWorkingDirectoryHandle Root = new(1);
-    public bool IsValid => Value != 0;
+    public static readonly DwaineWorkingDirectoryHandle Root = new(1, 1);
+    public bool IsValid => Volume != 0 && Node != 0;
 }
 
 public readonly record struct DwaineProgramDescriptor(string Id, string DisplayName);
@@ -61,6 +61,7 @@ public enum DwaineProcessSpawnResult : byte
     InvalidProgram,
     InvalidOwner,
     InvalidParent,
+    InvalidWorkingDirectory,
     InvalidEnvironment,
     MainframeLimitReached,
     OwnerLimitReached,
