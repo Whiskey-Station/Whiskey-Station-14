@@ -11,6 +11,24 @@ public enum DwaineTerminalUiKey : byte
     Key,
 }
 
+[Serializable, NetSerializable]
+public enum DwaineTerminalConnectionStatus : byte
+{
+    Disconnected,
+    Connected,
+    MainframeUnavailable,
+}
+
+/// <summary>
+/// Presentation-only mainframe target. The server revalidates the entity and topology on connect.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class DwaineMainframeUiEntry(NetEntity entity, string name)
+{
+    public readonly NetEntity Entity = entity;
+    public readonly string Name = name;
+}
+
 /// <summary>
 /// Presentation-safe hardware state. It intentionally contains no user, process,
 /// credential, filesystem, mainframe, or permission authority.
@@ -26,7 +44,10 @@ public sealed class DwaineTerminalBoundUserInterfaceState(
     int storageSlots,
     string networkId,
     string busId,
-    string[] output) : BoundUserInterfaceState
+    string[] output,
+    DwaineTerminalConnectionStatus connectionStatus,
+    string connectedMainframe,
+    DwaineMainframeUiEntry[] availableMainframes) : BoundUserInterfaceState
 {
     public readonly DwaineHardwareStatus Status = status;
     public readonly bool PowerEnabled = powerEnabled;
@@ -38,6 +59,9 @@ public sealed class DwaineTerminalBoundUserInterfaceState(
     public readonly string NetworkId = networkId;
     public readonly string BusId = busId;
     public readonly string[] Output = output;
+    public readonly DwaineTerminalConnectionStatus ConnectionStatus = connectionStatus;
+    public readonly string ConnectedMainframe = connectedMainframe;
+    public readonly DwaineMainframeUiEntry[] AvailableMainframes = availableMainframes;
 }
 
 /// <summary>
@@ -55,3 +79,15 @@ public sealed class DwaineTerminalInputMessage(string text) : BoundUserInterface
 {
     public readonly string Text = text;
 }
+
+/// <summary>
+/// Requests a target only. Session identity and ownership are always assigned by the server.
+/// </summary>
+[Serializable, NetSerializable]
+public sealed class DwaineTerminalConnectMessage(NetEntity target) : BoundUserInterfaceMessage
+{
+    public readonly NetEntity Target = target;
+}
+
+[Serializable, NetSerializable]
+public sealed class DwaineTerminalDisconnectMessage : BoundUserInterfaceMessage;

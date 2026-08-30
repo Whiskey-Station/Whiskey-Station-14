@@ -14,6 +14,11 @@ public sealed partial class DwaineTerminalWindow : DefaultWindow
 {
     public event Action? OnPowerRequested;
     public event Action<string>? OnInputSubmitted;
+    public event Action<NetEntity>? OnConnectRequested;
+    public event Action? OnDisconnectRequested;
+
+    private readonly Dictionary<int, NetEntity> _mainframeTargets = new();
+    private NetEntity? _selectedMainframe;
 
     public DwaineTerminalWindow()
     {
@@ -22,6 +27,18 @@ public sealed partial class DwaineTerminalWindow : DefaultWindow
         Power.OnPressed += _ => OnPowerRequested?.Invoke();
         Send.OnPressed += _ => SubmitInput();
         Input.OnTextEntered += _ => SubmitInput();
+        Mainframes.OnItemSelected += args =>
+        {
+            Mainframes.SelectId(args.Id);
+            if (_mainframeTargets.TryGetValue(args.Id, out var target))
+                _selectedMainframe = target;
+        };
+        Connect.OnPressed += _ =>
+        {
+            if (_selectedMainframe is { } target)
+                OnConnectRequested?.Invoke(target);
+        };
+        Disconnect.OnPressed += _ => OnDisconnectRequested?.Invoke();
     }
 
     public void UpdateState(DwaineTerminalBoundUserInterfaceState state)
@@ -43,9 +60,43 @@ public sealed partial class DwaineTerminalWindow : DefaultWindow
             ("bus", string.IsNullOrEmpty(state.BusId) ? "-" : state.BusId));
         Output.Text = string.Join('\n', state.Output);
 
-        var ready = state.Status == DwaineHardwareStatus.HardwareReady;
+        Connection.Text = Loc.GetString(state.ConnectionStatus switch
+        {
+            DwaineTerminalConnectionStatus.Disconnected => "dwaine-terminal-connection-disconnected",
+            DwaineTerminalConnectionStatus.Connected => "dwaine-terminal-connection-connected",
+            DwaineTerminalConnectionStatus.MainframeUnavailable => "dwaine-terminal-connection-unavailable",
+            _ => "dwaine-terminal-connection-disconnected",
+        }, ("mainframe", state.ConnectedMainframe));
+
+        var previousTarget = _selectedMainframe;
+        _selectedMainframe = null;
+        _mainframeTargets.Clear();
+        Mainframes.Clear();
+        for (var index = 0; index < state.AvailableMainframes.Length; index++)
+        {
+            var entry = state.AvailableMainframes[index];
+            _mainframeTargets.Add(index, entry.Entity);
+            Mainframes.AddItem(entry.Name, index);
+            if (previousTarget == entry.Entity)
+            {
+                Mainframes.SelectId(index);
+                _selectedMainframe = entry.Entity;
+            }
+        }
+
+        if (_selectedMainframe is null && state.AvailableMainframes.Length > 0)
+        {
+            Mainframes.SelectId(0);
+            _selectedMainframe = state.AvailableMainframes[0].Entity;
+        }
+
+        var connected = state.ConnectionStatus == DwaineTerminalConnectionStatus.Connected;
+        var ready = state.Status == DwaineHardwareStatus.HardwareReady && connected;
         Input.Editable = ready;
         Send.Disabled = !ready;
+        Mainframes.Disabled = connected || state.AvailableMainframes.Length == 0;
+        Connect.Disabled = connected || _selectedMainframe is null;
+        Disconnect.Disabled = !connected;
     }
 
     private void SubmitInput()
