@@ -73,7 +73,7 @@ Status values used during delivery:
 | Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer`, `BuiReconnectIsIdempotentAndDestructionCleansPresentationState` | Client never authenticates actions. |
 | Display and terminal output | C3, TERM | bounded server output buffer and client presentation state | IMPLEMENTED | 02/15 | `ServerOutputBufferEnforcesBothBounds` | Presentation uses plain text; session output transport lands in PR 03. |
 | Keyboard/input abstraction | C3, TERM | BUI input request validated against the active server-side UI actor | IMPLEMENTED | 02/15 | `TerminalInputValidationRejectsUnboundedAndMultilineData` | Input length bounded; session ownership is added in PR 03. |
-| Per-user command history | C3, SHELL | bounded shell history owned by server session | PLANNED | 09/15 | Shell/history isolation | Fixes reference indexing/bounds hazards. |
+| Per-user command history | C3, SHELL | bounded shell history owned by server session | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Histories are isolated per authenticated terminal session, evict oldest entries at the configured bound and redact every compound command containing credentials. |
 | Storage interface | C3, MF, MEDIA | explicit physical storage connector | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | VFS and media behavior land in PR 06 and PR 07. |
 | Device bus | PERIPH, DRV | bounded physical bus endpoint | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Capability ABI starts PR 12. |
 | Network interface | PERIPH, DATANET | explicit physical connector, network label and link range | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Session topology lands in PR 03; routed networking in PR 13. |
@@ -90,7 +90,7 @@ Status values used during delivery:
 | Network bootloader/recovery | OS, MEDIA, MF | bootloader provider that discovers authorized recovery media/services | PLANNED | 13/15 | Kernel/netboot recovery | Depends on persistent media from PR 07 and authenticated networking from PR 13. |
 | Kernel startup | KERNEL | bounded per-mainframe server kernel runtime | IMPLEMENTED | 04/15 | `BootShutdownAndRepeatedRebootAreDeterministic` | Does not create a process scheduler early. |
 | Kernel-ready handoff | KERNEL, OS | typed server event for the later login/process layers | IMPLEMENTED | 04/15 | `BootShutdownAndRepeatedRebootAreDeterministic` | The event carries only the server-assigned boot generation. |
-| Login/shell startup | KERNEL, OS | authenticated process handoff after kernel readiness | PLANNED | 09/15 | Login/shell boot E2E | Authentication lands in PR 08 and shell execution in PR 09. |
+| Login/shell startup | KERNEL, OS | authenticated process handoff after kernel readiness | IMPLEMENTED | 09/15 | `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Kernel-ready mainframes reconcile transport/identity event ordering, spawn one owned shell process per session and replace it after `su`/logout without stale authority. |
 | Reboot and failed boot | MF, OS | cleanup-first reboot/fault transitions | IMPLEMENTED | 04/15 | `FailedBootPanicPowerLossAndDeletionAreContained` | Controlled failures never expose a C# stack trace to terminals. |
 | Kernel service registry and shutdown hooks | KERNEL | bounded named services with deterministic reverse shutdown | IMPLEMENTED | 04/15 | `ServiceRegistryIsBoundedAndShutsDownInReverseOrder` | Hook failures are contained and converted to safe diagnostics. |
 | Mainframe system clock | KERNEL | game-time-fed boot generation and uptime clock | IMPLEMENTED | 04/15 | `SystemClockUsesOnlyObservedGameTime` | Uses authoritative observations; no wall clock or frame-time arithmetic. |
@@ -153,31 +153,31 @@ Status values used during delivery:
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Interactive shell | SHELL | server shell process | PLANNED | 09/15 | Shell/E2E | Presents an operational prompt. |
-| Tokenization, quoting and escaping | SHELL, PROG | dedicated bounded lexer | PLANNED | 09/15 | Shell/parser table | No HTML execution. |
-| Arguments and environment | SHELL | bounded argument vector and environment | PLANNED | 09/15 | Shell/argv/env | Server-owned process state. |
-| Working directory | SHELL, UTIL | canonical VFS cwd | PLANNED | 09/15 | Shell/cwd | Cannot reference unmounted roots. |
-| PATH-like command resolution | SHELL | `/bin`, current directory and explicit path resolution | PLANNED | 09/15 | Shell/resolution | Execute permission checked. |
-| Pipes and stream chaining | SHELL | bounded stdout-to-stdin pipelines | PLANNED | 09/15 | Shell/pipeline limits | Maximum stages configured. |
-| Command substitution | SHELL | bounded nested child process capture | PLANNED | 09/15 | Shell/substitution depth | No recursive unbounded evaluation. |
-| Output redirection to VFS | SHELL | explicit redirection syntax and VFS write | PLANNED | 09/15 | Shell/redirection permissions | Replaces reference fallback ambiguity. |
-| Exit status and stderr | SHELL | conventional integer status and separate stderr | PLANNED | 09/15 | Shell/status/streams | Stable command errors. |
-| `break` builtin | BUILTIN | break current script/loop context | PLANNED | 09/15 | Shell/builtin break | Invalid outside context. |
-| `cls` / `clear` builtin | BUILTIN | clear terminal presentation | PLANNED | 09/15 | Shell/builtin clear | Presentation request remains server-authorized. |
-| `echo` builtin | BUILTIN | bounded stdout output, newline option | PLANNED | 09/15 | Shell/builtin echo | Supports pipelines. |
-| `else` builtin | BUILTIN | shell compatibility conditional branch | PLANNED | 09/15 | Shell/builtin else | Vodka Code has structured `else`. |
-| `eval` builtin | BUILTIN | evaluates only shell/Vodka expressions, never host code | PLANNED | 09/15 | Shell/builtin eval safety | No Roslyn/reflection/native eval. |
-| `goonsay` novelty builtin | BUILTIN | clean-room Whiskey novelty equivalent | PLANNED | 09/15 | Shell/builtin novelty | Original name/output is not copied; compatibility topic documented. |
-| `history` builtin | BUILTIN | list/clear bounded per-user history | PLANNED | 09/15 | Shell/builtin history | Correct isolation and eviction. |
-| `if` builtin | BUILTIN | shell compatibility conditional | PLANNED | 09/15 | Shell/builtin if | Predicate errors are explicit. |
-| `logout` / `logoff` builtin | BUILTIN | kernel logout request | PLANNED | 09/15 | Shell/builtin logout | Cleans child processes. |
-| `man` / `help` builtin | BUILTIN, DOC | localized command/Vodka help index | PLANNED | 09/15 | Shell/builtin man | Content matches implemented commands only. |
-| `mesg` builtin | BUILTIN | opt in/out of user messages | PLANNED | 09/15 | Shell/builtin mesg | Session and persisted preference policy tested. |
-| `sleep` builtin | BUILTIN | logical-time process wait | PLANNED | 09/15 | Shell/builtin sleep/cancel | Uses `IGameTiming`, capped. |
-| `talk` builtin | BUILTIN | bounded user-to-user mainframe message | PLANNED | 09/15 | Shell/builtin talk authorization | Cannot message disconnected/private targets. |
-| `unset` builtin | BUILTIN | remove environment/local variables | PLANNED | 09/15 | Shell/builtin unset | System variables protected. |
-| `while` builtin | BUILTIN | bounded shell compatibility loop | PLANNED | 09/15 | Shell/builtin loop budget | Cannot monopolize server. |
-| `who` builtin | BUILTIN | permission-safe session listing | PLANNED | 09/15 | Shell/builtin who | Does not leak privileged session details. |
+| Interactive shell | SHELL | server shell process | IMPLEMENTED | 09/15 | `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | One scheduler-owned process per transport session presents the prompt and sleeps without update churn while waiting for input. |
+| Tokenization, quoting and escaping | SHELL, PROG | dedicated bounded lexer | IMPLEMENTED | 09/15 | `ParserHandlesQuotesEscapesSubstitutionAndBoundedOperators` | Single/double quotes, escapes and operators have stable diagnostics; no host shell or HTML execution exists. |
+| Arguments and environment | SHELL | bounded argument vector and environment | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | `set`/`unset` operate only on bounded server-owned session state; `HOME`, `PATH` and `USER` are protected from removal. |
+| Working directory | SHELL, UTIL | canonical VFS cwd | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Cwd is an opaque VFS handle and every path is canonicalized/authorized server-side. |
+| PATH-like command resolution | SHELL | `/bin`, current directory and explicit path resolution | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | `/bin:/usr/bin:.` and explicit paths revalidate execute permission; native/Vodka program execution remains owned by its runtime PR. |
+| Pipes and stream chaining | SHELL | bounded stdout-to-stdin pipelines | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | Pipeline stages and total commands are server-clamped. |
+| Command substitution | SHELL | bounded nested command capture | IMPLEMENTED | 09/15 | `ParserHandlesQuotesEscapesSubstitutionAndBoundedOperators`, `NestedEvaluationOutputRegexAndLogicalWaitRemainBounded` | Quote-aware nested capture shares one top-level instruction budget and a hard evaluation-depth limit. |
+| Output redirection to VFS | SHELL | explicit redirection syntax and VFS write | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Input, truncate and append redirects use the centralized authorized VFS façade. |
+| Exit status and stderr | SHELL | conventional integer status and separate stderr | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | `$STATUS`, `&&`, `||` and stable player-facing errors never expose C# stack traces. |
+| `break` builtin | BUILTIN | break current script/loop context | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Returns a stable error outside a bounded loop. |
+| `cls` / `clear` builtin | BUILTIN | clear terminal presentation | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | The owning server session clears only its output buffer. |
+| `echo` builtin | BUILTIN | bounded stdout output, newline option | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | Supports pipelines and `-n` under the shared output ceiling. |
+| `else` builtin | BUILTIN | shell compatibility conditional branch | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Consumes the immediately preceding server-side status. |
+| `eval` builtin | BUILTIN | evaluates only shell expressions, never host code | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, `NestedEvaluationOutputRegexAndLogicalWaitRemainBounded` | No Roslyn, reflection, native process or OS shell path exists. |
+| `goonsay` novelty builtin | BUILTIN | clean-room `whiskeysay` equivalent | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | Original name/output is not copied; the registered manual exposes the Whiskey-specific command. |
+| `history` builtin | BUILTIN | list/clear bounded per-user history | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Session isolation, eviction and compound-`su` credential redaction are enforced. |
+| `if` builtin | BUILTIN | shell compatibility conditional | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection`, `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | String and checked integer comparisons produce conventional statuses. |
+| `logout` / `logoff` builtin | BUILTIN | identity logout request | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Revokes the authenticated session, installs a new guest identity and replaces the owned shell process. |
+| `man` / `help` builtin | BUILTIN, DOC | registered command help index | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | Every registered command and alias has synchronized help; undocumented fictional commands are absent. |
+| `mesg` builtin | BUILTIN | opt in/out of user messages | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Acceptance is isolated to the live shell session. |
+| `sleep` builtin | BUILTIN | logical-time process wait | IMPLEMENTED | 09/15 | `NestedEvaluationOutputRegexAndLogicalWaitRemainBounded` | Uses mainframe game time, caps waits at 300 seconds and disconnect cleanup cancels the owning process. |
+| `talk` builtin | BUILTIN | bounded user-to-user mainframe message | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Resolves only live consenting users on the same mainframe; no session IDs are exposed. |
+| `unset` builtin | BUILTIN | remove environment/local variables | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection` | Invalid names and protected system variables are rejected. |
+| `while` builtin | BUILTIN | bounded shell compatibility loop | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, `NestedEvaluationOutputRegexAndLogicalWaitRemainBounded` | Iteration, depth, output and one shared top-level instruction budget prevent nested-loop monopolization. |
+| `who` builtin | BUILTIN | permission-safe session listing | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Lists public usernames/guest state only, never credentials or opaque session identifiers. |
 
 ## Vodka Code and scripting operators
 
@@ -225,25 +225,25 @@ All rows below describe functional equivalents. Vodka Code uses the grammar in `
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| `cat` | UTIL | VFS concatenate/read utility | PLANNED | 09/15 | Utility/cat golden | Output bounded. |
-| `cd` | UTIL | change canonical cwd | PLANNED | 09/15 | Utility/cd paths | Defaults to user home. |
-| `chmod` | UTIL | mode utility | PLANNED | 09/15 | Utility/chmod permissions | Uses PR 05 policy. |
-| `chown` | UTIL | owner/group utility | PLANNED | 09/15 | Utility/chown privilege | Uses PR 05 policy. |
-| `cp` | UTIL | copy file/tree policy | PLANNED | 09/15 | Utility/cp links/mounts | Defined cross-volume behavior. |
-| `date` | UTIL | deterministic game-time formatting | PLANNED | 09/15 | Utility/date formats | Uses `IGameTiming`; no wall clock. |
-| `getopt` | UTIL | bounded POSIX-like option parser | PLANNED | 09/15 | Utility/getopt table | Stable errors and statuses. |
-| `grep` | UTIL | bounded text/record search | PLANNED | 09/15 | Utility/grep recursion/regex limits | Regex timeout and input ceiling required. |
-| `ln` | UTIL | create VFS symlink | PLANNED | 09/15 | Utility/ln cycles | Directory/file policy documented. |
-| `ls` | UTIL | permission-aware listing and long metadata | PLANNED | 09/15 | Utility/ls golden | Hidden/system policy explicit. |
-| `mkdir` | UTIL | create directory, including `-p` | PLANNED | 09/15 | Utility/mkdir permissions | Batch count bounded. |
-| `mount` | UTIL | privileged capability-backed mount | PLANNED | 09/15 | Utility/mount authorization | Underlying driver completes PR 12. |
-| `mv` | UTIL | atomic move/rename where possible | PLANNED | 09/15 | Utility/mv failure cleanup | No copy-delete data loss. |
-| `pwd` | UTIL | print canonical cwd | PLANNED | 09/15 | Utility/pwd | Stable root representation. |
-| `rm` | UTIL | file/tree removal with force/interactive/recursive modes | PLANNED | 09/15 | Utility/rm root/permissions | Cannot remove protected roots. |
-| `scnt` | UTIL | authorized network/device rescan | PLANNED | 09/15 | Utility/scnt topology | Explicit targets permitted without global scan. |
-| `su` | UTIL | credential-backed privilege elevation | PLANNED | 09/15 | Utility/su | Implementation policy established PR 05. |
-| `tar` | UTIL | bounded archive create/list/extract | PLANNED | 09/15 | Utility/tar depth/quota/golden | Prevents self/cyclic archive and traversal. |
-| Man pages and exit codes for every utility | UTIL, DOC | generated/registered help entries synchronized with commands | PLANNED | 09/15 | Utility/help coverage | No undocumented command or stale page. |
+| `cat` | UTIL | VFS concatenate/read utility | IMPLEMENTED | 09/15 | `EngineSupportsEnvironmentPipesChainsSubstitutionAndRedirection`, `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | File/stdin output is permission checked and bounded. |
+| `cd` | UTIL | change canonical cwd | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable`, `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Defaults to server-owned `HOME` and accepts only executable directory handles. |
+| `chmod` | UTIL | mode utility | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Parses exact three-digit octal modes and delegates ownership policy to the authorized VFS. |
+| `chown` | UTIL | owner/group utility | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | Only operators may select existing users/groups. |
+| `cp` | UTIL | copy file/tree policy | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Source subtrees are readable, destination parents writable and copied nodes are owned by the requesting principal. |
+| `date` | UTIL | deterministic game-time formatting | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Uses mainframe logical time only; no wall clock. |
+| `getopt` | UTIL | bounded POSIX-like option parser | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Short options, required values, `--`, positional arguments and errors have stable output/status. |
+| `grep` | UTIL | bounded text/record search | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable`, `NestedEvaluationOutputRegexAndLogicalWaitRemainBounded` | Searches stdin, text/program files, record/signal fields or a recursive directory tree; traversal skips symlinks and caps depth, files, aggregate input, pattern size and regex time at 50 ms. |
+| `ln` | UTIL | create VFS symlink | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Target read access and destination-parent mutation are revalidated; VFS cycle/depth controls remain authoritative. |
+| `ls` | UTIL | permission-aware listing and long metadata | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Normal and long modes use authorized VFS snapshots and stable owner/group/mode formatting. |
+| `mkdir` | UTIL | create directory, including `-p` | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Batch creation is capped at 32 paths and every parent transition is authorized. |
+| `mount` | UTIL | privileged capability-backed mount | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, PR 07 storage integration suite | Labels resolve only against media inserted in this mainframe; mount/unmount require operator authority and call the server storage service. |
+| `mv` | UTIL | atomic move/rename where possible | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Source/destination parents are authorized and raw VFS atomic/cross-volume rules prevent copy-delete loss. |
+| `pwd` | UTIL | print canonical cwd | IMPLEMENTED | 09/15 | `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries` | Opaque cwd handles resolve to a stable canonical path. |
+| `rm` | UTIL | file/tree removal with force/interactive/recursive modes | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Interactive mode stores canonical paths server-side for 30 seconds and requires `rm --confirm`; root and subtree permissions remain protected. |
+| `scnt` | UTIL | authorized network/device rescan | PLANNED | 13/15 | Utility/scnt topology | Deliberately not registered before PR 13: the real command requires topology/capabilities and must never fall back to a global entity scan or placeholder result. |
+| `su` | UTIL | credential-backed privilege elevation | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak`, `RemainingBuiltinsExposeStableStatusesAndServerHostBoundaries`, `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect` | Password verification stays server-side, failed PBKDF attempts receive capped logical-time backoff, compound/dynamic history is redacted and success replaces process ownership/environment. |
+| `tar` | UTIL | bounded archive create/list/extract | IMPLEMENTED | 09/15 | `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Uses VFS archive depth/quota validation and recursively lists canonical internal paths. |
+| Man pages and exit codes for every utility | UTIL, DOC | registered help entries synchronized with commands | IMPLEMENTED | 09/15 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | Tests enumerate every registered command/alias and require an exact help entry; no undocumented command or stale page exists. |
 
 ## Syscalls and device ABI
 
