@@ -354,6 +354,15 @@ internal sealed class VodkaParser
             if (!Match(VodkaTokenKind.LeftParenthesis))
                 break;
 
+            var opening = Previous;
+            if (!TryEnterSyntax(opening.Span))
+            {
+                SkipCallArguments();
+                var skippedClosing = Consume(VodkaTokenKind.RightParenthesis, "expected ')' after arguments");
+                expression = new VodkaErrorExpressionSyntax(VodkaSourceSpan.Cover(expression.Span, skippedClosing.Span));
+                continue;
+            }
+
             var arguments = new List<VodkaExpressionSyntax>();
             if (!Check(VodkaTokenKind.RightParenthesis))
             {
@@ -375,6 +384,7 @@ internal sealed class VodkaParser
             }
 
             var closing = Consume(VodkaTokenKind.RightParenthesis, "expected ')' after arguments");
+            ExitSyntax();
             expression = new VodkaCallExpressionSyntax(
                 expression,
                 arguments.ToArray(),

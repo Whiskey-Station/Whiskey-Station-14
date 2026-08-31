@@ -149,6 +149,9 @@ public sealed class VodkaFrontendTest
         var arguments = VodkaParser.Parse(
             "call(1, 2, 3, 4);",
             VodkaFrontendLimits.Default with { MaxArguments = 3 });
+        var nestedCalls = VodkaParser.Parse(
+            string.Concat(Enumerable.Repeat("call(", 128)) + "true" + new string(')', 128) + ";",
+            VodkaFrontendLimits.Default with { MaxSyntaxDepth = 8 });
 
         Assert.Multiple(() =>
         {
@@ -156,7 +159,9 @@ public sealed class VodkaFrontendTest
                 Is.EqualTo(2));
             Assert.That(deep.Diagnostics.Any(d => d.Code == VodkaDiagnosticCode.SyntaxDepthExceeded), Is.True);
             Assert.That(arguments.Diagnostics.Any(d => d.Code == VodkaDiagnosticCode.ArgumentLimitExceeded), Is.True);
+            Assert.That(nestedCalls.Diagnostics.Any(d => d.Code == VodkaDiagnosticCode.SyntaxDepthExceeded), Is.True);
             Assert.That(deep.Diagnostics.Count, Is.LessThanOrEqualTo(128));
+            Assert.That(nestedCalls.Diagnostics.Count, Is.LessThanOrEqualTo(128));
         });
     }
 
@@ -203,6 +208,8 @@ public sealed class VodkaFrontendTest
         var assembly = Assembly.GetExecutingAssembly();
         var resources = assembly.GetManifestResourceNames()
             .Where(name => name.EndsWith(VodkaCodeSpecification.FileExtension, StringComparison.Ordinal))
+            .Where(name => name.Contains(".Fixtures.Valid.", StringComparison.Ordinal)
+                           || name.Contains(".Fixtures.Invalid.", StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToArray();
 
