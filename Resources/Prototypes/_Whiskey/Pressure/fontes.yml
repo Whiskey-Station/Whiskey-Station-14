@@ -17,6 +17,18 @@
   cap: 60
   decay: 0.5
   description: pressure-source-morte
+  # O canal desta fonte é a visão: quem acabou de ver alguém morrer fica olhando
+  # para um ponto e perde o resto da sala.
+  #
+  # Uma morte sozinha entra com 25 e não faz nada, de propósito: uma morte é
+  # coisa de rodada normal. O primeiro degrau é 30, ou seja precisa de uma
+  # segunda antes de a primeira sair, e a primeira leva 50 segundos para
+  # sumir. Duas mortes na mesma cena é que apertam.
+  symptoms:
+  - at: 30
+    effect: StatusEffectVisaoApertada
+  - at: 50
+    effect: StatusEffectVisaoTunel
 
 - type: pressureSource
   id: WhiskeyPressaoEscuro
