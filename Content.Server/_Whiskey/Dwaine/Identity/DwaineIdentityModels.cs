@@ -60,6 +60,7 @@ public enum DwaineIdentityResult : byte
     AccessDenied,
     SessionNotFound,
     SessionExpired,
+    Throttled,
 }
 
 public readonly record struct DwaineAccountSnapshot(
@@ -119,6 +120,7 @@ public sealed class DwaineIdentityStore
     private readonly Dictionary<DwaineGroupId, string> _groups = new();
     private readonly Dictionary<DwaineIdentitySessionId, DwaineIdentitySession> _sessions = new();
     private readonly Dictionary<ulong, DwaineIdentitySessionId> _sessionsByTerminal = new();
+    private readonly Dictionary<DwainePrincipalId, (int Failures, TimeSpan NextAttempt)> _elevationThrottle = new();
     private readonly int _accountCapacity;
     private readonly int _groupCapacity;
     private readonly int _sessionCapacity;
@@ -251,11 +253,24 @@ public sealed class DwaineIdentityStore
         if (!_accountsByName.TryGetValue(name, out var principal)
             || !_accounts.TryGetValue(principal, out var account)
             || account.Temporary
-            || !account.Enabled
-            || !VerifyPassword(account, password))
+            || !account.Enabled)
         {
             return DwaineIdentityResult.InvalidCredential;
         }
+        if (_elevationThrottle.TryGetValue(principal, out var throttle)
+            && now < throttle.NextAttempt)
+        {
+            return DwaineIdentityResult.Throttled;
+        }
+        if (!VerifyPassword(account, password))
+        {
+            var failures = Math.Min(throttle.Failures + 1, 5);
+            _elevationThrottle[principal] = (
+                failures,
+                now + TimeSpan.FromSeconds(1 << (failures - 1)));
+            return DwaineIdentityResult.InvalidCredential;
+        }
+        _elevationThrottle.Remove(principal);
 
         var live = _sessions[sessionId];
         live.Principal = principal;
@@ -295,6 +310,39 @@ public sealed class DwaineIdentityStore
 
         account = default;
         return false;
+    }
+
+    public bool TryGetAccount(string name, out DwaineAccountSnapshot account)
+    {
+        if (_accountsByName.TryGetValue(name, out var principal))
+            return TryGetAccount(principal, out account);
+
+        account = default;
+        return false;
+    }
+
+    public bool TryGetGroup(string name, out DwaineGroupId group)
+    {
+        foreach (var (candidate, candidateName) in _groups)
+        {
+            if (!string.Equals(candidateName, name, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            group = candidate;
+            return true;
+        }
+
+        group = default;
+        return false;
+    }
+
+    public DwaineIdentitySessionSnapshot[] GetSessions(TimeSpan now)
+    {
+        ExpireSessions(now);
+        return _sessions.Values
+            .OrderBy(session => session.Terminal)
+            .Select(Snapshot)
+            .ToArray();
     }
 
     public DwaineIdentityResult TryGetSessionForTerminal(
@@ -369,6 +417,7 @@ public sealed class DwaineIdentityStore
             RemoveSession(session);
         _accounts.Remove(target);
         _accountsByName.Remove(account.Name);
+        _elevationThrottle.Remove(target);
         return DwaineIdentityResult.Success;
     }
 

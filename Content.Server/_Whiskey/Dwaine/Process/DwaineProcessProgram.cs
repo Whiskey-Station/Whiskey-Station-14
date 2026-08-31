@@ -6,6 +6,7 @@ namespace Content.Server._Whiskey.Dwaine.Process;
 public enum DwaineProcessStepKind : byte
 {
     Yield,
+    WaitForInput,
     WaitForChild,
     Exit,
     Fault,
@@ -25,6 +26,11 @@ public readonly record struct DwaineProcessStepResult(
     public static DwaineProcessStepResult Wait(DwaineProcessId child)
     {
         return new DwaineProcessStepResult(DwaineProcessStepKind.WaitForChild, child, 0, string.Empty);
+    }
+
+    public static DwaineProcessStepResult WaitForInput()
+    {
+        return new DwaineProcessStepResult(DwaineProcessStepKind.WaitForInput, null, 0, string.Empty);
     }
 
     public static DwaineProcessStepResult Exit(int exitCode = 0)
