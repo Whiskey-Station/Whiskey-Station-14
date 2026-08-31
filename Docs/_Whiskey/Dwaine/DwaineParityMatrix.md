@@ -185,8 +185,8 @@ All rows below describe functional equivalents. Vodka Code uses the grammar in `
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Lexer, source locations and diagnostics | OP, SHELL | Vodka lexer with line/column spans | SPECIFIED | 10/15 | Vodka/lexer/error corpus | Specification 0.1 is normative. |
-| Parser and AST/IR | OP, SHELL | purpose-built Vodka parser and representation | SPECIFIED | 10/15 | Vodka/parser/AST | No arbitrary C# compilation. |
+| Lexer, source locations and diagnostics | OP, SHELL | bounded Vodka lexer with decoded literals and line/column spans | IMPLEMENTED | 10/15 | `LexerPreservesDecodedValuesKeywordsAndSourceLocations`, `LexerRejectsInvalidInputAndEnforcesHardBounds` | Specification 0.1 is normative; source, token and diagnostic ceilings are enforced before runtime. |
+| Parser and AST/IR | OP, SHELL | error-recovering recursive-descent parser and immutable Whiskey-owned AST | IMPLEMENTED | 10/15 | `ParserBuildsStructuredAstWithStablePrecedenceAndCalls`, `MalformedCorpusProducesPlayerSafeDiagnostics`, `ParserFuzzSeedsAreDeterministicBoundedAndNeverThrow` | No arbitrary C# compilation or host evaluation; syntax and argument depth are bounded. |
 | Variables, literals and lexical scopes | OP | `let`, assignment, integer, boolean, string, null | SPECIFIED | 11/15 | Vodka/runtime values | Bounded per process. |
 | Structured `if` / `else` | BUILTIN, OP | Vodka conditional statements | SPECIFIED | 11/15 | Vodka/conditionals | Boolean conditions only. |
 | Structured `while`, `break`, `continue` | BUILTIN, SHELL | budgeted Vodka control flow | SPECIFIED | 11/15 | Vodka/infinite loop termination | Every iteration consumes instructions. |
