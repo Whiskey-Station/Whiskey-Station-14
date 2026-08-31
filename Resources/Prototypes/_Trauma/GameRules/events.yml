@@ -77,7 +77,7 @@
       path: /Audio/Announcements/radiation.ogg
     minimumPlayers: 25
     reoccurrenceDelay: 20
-    maxOccurrences: 3
+    maxOccurrences: 1 # Whiskey - uma por rodada, decidido pela host: raro e pesado em vez de frequente e chato
     duration: 1
   - type: RadiationStormRule
   - type: MapEffectsRule

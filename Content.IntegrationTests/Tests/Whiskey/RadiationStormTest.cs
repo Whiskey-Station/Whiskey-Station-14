@@ -12,6 +12,10 @@ using Content.Trauma.Server.Weather;
 using Content.Shared.Weather;
 using Content.Trauma.Shared.Weather;
 using Robust.Shared.Audio;
+using Content.Goobstation.Shared.EntityConditions;
+using Content.Shared.Chemistry.Reagent;
+using Content.Shared.EntityEffects.Effects.Damage;
+using Content.Shared.EntityEffects.Effects.StatusEffects;
 using NUnit.Framework;
 using Robust.Shared.Localization;
 using Robust.Shared.Prototypes;
@@ -34,6 +38,7 @@ public sealed class RadiationStormTest : GameTest
     private static readonly EntProtoId Agendador = "WeatherSchedulerRadiationStorm";
     private static readonly EntProtoId Tempestade = "WeatherRadiationStorm";
     private static readonly EntProtoId Maints = "AreaMaints";
+    private static readonly ProtoId<ReagentPrototype> Iodo = "PotassiumIodide";
 
     /// <summary>
     /// O que o anúncio promete tem que ser verdade no clima.
@@ -149,6 +154,124 @@ public sealed class RadiationStormTest : GameTest
             Assert.That(caminho, Does.Not.Contain("alarm"),
                 "alarme como som de clima não alcança quem está dentro da estação");
         }
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A host pediu escape de 100% para quem tomou iodo antes. Isso só funciona
+    /// enquanto o reagente e a tempestade concordarem no nome do status. Se
+    /// alguém trocar um dos dois, a proteção some sem erro nenhum.
+    /// </summary>
+    [Test]
+    public async Task IodoTomadoAntesProtegePorInteiro()
+    {
+        var protos = Server.ProtoMan;
+        var nome = Server.EntMan.ComponentFactory.GetComponentName(typeof(WeatherEffectsComponent));
+
+        Assert.That(protos.Index(Tempestade).Components.TryGetComponent(nome, out var raw), Is.True);
+        var efeitos = (WeatherEffectsComponent) raw!;
+
+        var protegido = efeitos.Conditions?
+            .OfType<HasStatusEffectCondition>()
+            .FirstOrDefault(c => c.Inverted);
+
+        Assert.That(protegido, Is.Not.Null,
+            "a tempestade precisa pular quem tem status de proteção contra radiação");
+
+        // O outro lado do contrato: o reagente aplica esse mesmo status.
+        var iodo = protos.Index(Iodo);
+        var doSangue = iodo.Metabolisms?.Metabolisms["Bloodstream"].Effects ?? [];
+        var aplicados = doSangue
+            .OfType<ModifyStatusEffect>()
+            .Select(e => e.EffectProto.Id)
+            .ToList();
+
+        TestContext.Out.WriteLine("status que o iodo aplica: " + string.Join(", ", aplicados));
+
+        Assert.That(aplicados, Does.Contain(protegido!.EffectProto.Id),
+            "o iodo tem que aplicar exatamente o status que a tempestade respeita");
+    }
+
+    /// <summary>
+    /// A tempestade é para derrubar, não para matar de graça. Trava a conta
+    /// inteira, incluindo os 30 segundos que o agendador soma de crossfade e
+    /// que não aparecem no YAML.
+    /// </summary>
+    [Test]
+    public async Task ATempestadeDerrubaMasNaoMata()
+    {
+        var protos = Server.ProtoMan;
+        var nomeClima = Server.EntMan.ComponentFactory.GetComponentName(typeof(WeatherEffectsComponent));
+        var nomeAgenda = Server.EntMan.ComponentFactory.GetComponentName(typeof(WeatherSchedulerComponent));
+
+        Assert.That(protos.Index(Tempestade).Components.TryGetComponent(nomeClima, out var rawClima), Is.True);
+        Assert.That(protos.Index(Agendador).Components.TryGetComponent(nomeAgenda, out var rawAgenda), Is.True);
+
+        var efeitos = (WeatherEffectsComponent) rawClima!;
+        var agendador = (WeatherSchedulerComponent) rawAgenda!;
+
+        var dano = efeitos.Effects
+            .OfType<HealthChange>()
+            .SelectMany(e => e.Damage.DamageDict)
+            .Where(d => d.Key == "Radiation")
+            .Sum(d => (float) d.Value);
+
+        var estagio = agendador.Stages.First(e => e.Weather == Tempestade);
+        // O agendador soma StartupTime e ShutdownTime quando os estágios
+        // vizinhos também têm clima, e são 15 segundos cada.
+        var segundos = estagio.Duration.Max + 30;
+        var total = dano * segundos / efeitos.UpdateDelay.TotalSeconds;
+
+        TestContext.Out.WriteLine(
+            $"{dano}/s por {segundos}s reais = {total} de dano em exposição completa");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(total, Is.GreaterThanOrEqualTo(100f),
+                "abaixo do SoftCrit a tempestade não assusta ninguém e o abrigo perde a razão de existir");
+            Assert.That(total, Is.LessThan(200f),
+                "200 é morte no humanoide: quem ficou no corredor tem que cair, não morrer sem chance");
+        });
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A host tirou a mutação: aqui a radiação machuca, não transforma.
+    /// </summary>
+    [Test]
+    public async Task ATempestadeNaoMutaMaisNinguem()
+    {
+        var protos = Server.ProtoMan;
+        var nome = Server.EntMan.ComponentFactory.GetComponentName(typeof(WeatherEffectsComponent));
+
+        Assert.That(protos.Index(Tempestade).Components.TryGetComponent(nome, out var raw), Is.True);
+        var efeitos = (WeatherEffectsComponent) raw!;
+
+        var tipos = efeitos.Effects.Select(e => e.GetType().Name).ToList();
+        TestContext.Out.WriteLine("efeitos da tempestade: " + string.Join(", ", tipos));
+
+        Assert.That(tipos.Any(t => t.Contains("Mutation")), Is.False,
+            "a mutação saiu do desenho a pedido da host");
+
+        await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Raro e pesado, em vez de frequente e chato.
+    /// </summary>
+    [Test]
+    public async Task AcontecerUmaVezPorRodada()
+    {
+        var protos = Server.ProtoMan;
+        var nome = Server.EntMan.ComponentFactory.GetComponentName(typeof(StationEventComponent));
+
+        Assert.That(protos.Index(Evento).Components.TryGetComponent(nome, out var raw), Is.True);
+        var evento = (StationEventComponent) raw!;
+
+        Assert.That(evento.MaxOccurrences, Is.EqualTo(1),
+            "a host pediu uma tempestade por rodada");
 
         await Task.CompletedTask;
     }
