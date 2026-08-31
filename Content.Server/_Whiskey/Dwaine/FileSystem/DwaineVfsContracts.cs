@@ -40,6 +40,7 @@ public enum DwaineVfsResult : byte
     DirectoryNotEmpty,
     RootProtected,
     ReadOnly,
+    AccessDenied,
     InvalidType,
     InvalidHandle,
     DepthLimit,

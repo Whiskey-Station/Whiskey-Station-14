@@ -80,3 +80,10 @@ public readonly record struct DwaineMainframeSessionConnectedEvent(
     DwaineSessionId Session,
     EntityUid Terminal,
     EntityUid Owner);
+
+[ByRefEvent]
+public readonly record struct DwaineMainframeSessionDisconnectedEvent(
+    DwaineSessionId Session,
+    EntityUid Terminal,
+    EntityUid Owner,
+    DwaineDisconnectReason Reason);

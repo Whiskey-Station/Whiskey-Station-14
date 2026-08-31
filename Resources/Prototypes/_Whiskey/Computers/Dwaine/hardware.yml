@@ -64,6 +64,12 @@
     instructionsPerSlice: 1024
     instructionsPerProcess: 1000000
   - type: DwaineProcessRuntime
+  - type: DwaineIdentity
+    maxAccounts: 512
+    maxGroups: 64
+    maxSessions: 256
+    sessionLifetimeSeconds: 3600
+  - type: DwaineIdentityRuntime
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineStorageDrive
