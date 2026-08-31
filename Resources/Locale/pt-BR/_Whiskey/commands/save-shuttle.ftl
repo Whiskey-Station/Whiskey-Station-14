@@ -1,0 +1,10 @@
+cmd-saveshuttle-desc = Salva uma grid de shuttle em YAML sem expor arquivos não relacionados dos dados do servidor.
+cmd-saveshuttle-help = Uso: saveshuttle <entidade da grid> <nome-do-arquivo[.yml]>
+cmd-saveshuttle-hint-grid = Entidade da grid do shuttle.
+cmd-saveshuttle-hint-filename = Nome em Maps/Shuttles; a extensão .yml é opcional.
+cmd-saveshuttle-invalid-entity = {$uid} não é uma entidade válida.
+cmd-saveshuttle-not-grid = {$uid} não é uma grid independente.
+cmd-saveshuttle-invalid-filename = Informe apenas o nome do arquivo, sem diretórios.
+cmd-saveshuttle-invalid-extension = Arquivos de shuttle devem usar a extensão .yml.
+cmd-saveshuttle-failure = Não foi possível salvar a grid do shuttle. Verifique o log do servidor.
+cmd-saveshuttle-success = Shuttle salvo nos dados do servidor em {$path}.
