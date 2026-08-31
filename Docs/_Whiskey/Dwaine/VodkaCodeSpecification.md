@@ -7,7 +7,7 @@ Version: 0.1 (initial normative specification)
 
 Canonical extension: `.vodka`
 
-Implementation target: PR 07-08, with host ABI bindings in PR 10-13.
+Implementation target: frontend in PR 10, runtime in PR 11, and host ABI bindings in PR 12-15.
 
 Vodka Code is Whiskey DWAINE's native, deterministic scripting language. DWAINE is the operating environment; Vodka Code is the language executed inside it. It is an original Whiskey design intended to express the useful automation behaviors of the reference environment without executing or translating DM.
 
@@ -78,7 +78,7 @@ primary      = integer | string | "true" | "false" | "null"
              | identifier | "(", expression, ")" ;
 ```
 
-PR 07 implements the core grammar. PR 08 completes parity operators, string operations, file predicates, nested control flow, command execution bindings, and full-script fixtures. The syntax may only change through synchronized code, tests, this specification, and user documentation.
+PR 10 implements the bounded lexer, parser, source spans, diagnostics, and AST for this grammar. PR 11 implements the deterministic runtime, parity operators, string operations, file predicates, nested control flow, and full-script fixtures. The syntax may only change through synchronized code, tests, this specification, and user documentation.
 
 ## Operator semantics
 
@@ -90,7 +90,7 @@ PR 07 implements the core grammar. PR 08 completes parity operators, string oper
 - `and` and `or` short-circuit. Evaluation order is left to right.
 - Assignment returns no value and cannot create an implicit variable; `let` declares a variable in the current lexical scope.
 
-The reference stack/RPN operators are parity requirements, not the surface syntax of Vodka Code. PR 08 supplies equivalent deterministic language or standard-library behavior for stack inspection, string escaping, assignment, arithmetic, logic, relations, random values, and file predicates.
+The reference stack/RPN operators are parity requirements, not the surface syntax of Vodka Code. PR 11 supplies equivalent deterministic language or standard-library behavior for stack inspection, string escaping, assignment, arithmetic, logic, relations, random values, and file predicates.
 
 ## Control flow and process result
 
@@ -121,7 +121,7 @@ Pseudo-random behavior uses an execution-context generator seeded by the server 
 
 ## Host APIs
 
-Host functions are namespaced and capability-checked. The final names become normative when implemented and tested in PR 10-13. Required families are:
+Host functions are namespaced and capability-checked. The final names become normative when implemented and tested in PR 12-15. Required families are:
 
 - terminal-safe output and input;
 - VFS read, write, append, list, metadata, predicates, and path operations;

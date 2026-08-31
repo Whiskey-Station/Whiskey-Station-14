@@ -1,0 +1,3 @@
+let message = "Hello from Vodka Code";
+console.write(message);
+exit 0;
