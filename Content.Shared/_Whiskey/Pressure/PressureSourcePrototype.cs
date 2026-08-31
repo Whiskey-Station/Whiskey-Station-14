@@ -61,4 +61,37 @@ public sealed partial class PressureSourcePrototype : IPrototype
     /// </summary>
     [DataField(required: true)]
     public LocId Description;
+
+    /// <summary>
+    /// O que esta fonte faz com a pessoa, por degrau de peso.
+    ///
+    /// Fica aqui, e não no sistema, porque é isto que faz uma fonte ser
+    /// diferente da outra: ter visto morte aperta a visão, o escuro devia
+    /// mexer com som, a dor com movimento. Uma barra única de sanidade não
+    /// consegue escolher o canal, e uma lista de fontes consegue.
+    ///
+    /// Com a lista vazia a fonte só existe para ser lida no examinar, que é o
+    /// estado em que todas nasceram.
+    /// </summary>
+    [DataField]
+    public List<PressureSymptom> Symptoms = new();
+}
+
+/// <summary>
+/// Um sintoma que aparece quando a fonte passa de certo peso.
+/// </summary>
+[DataDefinition]
+public sealed partial class PressureSymptom
+{
+    /// <summary>
+    /// A partir de quanto peso DESTA fonte o sintoma vale.
+    /// </summary>
+    [DataField(required: true)]
+    public float At;
+
+    /// <summary>
+    /// O status effect aplicado enquanto o peso estiver acima do degrau.
+    /// </summary>
+    [DataField(required: true)]
+    public EntProtoId Effect;
 }
