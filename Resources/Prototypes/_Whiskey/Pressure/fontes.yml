@@ -47,6 +47,22 @@
   cap: 35
   decay: 3
   description: pressure-source-dor
+  # O canal desta fonte é a fala, e não a visão nem o movimento.
+  #
+  # Fala porque é o único canal que os OUTROS percebem sem examinar: quem está
+  # perto ouve a pessoa gaguejando e sabe que tem algo errado. Isso é o que o
+  # sistema promete, estado mental com superfície social.
+  #
+  # E porque não atrapalha o que a pessoa está fazendo. Lentidão seria empilhar
+  # em cima do que o dano já faz, e desajeitado tira o item da mão no meio de
+  # uma cirurgia, que é exatamente o tipo de coisa que gera raiva em vez de
+  # tensão.
+  #
+  # Uma pancada entra com 12 e não faz nada. Duas em sequência passam de 20,
+  # e como esta fonte sai rápido, a 3 por segundo, precisa ser sequência mesmo.
+  symptoms:
+  - at: 20
+    effect: StatusEffectStutter
 
 - type: pressureSource
   id: WhiskeyPressaoSolidao

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Content.IntegrationTests.Fixtures;
@@ -32,6 +33,7 @@ public sealed class PressureSymptomTest : GameTest
     private static readonly ProtoId<PressureSourcePrototype> Morte = "WhiskeyPressaoMorte";
     private static readonly EntProtoId Apertada = "StatusEffectVisaoApertada";
     private static readonly EntProtoId Tunel = "StatusEffectVisaoTunel";
+    private static readonly ProtoId<PressureSourcePrototype> Dor = "WhiskeyPressaoDor";
 
     /// <summary>
     /// Uma morte sozinha não faz nada. Duas apertam. E quando a pressão sai, o
@@ -144,6 +146,71 @@ public sealed class PressureSymptomTest : GameTest
             }
 
             TestContext.Out.WriteLine($"sintomas declarados: {total}");
+        });
+    }
+
+    /// <summary>
+    /// A dor fala, e não anda nem derruba coisa.
+    /// </summary>
+    /// <remarks>
+    /// O canal é decisão de desenho e vale travar: fala é o único que os outros
+    /// percebem sem examinar, e o único que não atrapalha o que a pessoa está
+    /// fazendo. Lentidão empilharia em cima do que o dano já faz, e desajeitado
+    /// tira o item da mão no meio de uma cirurgia.
+    /// </remarks>
+    [Test]
+    public async Task ADorSaiPelaFalaENaoPeloCorpo()
+    {
+        await Server.WaitAssertion(() =>
+        {
+            var dor = Server.ProtoMan.Index(Dor);
+
+            Assert.That(dor.Symptoms, Is.Not.Empty, "a dor precisa causar alguma coisa");
+
+            var canais = dor.Symptoms.Select(s => s.Effect.Id).ToList();
+            TestContext.Out.WriteLine("sintomas da dor: " + string.Join(", ", canais));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(canais, Does.Contain("StatusEffectStutter"),
+                    "o canal escolhido para a dor foi a fala");
+
+                foreach (var proibido in new[] { "Slowdown", "Clumsy", "Stun" })
+                {
+                    Assert.That(canais.Any(c => c.Contains(proibido)), Is.False,
+                        $"{proibido} tira controle da pessoa, e isso ficou fora do desenho de propósito");
+                }
+            });
+        });
+    }
+
+    /// <summary>
+    /// Cada fonte tem que falar por um canal diferente, senão elas viram a
+    /// mesma coisa com nomes diferentes e o sistema perde a razão de existir.
+    /// </summary>
+    [Test]
+    public async Task FontesDiferentesUsamCanaisDiferentes()
+    {
+        await Server.WaitAssertion(() =>
+        {
+            var usados = new Dictionary<string, string>();
+
+            foreach (var fonte in Server.ProtoMan.EnumeratePrototypes<PressureSourcePrototype>())
+            {
+                foreach (var sintoma in fonte.Symptoms)
+                {
+                    if (usados.TryGetValue(sintoma.Effect.Id, out var dono) && dono != fonte.ID)
+                    {
+                        Assert.Fail(
+                            $"{fonte.ID} e {dono} usam o mesmo sintoma {sintoma.Effect.Id}, "
+                            + "e aí a origem deixa de significar alguma coisa");
+                    }
+
+                    usados[sintoma.Effect.Id] = fonte.ID;
+                }
+            }
+
+            TestContext.Out.WriteLine($"canais em uso: {usados.Count}");
         });
     }
 }
