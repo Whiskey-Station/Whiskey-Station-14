@@ -4,10 +4,8 @@
 
 using Content.IntegrationTests.Fixtures;
 using Content.Shared._Whiskey.Pressure;
-using Content.Shared.Damage;
-using Content.Shared.Damage.Prototypes;
-using Content.Shared.Damage.Systems;
-using Content.Shared.FixedPoint;
+using Content.Shared.Mobs;
+using Content.Shared.Mobs.Systems;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
@@ -24,7 +22,6 @@ namespace Content.IntegrationTests.Tests.Whiskey;
 [TestFixture]
 public sealed class WitnessDeathTest : GameTest
 {
-    private static readonly ProtoId<DamageGroupPrototype> GrupoDeDano = "Brute";
     private static readonly ProtoId<PressureSourcePrototype> Morte = "WhiskeyPressaoMorte";
 
     /// <summary>
@@ -58,12 +55,22 @@ public sealed class WitnessDeathTest : GameTest
         });
         await pair.RunTicksSync(2);
 
+        // Estado forçado em vez de dano, e isto foi conserto de um defeito real
+        // apontado em revisão: 10000 de dano gibava a vítima, a entidade era
+        // destruída durante os ticks, e o GetComponent lá embaixo estourava
+        // KeyNotFoundException ANTES da asserção. O teste nunca chegava a
+        // comparar o valor esperado, ou seja passava e reprovava por motivo
+        // nenhum, sem exercitar o que promete.
+        //
+        // ChangeMobState dispara o mesmo MobStateChangedEvent que o gatilho
+        // escuta, é determinístico e não depende de quanto dano gib qual
+        // espécie. E deixa o cadáver de pé para poder ser consultado.
         await server.WaitPost(() =>
-            server.System<DamageableSystem>().TryChangeDamage(
-                vitima,
-                new DamageSpecifier(server.ProtoMan.Index(GrupoDeDano), FixedPoint2.New(10000)),
-                true));
+            server.System<MobStateSystem>().ChangeMobState(vitima, MobState.Dead));
         await pair.RunTicksSync(5);
+
+        Assert.That(server.EntMan.EntityExists(testemunha), Is.True,
+            "a testemunha precisa sobreviver ao cenário, senão o teste não mede nada");
 
         var comp = server.EntMan.GetComponent<MentalPressureComponent>(testemunha);
         return comp.Sources.GetValueOrDefault(Morte);
