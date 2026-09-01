@@ -1,0 +1,3 @@
+stack.push("a");
+stack.push("b");
+stack.inspect();

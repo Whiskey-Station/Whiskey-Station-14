@@ -185,13 +185,40 @@ public interface IDwaineShellHost
     void ClearScreen();
 }
 
+public readonly record struct DwaineShellProgramStartResult(
+    bool Succeeded,
+    DwaineProcessId ProcessId,
+    string Error);
+
+public readonly record struct DwaineShellProgramOutput(
+    string StandardOutput,
+    string StandardError,
+    int ExitCode,
+    string ErrorCode);
+
+/// <summary>
+/// Optional process-backed language host. Keeping this separate preserves the pure shell host contract
+/// while ensuring script execution can only occur through the authoritative process runtime.
+/// </summary>
+public interface IDwaineVodkaShellHost
+{
+    DwaineShellProgramStartResult TryStartVodka(
+        DwaineProcessId parent,
+        DwaineVfsNodeHandle workingDirectory,
+        string path,
+        IReadOnlyList<string> arguments);
+
+    bool TryTakeVodkaOutput(DwaineProcessId processId, out DwaineShellProgramOutput output);
+}
+
 public readonly record struct DwaineShellExecutionResult(
     int ExitCode,
     string StandardOutput,
     string StandardError,
     bool ClearScreen,
     bool TerminateProcess,
-    int InstructionsConsumed)
+    int InstructionsConsumed,
+    DwaineProcessId? WaitFor = null)
 {
     public static DwaineShellExecutionResult Error(string error, int instructions = 1)
     {

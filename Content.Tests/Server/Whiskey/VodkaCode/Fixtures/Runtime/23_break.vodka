@@ -1,0 +1,6 @@
+let index = 0;
+while (true) {
+    index = index + 1;
+    if (index == 3) { break; }
+}
+console.writeln(index);

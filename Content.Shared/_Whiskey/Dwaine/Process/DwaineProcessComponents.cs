@@ -23,6 +23,7 @@ public enum DwaineProcessState : byte
 [RegisterComponent]
 public sealed partial class DwaineProcessSchedulerComponent : Component
 {
+    public const int MinimumInstructionsPerSlice = 2;
     public const int HardMaxProcesses = 1024;
     public const int HardMaxProcessesPerOwner = 256;
     public const int HardMaxDispatchesPerUpdate = 1024;

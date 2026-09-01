@@ -11,6 +11,11 @@ on 2026-08-30, including every `mainframe2/filetypes` implementation, the OS pat
 hard drives, tapes and their repository-wide consumers. The pinned PR 01 baseline remains the stable
 clean-room citation set; the delta review found no conflicting VFS/media behavior that changes these contracts.
 
+PR 11/15 repeated the delta review against Goonstation HEAD
+[`612c66c00db61bd00444250f9e3efa15ffa3f9f6`](https://github.com/goonstation/goonstation/tree/612c66c00db61bd00444250f9e3efa15ffa3f9f6)
+on 2026-08-31, including every shell script operator and its call sites. No relevant behavior changed
+from the prior delta baseline. The Whiskey VM and standard library below are clean-room behavioral equivalents.
+
 This is a clean-room behavioral inventory, not a porting ledger. Goonstation's repository is licensed [CC BY-NC-SA 3.0 US](https://github.com/goonstation/goonstation/blob/20b3e8f442da6c6992b2ca5ca191029465575465/LICENSE); no source, prose, map, sprite, or sound from it is incorporated here. All Whiskey implementation code and player-facing content will be original and AGPL-3.0-or-later.
 
 ## Audit coverage
@@ -187,39 +192,39 @@ All rows below describe functional equivalents. Vodka Code uses the grammar in `
 | --- | --- | --- | --- | --- | --- | --- |
 | Lexer, source locations and diagnostics | OP, SHELL | bounded Vodka lexer with decoded literals and line/column spans | IMPLEMENTED | 10/15 | `LexerPreservesDecodedValuesKeywordsAndSourceLocations`, `LexerRejectsInvalidInputAndEnforcesHardBounds` | Specification 0.1 is normative; source, token and diagnostic ceilings are enforced before runtime. |
 | Parser and AST/IR | OP, SHELL | error-recovering recursive-descent parser and immutable Whiskey-owned AST | IMPLEMENTED | 10/15 | `ParserBuildsStructuredAstWithStablePrecedenceAndCalls`, `MalformedCorpusProducesPlayerSafeDiagnostics`, `ParserFuzzSeedsAreDeterministicBoundedAndNeverThrow` | No arbitrary C# compilation or host evaluation; syntax and argument depth are bounded. |
-| Variables, literals and lexical scopes | OP | `let`, assignment, integer, boolean, string, null | SPECIFIED | 11/15 | Vodka/runtime values | Bounded per process. |
-| Structured `if` / `else` | BUILTIN, OP | Vodka conditional statements | SPECIFIED | 11/15 | Vodka/conditionals | Boolean conditions only. |
-| Structured `while`, `break`, `continue` | BUILTIN, SHELL | budgeted Vodka control flow | SPECIFIED | 11/15 | Vodka/infinite loop termination | Every iteration consumes instructions. |
-| Return and exit semantics | SHELL, SYSCALL | script result and process exit code | SPECIFIED | 11/15 | Vodka/return/exit | Stable parent notification. |
-| Instruction, recursion, source, output and process limits | NS, SHELL | VM resource governor | SPECIFIED | 11/15 | Vodka/resource exhaustion | Defaults recorded in language spec. |
-| `+` add/concatenate | OP | typed `+` | PLANNED | 11/15 | Vodka/operator add | Mixed types rejected. |
-| `-` subtract | OP | checked integer subtraction | PLANNED | 11/15 | Vodka/operator subtract | String slicing becomes explicit library behavior. |
-| `*` multiply | OP | checked integer multiplication | PLANNED | 11/15 | Vodka/operator multiply | String repeat becomes explicit bounded function. |
-| `/` divide | OP | checked integer division | PLANNED | 11/15 | Vodka/operator divide/zero | String split becomes explicit library behavior. |
-| `%` modulo | OP | checked integer remainder | PLANNED | 11/15 | Vodka/operator modulo/zero | Zero is a runtime error. |
-| `rand` | OP | seeded deterministic random function | PLANNED | 11/15 | Vodka/random reproducibility | No ambient RNG. |
-| `and` | OP | short-circuit boolean conjunction | PLANNED | 11/15 | Vodka/operator and | Bitwise operations, if added, use distinct names. |
-| `or` | OP | short-circuit boolean disjunction | PLANNED | 11/15 | Vodka/operator or | Deterministic order. |
-| `xor` / `eor` | OP | boolean exclusive-or | PLANNED | 11/15 | Vodka/operator xor | Compatibility alias may be library-only. |
-| `not` / `!` | OP | boolean negation | PLANNED | 11/15 | Vodka/operator not | Strict boolean type. |
-| `eq` | OP | `==` equality | PLANNED | 11/15 | Vodka/operator equality | Same-kind comparison. |
-| `ne` | OP | `!=` inequality | PLANNED | 11/15 | Vodka/operator inequality | Same-kind comparison. |
-| `gt` | OP | `>` relation | PLANNED | 11/15 | Vodka/operator greater | Ordinal strings. |
-| `ge` | OP | `>=` relation | PLANNED | 11/15 | Vodka/operator greater-equal | Ordinal strings. |
-| `lt` | OP | `<` relation | PLANNED | 11/15 | Vodka/operator less | Ordinal strings. |
-| `le` | OP | `<=` relation | PLANNED | 11/15 | Vodka/operator less-equal | Ordinal strings. |
-| file `e` predicate | OP | `fs.exists(path)` | PLANNED | 11/15 | Vodka/file exists permissions | Cannot reveal inaccessible nodes. |
-| file `d` predicate | OP | `fs.is_directory(path)` | PLANNED | 11/15 | Vodka/file directory | Canonical path. |
-| file `f` predicate | OP | `fs.is_file(path)` | PLANNED | 11/15 | Vodka/file regular | Canonical path. |
-| file `x` predicate | OP | `fs.is_executable(path)` | PLANNED | 11/15 | Vodka/file executable | Includes execute permission. |
-| `to` / `value` assignment | OP | declaration and assignment statements | PLANNED | 11/15 | Vodka/assignment/scope | No implicit undeclared global. |
-| quoted string escape operator | OP | Vodka string literals and escapes | PLANNED | 11/15 | Vodka/string escapes | Lexer owns quoting. |
-| `del` stack operation | OP | compatibility stack library `drop` | PLANNED | 11/15 | Vodka/stack drop | Bounded explicit compatibility library. |
-| `#` stack depth | OP | compatibility stack library `depth` | PLANNED | 11/15 | Vodka/stack depth | Does not conflict with comments. |
-| `dup` stack operation | OP | compatibility stack library `dup` | PLANNED | 11/15 | Vodka/stack dup/limit | Checks data limit. |
-| `.` stack pop/print | OP | compatibility stack library `pop` plus output | PLANNED | 11/15 | Vodka/stack pop/underflow | Safe error on underflow. |
-| `.s` stack print | OP | compatibility stack library `inspect` | PLANNED | 11/15 | Vodka/stack inspect/output cap | Player-safe output. |
-| Full script fixtures | SHELL, DOC | at least 50 `.vodka` programs | PLANNED | 11/15 | Vodka/fixture suite | Includes branches, files and exhaustion. |
+| Variables, literals and lexical scopes | OP | `let`, assignment, integer, boolean, string, null | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, `StringDataStackAndOutputLimitsFailClosed` | Scope, variable and aggregate data ceilings are enforced per process. |
+| Structured `if` / `else` | BUILTIN, OP | Vodka conditional statements | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, runtime fixtures | Conditions accept booleans only. |
+| Structured `while`, `break`, `continue` | BUILTIN, SHELL | budgeted Vodka control flow | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, `InstructionBudgetTerminatesInfiniteLoopAcrossSlices` | Every bytecode operation is charged. |
+| Return and exit semantics | SHELL, SYSCALL | script result and process exit code | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, `VodkaCommandRunsAsBoundedChildAndReturnsOutputAndStatusToShell` | A real child process wakes its parent with a stable result. |
+| Instruction, recursion, source, output and process limits | NS, SHELL | VM resource governor | IMPLEMENTED | 11/15 | `InstructionBudgetTerminatesInfiniteLoopAcrossSlices`, `StringDataStackAndOutputLimitsFailClosed`, `CancellationAndLogicalTimeoutStopOnlyTheCurrentMachine`, `ExcessiveStaticMemberChainFailsCompilationWithoutRecursion` | Server-clamped limits cover bytecode, structural depth, variables, strings, data, stacks, arguments, output, logical time and process quotas. |
+| `+` add/concatenate | OP | typed `+` | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, runtime fixtures | Mixed types rejected. |
+| `-` subtract | OP | checked integer subtraction | IMPLEMENTED | 11/15 | runtime fixtures, `RuntimeErrorsAreStableAndPlayerSafe` | String slicing is the explicit bounded `string.slice` function. |
+| `*` multiply | OP | checked integer multiplication | IMPLEMENTED | 11/15 | runtime fixtures, `RuntimeErrorsAreStableAndPlayerSafe` | String repeat is the explicit bounded `string.repeat` function. |
+| `/` divide | OP | checked integer division | IMPLEMENTED | 11/15 | `RuntimeErrorsAreStableAndPlayerSafe`, runtime fixtures | Division by zero and signed overflow fault only the script. |
+| `%` modulo | OP | checked integer remainder | IMPLEMENTED | 11/15 | `RuntimeErrorsAreStableAndPlayerSafe`, runtime fixtures | Zero is a runtime error. |
+| `rand` | OP | seeded deterministic random function | IMPLEMENTED | 11/15 | `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior` | Server assigns the seed; no ambient RNG is observed. |
+| `and` | OP | short-circuit boolean conjunction | IMPLEMENTED | 11/15 | `AndOrShortCircuitWithoutEvaluatingFaultingOperands` | Strict boolean semantics. |
+| `or` | OP | short-circuit boolean disjunction | IMPLEMENTED | 11/15 | `AndOrShortCircuitWithoutEvaluatingFaultingOperands` | Deterministic left-to-right order. |
+| `xor` / `eor` | OP | boolean exclusive-or with source aliases | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic` | Both spellings compile to the same strict boolean operation. |
+| `not` / `!` | OP | boolean negation with source aliases | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, `RuntimeErrorsAreStableAndPlayerSafe` | Strict boolean type. |
+| `eq` | OP | `==` equality | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, runtime fixtures | Same-kind comparison. |
+| `ne` | OP | `!=` inequality | IMPLEMENTED | 11/15 | runtime fixtures | Same-kind comparison. |
+| `gt` | OP | `>` relation | IMPLEMENTED | 11/15 | runtime fixtures | Integers are numeric; strings are ordinal. |
+| `ge` | OP | `>=` relation | IMPLEMENTED | 11/15 | runtime fixtures | Integers are numeric; strings are ordinal. |
+| `lt` | OP | `<` relation | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, runtime fixtures | Integers are numeric; strings are ordinal. |
+| `le` | OP | `<=` relation | IMPLEMENTED | 11/15 | runtime fixtures | Integers are numeric; strings are ordinal. |
+| file `e` predicate | OP | `fs.exists(path)` | IMPLEMENTED | 11/15 | `FilePredicatesUseOnlyTheNarrowHostAndDoNotLeakDeniedPaths`, `VodkaCommandRunsAsBoundedChildAndReturnsOutputAndStatusToShell` | Missing and inaccessible nodes are both reported as false. |
+| file `d` predicate | OP | `fs.is_directory(path)` | IMPLEMENTED | 11/15 | `FilePredicatesUseOnlyTheNarrowHostAndDoNotLeakDeniedPaths` | Resolves relative paths against the authoritative process cwd. |
+| file `f` predicate | OP | `fs.is_file(path)` | IMPLEMENTED | 11/15 | `FilePredicatesUseOnlyTheNarrowHostAndDoNotLeakDeniedPaths` | Uses permission-checked VFS metadata. |
+| file `x` predicate | OP | `fs.is_executable(path)` | IMPLEMENTED | 11/15 | `FilePredicatesUseOnlyTheNarrowHostAndDoNotLeakDeniedPaths` | Requires a program node and current execute permission. |
+| `to` / `value` assignment | OP | declaration and assignment statements | IMPLEMENTED | 11/15 | `VariablesOperatorsScopesAndControlFlowAreDeterministic`, `RuntimeErrorsAreStableAndPlayerSafe` | No implicit undeclared global. |
+| quoted string escape operator | OP | Vodka string literals and escapes | IMPLEMENTED | 11/15 | `LexerPreservesDecodedValuesKeywordsAndSourceLocations`, `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior` | Lexer owns quoting; VM keeps strings immutable and bounded. |
+| `del` stack operation | OP | `stack.drop()` | IMPLEMENTED | 11/15 | `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior`, `RuntimeErrorsAreStableAndPlayerSafe` | Bounded explicit compatibility stack. |
+| `#` stack depth | OP | `stack.depth()` | IMPLEMENTED | 11/15 | `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior` | Does not conflict with comments. |
+| `dup` stack operation | OP | `stack.dup()` | IMPLEMENTED | 11/15 | `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior`, `StringDataStackAndOutputLimitsFailClosed` | Checks both stack and data limits. |
+| `.` stack pop/print | OP | `stack.pop()` | IMPLEMENTED | 11/15 | `RandomArgumentsStringsAndCompatibilityStackHaveStableBehavior`, `RuntimeErrorsAreStableAndPlayerSafe` | Underflow is a player-safe fault. |
+| `.s` stack print | OP | `stack.inspect()` | IMPLEMENTED | 11/15 | runtime fixtures, `StringDataStackAndOutputLimitsFailClosed` | Output remains subject to the process cap. |
+| Full script fixtures | SHELL, DOC | exactly 50 executable `.vodka` programs | IMPLEMENTED | 11/15 | `FiftyEmbeddedProgramsCompileAndCompleteWithinBounds` | Fixtures cover values, branches, loops, strings, stacks, predicates, arguments and exits. |
 
 ## Core utilities
 

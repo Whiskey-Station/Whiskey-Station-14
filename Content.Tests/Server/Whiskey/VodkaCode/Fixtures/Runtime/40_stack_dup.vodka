@@ -1,0 +1,3 @@
+stack.push("v");
+stack.dup();
+console.writeln(stack.depth());

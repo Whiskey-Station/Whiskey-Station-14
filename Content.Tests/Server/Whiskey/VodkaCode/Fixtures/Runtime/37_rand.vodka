@@ -1,0 +1,2 @@
+let value = rand(10);
+console.writeln(value >= 1 and value <= 10);

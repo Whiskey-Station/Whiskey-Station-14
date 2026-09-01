@@ -146,7 +146,10 @@ internal readonly record struct DwaineProcessLimits(
             Math.Clamp(component.MaxProcesses, 1, DwaineProcessSchedulerComponent.HardMaxProcesses),
             Math.Clamp(component.MaxProcessesPerOwner, 1, DwaineProcessSchedulerComponent.HardMaxProcessesPerOwner),
             Math.Clamp(component.MaxDispatchesPerUpdate, 1, DwaineProcessSchedulerComponent.HardMaxDispatchesPerUpdate),
-            Math.Clamp(component.InstructionsPerSlice, 1, DwaineProcessSchedulerComponent.HardMaxInstructionsPerSlice),
+            Math.Clamp(
+                component.InstructionsPerSlice,
+                DwaineProcessSchedulerComponent.MinimumInstructionsPerSlice,
+                DwaineProcessSchedulerComponent.HardMaxInstructionsPerSlice),
             Math.Clamp(component.InstructionsPerProcess, 1, DwaineProcessSchedulerComponent.HardMaxInstructionsPerProcess),
             Math.Clamp(component.StreamChunkLimit, 1, DwaineProcessSchedulerComponent.HardMaxStreamChunks),
             Math.Clamp(component.StreamCharacterLimit, 1, DwaineProcessSchedulerComponent.HardMaxStreamCharacters),

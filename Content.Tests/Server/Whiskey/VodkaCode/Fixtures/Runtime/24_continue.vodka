@@ -1,0 +1,8 @@
+let index = 0;
+let total = 0;
+while (index < 4) {
+    index = index + 1;
+    if (index == 2) { continue; }
+    total = total + index;
+}
+console.writeln(total);
