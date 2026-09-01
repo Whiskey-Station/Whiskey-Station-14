@@ -11,6 +11,7 @@ using Content.Shared._Whiskey.Dwaine.FileSystem;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Process;
 using Content.Shared._Whiskey.Dwaine.Shell;
+using Content.Server._Whiskey.VodkaCode.Runtime;
 using Robust.Shared.Timing;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
     [Dependency] private DwaineProcessSystem _processes = default!;
     [Dependency] private DwaineStorageSystem _storage = default!;
     [Dependency] private DwaineTerminalTransportSystem _transport = default!;
+    [Dependency] private VodkaRuntimeSystem _vodka = default!;
     [Dependency] private IGameTiming _timing = default!;
 
     private readonly HashSet<EntityUid> _activeMainframes = [];
@@ -387,7 +389,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
         EntityUid mainframe,
         DwaineSessionId transportSession,
         DwaineIdentityStore identities,
-        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost
+        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost, IDwaineVodkaShellHost
     {
         public TimeSpan Now => system._timing.CurTime;
         public DwaineIdentitySessionSnapshot Identity =>
@@ -513,6 +515,36 @@ public sealed partial class DwaineShellSystem : EntitySystem
             {
                 session.Output.Clear();
             }
+        }
+
+        public DwaineShellProgramStartResult TryStartVodka(
+            DwaineProcessId parent,
+            DwaineVfsNodeHandle workingDirectory,
+            string path,
+            IReadOnlyList<string> arguments)
+        {
+            var started = system._vodka.TryStart(
+                mainframe,
+                Identity.Principal,
+                parent,
+                DwaineFileSystemSystem.ToWorkingDirectory(workingDirectory),
+                path,
+                arguments,
+                true);
+            return new DwaineShellProgramStartResult(started.Succeeded, started.ProcessId, started.Error);
+        }
+
+        public bool TryTakeVodkaOutput(DwaineProcessId processId, out DwaineShellProgramOutput output)
+        {
+            output = default;
+            if (!system._vodka.TryTakeCapturedOutput(mainframe, processId, out var captured))
+                return false;
+            output = new DwaineShellProgramOutput(
+                captured.StandardOutput,
+                captured.StandardError,
+                captured.ExitCode,
+                captured.ErrorCode);
+            return true;
         }
 
         private DwaineStorageMediaSnapshot? FindMedia(string label)

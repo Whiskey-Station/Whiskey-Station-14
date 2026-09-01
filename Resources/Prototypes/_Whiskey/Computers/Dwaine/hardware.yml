@@ -82,6 +82,19 @@
     maxEvaluationDepth: 4
     maxLoopIterations: 32
   - type: DwaineShellRuntime
+  - type: VodkaRuntime
+    maxInstructionsPerInvocation: 100000
+    maxVariables: 512
+    maxStringBytes: 16384
+    maxDataBytes: 65536
+    maxOutputBytes: 65536
+    maxOperandStack: 1024
+    maxCompatibilityStack: 512
+    maxArguments: 32
+    maxArgumentBytes: 16384
+    maxCallDepth: 64
+    logicalTimeoutSeconds: 30
+  - type: VodkaRuntimeState
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineStorageDrive

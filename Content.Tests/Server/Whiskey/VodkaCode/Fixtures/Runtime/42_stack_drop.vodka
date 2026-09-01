@@ -1,0 +1,3 @@
+stack.push(42);
+stack.drop();
+console.writeln(stack.depth());

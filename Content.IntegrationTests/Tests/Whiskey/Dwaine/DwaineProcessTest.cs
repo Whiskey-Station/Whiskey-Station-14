@@ -608,6 +608,44 @@ public sealed class DwaineProcessTest : GameTest
         });
     }
 
+    [Test]
+    public async Task SchedulerClampsSliceToDispatchPlusOneProgramInstruction()
+    {
+        EntityUid map = EntityUid.Invalid;
+        EntityUid mainframe = EntityUid.Invalid;
+        DwaineProcessId processId = default;
+
+        await SpawnReadyMainframe(uid =>
+        {
+            mainframe = uid.Mainframe;
+            map = uid.Map;
+        });
+
+        await Server.WaitAssertion(() =>
+        {
+            var scheduler = Server.EntMan.GetComponent<DwaineProcessSchedulerComponent>(mainframe);
+            scheduler.InstructionsPerSlice = 1;
+            Assert.That(Server.System<DwaineProcessSystem>().TrySpawn(
+                    mainframe,
+                    Request(new DwaineProcessOwner(51), "one-instruction", new OneInstructionProgram()),
+                    out processId),
+                Is.EqualTo(DwaineProcessSpawnResult.Success));
+        });
+
+        await Server.WaitRunTicks(1);
+        await Server.WaitAssertion(() =>
+        {
+            var processes = Server.System<DwaineProcessSystem>();
+            Assert.That(processes.TryGetProcess(mainframe, processId, out var completed), Is.True);
+            Assert.Multiple(() =>
+            {
+                Assert.That(completed.State, Is.EqualTo(DwaineProcessState.Exited));
+                Assert.That(completed.InstructionsConsumed, Is.EqualTo(2));
+            });
+            Server.EntMan.DeleteEntity(map);
+        });
+    }
+
     private async Task SpawnReadyMainframe(Action<(EntityUid Map, EntityUid Mainframe)> assign)
     {
         EntityUid map = EntityUid.Invalid;
@@ -729,6 +767,16 @@ public sealed class DwaineProcessTest : GameTest
         {
             context.TryChargeInstructions(8);
             return DwaineProcessStepResult.Yield();
+        }
+    }
+
+    private sealed class OneInstructionProgram : IDwaineProcessProgram
+    {
+        public DwaineProcessStepResult Step(DwaineProcessExecutionContext context)
+        {
+            return context.TryChargeInstructions(1)
+                ? DwaineProcessStepResult.Exit()
+                : DwaineProcessStepResult.Fault("missing-program-budget");
         }
     }
 }
