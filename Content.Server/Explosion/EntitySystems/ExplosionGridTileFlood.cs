@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Linq;
 using Content.Shared.Atmos;
 using Content.Shared.FixedPoint;
 using Robust.Shared.Map.Components;
@@ -38,6 +39,8 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
     public HashSet<Vector2i> SpaceJump = new();
 
     private Dictionary<Vector2i, NeighborFlag> _edgeTiles;
+
+    public int LastAddedTileCount { get; private set; }
 
     public ExplosionGridTileFlood(
         Entity<MapGridComponent> grid,
@@ -99,7 +102,7 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
             ProcessedTiles.Add(initialTile);
     }
 
-    public int AddNewTiles(int iteration, HashSet<Vector2i>? gridJump)
+    public IEnumerable<int> AddNewTiles(int iteration, HashSet<Vector2i>? gridJump)
     {
         SpaceJump = new();
         NewTiles = new();
@@ -108,15 +111,15 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
         // Mark tiles as entered if any were just freed due to airtight/explosion blockers being destroyed.
         if (FreedTileLists.TryGetValue(iteration, out var freed))
         {
-            HashSet<Vector2i> toRemove = new();
-            foreach (var tile in freed)
+            NewFreedTiles = new();
+            var freedFrontier = freed.ToArray();
+            foreach (var tile in freedFrontier)
             {
-                if (!EnteredBlockedTiles.Add(tile))
-                    toRemove.Add(tile);
+                if (EnteredBlockedTiles.Add(tile))
+                    NewFreedTiles.Add(tile);
+                yield return 1;
             }
-
-            freed.ExceptWith(toRemove);
-            NewFreedTiles = freed;
+            FreedTileLists[iteration] = NewFreedTiles;
         }
         else
         {
@@ -126,25 +129,40 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
 
         // Add adjacent tiles
         if (TileLists.TryGetValue(iteration - 2, out var adjacent))
-            AddNewAdjacentTiles(iteration, adjacent, false);
+        {
+            foreach (var work in AddNewAdjacentTiles(iteration, adjacent, false))
+                yield return work;
+        }
         if (FreedTileLists.TryGetValue(iteration - 2, out var delayedAdjacent))
-            AddNewAdjacentTiles(iteration, delayedAdjacent, true);
+        {
+            foreach (var work in AddNewAdjacentTiles(iteration, delayedAdjacent, true))
+                yield return work;
+        }
 
         // Add diagonal tiles
         if (TileLists.TryGetValue(iteration - 3, out var diagonal))
-            AddNewDiagonalTiles(iteration, diagonal, false);
+        {
+            foreach (var work in AddNewDiagonalTiles(iteration, diagonal, false))
+                yield return work;
+        }
         if (FreedTileLists.TryGetValue(iteration - 3, out var delayedDiagonal))
-            AddNewDiagonalTiles(iteration, delayedDiagonal, true);
+        {
+            foreach (var work in AddNewDiagonalTiles(iteration, delayedDiagonal, true))
+                yield return work;
+        }
 
         // Add delayed tiles
-        AddDelayedNeighbors(iteration);
+        foreach (var work in AddDelayedNeighbors(iteration))
+            yield return work;
 
         // Tiles from Spaaaace
         if (gridJump != null)
         {
-            foreach (var tile in gridJump)
+            var jumpFrontier = gridJump.ToArray();
+            foreach (var tile in jumpFrontier)
             {
                 ProcessNewTile(iteration, tile, AtmosDirection.Invalid);
+                yield return 1;
             }
         }
 
@@ -154,7 +172,7 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
         if (NewBlockedTiles.Count != 0)
             BlockedTileLists[iteration] = NewBlockedTiles;
 
-        return NewTiles.Count + NewBlockedTiles.Count;
+        LastAddedTileCount = NewTiles.Count + NewBlockedTiles.Count;
     }
 
     protected override void ProcessNewTile(int iteration, Vector2i tile, AtmosDirection entryDirections)
@@ -245,14 +263,16 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
         SpaceJump.Add(new((int) MathF.Floor(center.X + _offset.Y), (int) MathF.Floor(center.Y - _offset.X)));
     }
 
-    private void AddDelayedNeighbors(int iteration)
+    private IEnumerable<int> AddDelayedNeighbors(int iteration)
     {
         if (!_delayedNeighbors.TryGetValue(iteration, out var delayed))
-            return;
+            yield break;
 
-        foreach (var (tile, direction) in delayed)
+        var frontier = delayed.ToArray();
+        foreach (var (tile, direction) in frontier)
         {
             ProcessNewTile(iteration, tile, direction);
+            yield return 1;
         }
 
         _delayedNeighbors.Remove(iteration);
@@ -261,9 +281,10 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
     // Gets the tiles that are directly adjacent to other tiles. If a currently exploding tile has an airtight entity
     // that blocks the explosion from propagating in some direction, those tiles are added to a list of delayed tiles
     // that will be added to the explosion in some future iteration.
-    private void AddNewAdjacentTiles(int iteration, IEnumerable<Vector2i> tiles, bool ignoreTileBlockers = false)
+    private IEnumerable<int> AddNewAdjacentTiles(int iteration, IEnumerable<Vector2i> tiles, bool ignoreTileBlockers = false)
     {
-        foreach (var tile in tiles)
+        var frontier = tiles.ToArray();
+        foreach (var tile in frontier)
         {
             var blockedDirections = AtmosDirection.Invalid;
             FixedPoint2 sealIntegrity = 0;
@@ -287,12 +308,18 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
 
             // If there are no blocked directions, we are done with this tile.
             if (ignoreTileBlockers || blockedDirections == AtmosDirection.Invalid)
+            {
+                yield return 1;
                 continue;
+            }
 
             // This tile has one or more airtight entities anchored to it blocking the explosion from traveling in
             // some directions. First, check whether this blocker can even be destroyed by this explosion?
             if (sealIntegrity > _maxIntensity)
+            {
+                yield return 1;
                 continue;
+            }
 
             // At what explosion iteration would this blocker be destroyed?
             var clearIteration = GetClearIteration(iteration, sealIntegrity, _intensityStepSize);
@@ -313,6 +340,8 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
                     list.Add((tile.Offset(direction), i.ToOppositeDir()));
                 }
             }
+
+            yield return 1;
         }
     }
 

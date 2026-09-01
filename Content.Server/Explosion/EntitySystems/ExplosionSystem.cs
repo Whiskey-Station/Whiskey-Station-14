@@ -107,6 +107,8 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
         if (_activeExplosion != null)
             QueueDel(_activeExplosion.VisualEnt);
         _activeExplosion = null;
+        _activeGeneration = null;
+        _activeQueuedExplosion = null;
         _nodeGroupSystem.PauseUpdating = false;
         _pathfindingSystem.PauseUpdating = false;
     }
@@ -323,18 +325,13 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
     ///     information about the affected tiles for the explosion system to process. It will also trigger the
     ///     camera shake and sound effect.
     /// </summary>
-    private Explosion? SpawnExplosion(QueuedExplosion queued)
+    private Explosion? SpawnExplosion(QueuedExplosion queued, ExplosionTileResult results)
     {
         var pos = queued.Epicenter;
         if (!_map.MapExists(pos.MapId))
             return null;
 
-        var results = GetExplosionTiles(pos, queued.Proto.ID, queued.TotalIntensity, queued.Slope, queued.MaxTileIntensity);
-
-        if (results == null)
-            return null;
-
-        var (area, iterationIntensity, spaceData, gridData, spaceMatrix) = results.Value;
+        var (area, iterationIntensity, spaceData, gridData, spaceMatrix) = results;
 
         var visualEnt = CreateExplosionVisualEntity(pos, queued.Proto.ID, spaceMatrix, spaceData, gridData.Values, iterationIntensity);
 
@@ -388,7 +385,7 @@ public sealed partial class ExplosionSystem : SharedExplosionSystem
             queued.CanCreateVacuum,
             EntityManager,
             visualEnt,
-            queued.Cause,
+            TerminatingOrDeleted(queued.Cause) ? null : queued.Cause,
             _map,
             _damageableSystem,
             _tileHistoryQuery);

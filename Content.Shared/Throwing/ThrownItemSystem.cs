@@ -44,6 +44,14 @@ namespace Content.Shared.Throwing
             SubscribeLocalEvent<ThrownItemComponent, StartCollideEvent>(HandleCollision);
             SubscribeLocalEvent<ThrownItemComponent, PreventCollideEvent>(PreventCollision);
             SubscribeLocalEvent<ThrownItemComponent, ThrownEvent>(ThrowItem);
+            if (_netMan.IsServer)
+            {
+                SubscribeLocalEvent<ThrownItemComponent, ComponentStartup>(OnThrownStartup);
+                SubscribeLocalEvent<ThrownItemComponent, EntityTerminatingEvent>(OnThrownTerminating);
+                SubscribeLocalEvent<ThrownItemComponent, ComponentShutdown>(OnThrownShutdown);
+                SubscribeLocalEvent<ThrownItemSourceReferenceComponent, EntityTerminatingEvent>(OnThrowerTerminating);
+                SubscribeLocalEvent<ThrownItemSourceReferenceComponent, ComponentShutdown>(OnThrowerShutdown);
+            }
 
             SubscribeLocalEvent<PullStartedMessage>(HandlePullStarted);
         }
@@ -51,6 +59,71 @@ namespace Content.Shared.Throwing
         private void OnMapInit(EntityUid uid, ThrownItemComponent component, MapInitEvent args)
         {
             component.ThrownTime ??= _gameTiming.CurTime;
+        }
+
+        private void OnThrownStartup(EntityUid uid, ThrownItemComponent component, ref ComponentStartup args)
+        {
+            if (_netMan.IsServer && component.Thrower is { } thrower && !TerminatingOrDeleted(thrower))
+                EnsureComp<ThrownItemSourceReferenceComponent>(thrower).ThrownItems.Add(uid);
+        }
+
+        private void OnThrownTerminating(EntityUid uid, ThrownItemComponent component, ref EntityTerminatingEvent args)
+        {
+            UntrackThrower(uid, component.Thrower);
+        }
+
+        private void OnThrownShutdown(EntityUid uid, ThrownItemComponent component, ref ComponentShutdown args)
+        {
+            UntrackThrower(uid, component.Thrower);
+        }
+
+        private void UntrackThrower(EntityUid thrown, EntityUid? thrower)
+        {
+            if (!_netMan.IsServer || thrower is not { } throwerUid ||
+                !TryComp(throwerUid, out ThrownItemSourceReferenceComponent? references))
+                return;
+
+            references.ThrownItems.Remove(thrown);
+            if (references.ThrownItems.Count == 0)
+                RemCompDeferred(throwerUid, references);
+        }
+
+        public void SetThrower(Entity<ThrownItemComponent> thrown, EntityUid? thrower)
+        {
+            thrower = TerminatingOrDeleted(thrower) ? null : thrower;
+            if (thrown.Comp.Thrower == thrower)
+                return;
+
+            UntrackThrower(thrown.Owner, thrown.Comp.Thrower);
+            thrown.Comp.Thrower = thrower;
+            if (_netMan.IsServer && thrower is { } throwerUid)
+                EnsureComp<ThrownItemSourceReferenceComponent>(throwerUid).ThrownItems.Add(thrown.Owner);
+            Dirty(thrown);
+        }
+
+        private void OnThrowerTerminating(EntityUid uid, ThrownItemSourceReferenceComponent component, ref EntityTerminatingEvent args)
+        {
+            CleanupThrower(uid, component);
+        }
+
+        private void OnThrowerShutdown(EntityUid uid, ThrownItemSourceReferenceComponent component, ref ComponentShutdown args)
+        {
+            CleanupThrower(uid, component);
+        }
+
+        private void CleanupThrower(EntityUid uid, ThrownItemSourceReferenceComponent component)
+        {
+            foreach (var thrownUid in component.ThrownItems.ToArray())
+            {
+                if (!TryComp(thrownUid, out ThrownItemComponent? thrown) || TerminatingOrDeleted(thrownUid) ||
+                    thrown.Thrower != uid)
+                    continue;
+
+                thrown.Thrower = null;
+                Dirty(thrownUid, thrown);
+            }
+
+            component.ThrownItems.Clear();
         }
 
         private void ThrowItem(EntityUid uid, ThrownItemComponent component, ref ThrownEvent @event)

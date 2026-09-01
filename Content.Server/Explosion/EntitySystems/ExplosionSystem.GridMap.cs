@@ -41,9 +41,10 @@ public sealed partial class ExplosionSystem
 
         // this should be a small enough set that iterating all of them is fine
         var query = EntityQueryEnumerator<ExplosionVisualsComponent>();
-        while (query.MoveNext(out var visuals))
+        while (query.MoveNext(out var uid, out var visuals))
         {
-            visuals.Tiles.Remove(ev.EntityUid);
+            if (visuals.Tiles.Remove(ev.EntityUid))
+                Dirty(uid, visuals);
         }
     }
 

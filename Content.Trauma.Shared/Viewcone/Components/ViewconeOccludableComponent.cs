@@ -2,6 +2,7 @@
 
 using Robust.Shared.ComponentTrees;
 using Robust.Shared.Physics;
+using Content.Trauma.Shared.Viewcone;
 
 namespace Content.Trauma.Shared.Viewcone.Components;
 
@@ -55,4 +56,14 @@ public sealed partial class ViewconeOccludableComponent : Component, IComponentT
     public DynamicTree<ComponentTreeEntry<ViewconeOccludableComponent>>? Tree { get; set; }
     public bool AddToTree => true;
     public bool TreeUpdateQueued { get; set; }
+}
+
+/// <summary>
+/// Reverse index for temporary viewcone effects whose network state references this entity.
+/// </summary>
+[RegisterComponent, Access(typeof(ViewconeEffectSystem))]
+public sealed partial class ViewconeSourceReferenceComponent : Component
+{
+    [ViewVariables]
+    public HashSet<EntityUid> Effects = new();
 }

@@ -1,5 +1,6 @@
 using Content.Shared.Atmos;
 using System.Runtime.CompilerServices;
+using System.Linq;
 
 namespace Content.Server.Explosion.EntitySystems;
 
@@ -41,10 +42,11 @@ public abstract class ExplosionTileFlood
 
     protected abstract AtmosDirection GetUnblockedDirectionOrAll(Vector2i tile);
 
-    protected void AddNewDiagonalTiles(int iteration, IEnumerable<Vector2i> tiles, bool ignoreLocalBlocker = false)
+    protected IEnumerable<int> AddNewDiagonalTiles(int iteration, IEnumerable<Vector2i> tiles, bool ignoreLocalBlocker = false)
     {
         AtmosDirection entryDirection = AtmosDirection.Invalid;
-        foreach (var tile in tiles)
+        var frontier = tiles.ToArray();
+        foreach (var tile in frontier)
         {
             var freeDirections = ignoreLocalBlocker ? AtmosDirection.All : GetUnblockedDirectionOrAll(tile);
 
@@ -105,6 +107,8 @@ public abstract class ExplosionTileFlood
                 ProcessNewTile(iteration, tile + (-1, -1), entryDirection);
                 entryDirection = AtmosDirection.Invalid;
             }
+
+            yield return 1;
         }
     }
 

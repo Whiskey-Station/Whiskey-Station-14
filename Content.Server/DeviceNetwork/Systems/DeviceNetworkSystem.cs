@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Content.Shared.DeviceNetwork;
 using Content.Shared.DeviceNetwork.Components;
 using Content.Shared.DeviceNetwork.Events;
@@ -41,6 +42,7 @@ namespace Content.Server.DeviceNetwork.Systems
         {
             SubscribeLocalEvent<DeviceNetworkComponent, MapInitEvent>(OnMapInit);
             SubscribeLocalEvent<DeviceNetworkComponent, ComponentShutdown>(OnNetworkShutdown);
+            SubscribeLocalEvent<DeviceNetworkComponent, EntityTerminatingEvent>(OnNetworkTerminating);
             SubscribeLocalEvent<DeviceNetworkComponent, ExaminedEvent>(OnExamine);
 
             _activeQueue = _queueA;
@@ -135,15 +137,27 @@ namespace Content.Server.DeviceNetwork.Systems
         /// </summary>
         private void OnNetworkShutdown(EntityUid uid, DeviceNetworkComponent component, ComponentShutdown args)
         {
-            foreach (var list in component.DeviceLists)
+            CleanupNetworkReferences(uid, component);
+        }
+
+        private void OnNetworkTerminating(EntityUid uid, DeviceNetworkComponent component, ref EntityTerminatingEvent args)
+        {
+            CleanupNetworkReferences(uid, component);
+        }
+
+        private void CleanupNetworkReferences(EntityUid uid, DeviceNetworkComponent component)
+        {
+            foreach (var list in component.DeviceLists.ToArray())
             {
                 _deviceLists.OnDeviceShutdown(list, (uid, component));
             }
+            component.DeviceLists.Clear();
 
-            foreach (var list in component.Configurators)
+            foreach (var list in component.Configurators.ToArray())
             {
                 _configurator.OnDeviceShutdown(list, (uid, component));
             }
+            component.Configurators.Clear();
 
             GetNetwork(component.DeviceNetId).Remove(component);
         }

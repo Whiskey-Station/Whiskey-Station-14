@@ -1,8 +1,10 @@
+using System.Linq;
 using Content.Shared.Gravity;
 using Content.Shared.Inventory; // Goobstation
 using Content.Shared.StepTrigger.Components;
 using Content.Shared.Whitelist;
 using Robust.Shared.Map.Components;
+using Robust.Shared.Network;
 using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Events;
@@ -14,6 +16,7 @@ public sealed partial class StepTriggerSystem : EntitySystem
     [Dependency] private EntityLookupSystem _entityLookup = default!;
     [Dependency] private SharedGravitySystem _gravity = default!;
     [Dependency] private SharedMapSystem _map = default!;
+    [Dependency] private INetManager _net = default!;
     [Dependency] private EntityWhitelistSystem _whitelistSystem = default!;
 
     [Dependency] private EntityQuery<PhysicsComponent> _physicsquery = default!;
@@ -21,10 +24,9 @@ public sealed partial class StepTriggerSystem : EntitySystem
     public override void Initialize()
     {
         UpdatesOutsidePrediction = true;
-        SubscribeLocalEvent<StepTriggerComponent, AfterAutoHandleStateEvent>(TriggerHandleState);
-
         SubscribeLocalEvent<StepTriggerComponent, StartCollideEvent>(OnStartCollide);
         SubscribeLocalEvent<StepTriggerComponent, EndCollideEvent>(OnEndCollide);
+        SubscribeLocalEvent<StepTriggerComponent, EntityTerminatingEvent>(OnTriggerTerminating);
         SubscribeLocalEvent<StepTriggerCleanupComponent, EntityTerminatingEvent>(OnTerminating); // Goobstation - Fix
 #if DEBUG
         SubscribeLocalEvent<StepTriggerComponent, ComponentStartup>(OnStartup);
@@ -41,6 +43,9 @@ public sealed partial class StepTriggerSystem : EntitySystem
 
     public override void Update(float frameTime)
     {
+        if (_net.IsClient)
+            return;
+
         var enumerator = EntityQueryEnumerator<StepTriggerActiveComponent, StepTriggerComponent, TransformComponent>();
 
         while (enumerator.MoveNext(out var uid, out var active, out var trigger, out var transform))
@@ -99,10 +104,7 @@ public sealed partial class StepTriggerSystem : EntitySystem
 
         if (!ourAabb.Intersects(otherAabb))
         {
-            if (component.CurrentlySteppedOn.Remove(otherUid))
-            {
-                Dirty(uid, component);
-            }
+            component.CurrentlySteppedOn.Remove(otherUid);
             return;
         }
 
@@ -130,7 +132,6 @@ public sealed partial class StepTriggerSystem : EntitySystem
         }
 
         component.CurrentlySteppedOn.Add(otherUid);
-        Dirty(uid, component);
     }
 
     private bool CanTrigger(EntityUid uid, EntityUid otherUid, StepTriggerComponent component)
@@ -162,6 +163,9 @@ public sealed partial class StepTriggerSystem : EntitySystem
 
     private void OnStartCollide(EntityUid uid, StepTriggerComponent component, ref StartCollideEvent args)
     {
+        if (_net.IsClient)
+            return;
+
         var otherUid = args.OtherEntity;
 
         if (!args.OtherFixture.Hard)
@@ -175,21 +179,27 @@ public sealed partial class StepTriggerSystem : EntitySystem
         if (component.Colliding.Add(otherUid))
         {
             var cleanup = EnsureComp<StepTriggerCleanupComponent>(otherUid); // Goobstation - Fix
-            cleanup.StepTrigger = uid;
-            Dirty(uid, component);
+            cleanup.StepTriggers.Add(uid);
         }
     }
 
     private void OnEndCollide(EntityUid uid, StepTriggerComponent component, ref EndCollideEvent args)
     {
+        if (_net.IsClient)
+            return;
+
         var otherUid = args.OtherEntity;
 
         if (!component.Colliding.Remove(otherUid))
             return;
 
         component.CurrentlySteppedOn.Remove(otherUid);
-        RemComp<StepTriggerCleanupComponent>(otherUid); // Goobstation - Fix
-        Dirty(uid, component);
+        if (TryComp(otherUid, out StepTriggerCleanupComponent? cleanup)) // Goobstation - Fix
+        {
+            cleanup.StepTriggers.Remove(uid);
+            if (cleanup.StepTriggers.Count == 0)
+                RemCompDeferred(otherUid, cleanup);
+        }
 
         if (component.StepOn)
         {
@@ -198,18 +208,6 @@ public sealed partial class StepTriggerSystem : EntitySystem
         }
 
         if (component.Colliding.Count == 0)
-        {
-            RemCompDeferred<StepTriggerActiveComponent>(uid);
-        }
-    }
-
-    private void TriggerHandleState(EntityUid uid, StepTriggerComponent component, ref AfterAutoHandleStateEvent args)
-    {
-        if (component.Colliding.Count > 0)
-        {
-            EnsureComp<StepTriggerActiveComponent>(uid);
-        }
-        else
         {
             RemCompDeferred<StepTriggerActiveComponent>(uid);
         }
@@ -266,11 +264,32 @@ public sealed partial class StepTriggerSystem : EntitySystem
 
     private void OnTerminating(EntityUid uid, StepTriggerCleanupComponent component, ref EntityTerminatingEvent args) // Goobstation - Fix
     {
-        if (!TryComp<StepTriggerComponent>(component.StepTrigger, out var step))
-            return;
+        foreach (var triggerUid in component.StepTriggers.ToArray())
+        {
+            if (!TryComp<StepTriggerComponent>(triggerUid, out var step))
+                continue;
 
-        if (step.Colliding.Remove(uid) | step.CurrentlySteppedOn.Remove(uid)) // bitwise or so they both get removed
-            Dirty(component.StepTrigger, step);
+            step.Colliding.Remove(uid);
+            step.CurrentlySteppedOn.Remove(uid);
+        }
+
+        component.StepTriggers.Clear();
+    }
+
+    private void OnTriggerTerminating(EntityUid uid, StepTriggerComponent component, ref EntityTerminatingEvent args)
+    {
+        foreach (var otherUid in component.Colliding.ToArray())
+        {
+            if (!TryComp(otherUid, out StepTriggerCleanupComponent? cleanup) || cleanup == null)
+                continue;
+
+            cleanup.StepTriggers.Remove(uid);
+            if (cleanup.StepTriggers.Count == 0)
+                RemCompDeferred(otherUid, cleanup);
+        }
+
+        component.Colliding.Clear();
+        component.CurrentlySteppedOn.Clear();
     }
 
 }

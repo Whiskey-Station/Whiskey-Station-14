@@ -45,6 +45,7 @@ public sealed partial class NetworkConfiguratorSystem : SharedNetworkConfigurato
 
         SubscribeLocalEvent<NetworkConfiguratorComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<NetworkConfiguratorComponent, ComponentShutdown>(OnShutdown);
+        SubscribeLocalEvent<NetworkConfiguratorComponent, EntityTerminatingEvent>(OnTerminating);
 
         //Interaction
         SubscribeLocalEvent<NetworkConfiguratorComponent, AfterInteractEvent>(AfterInteract); //TODO: Replace with utility verb?
@@ -124,6 +125,16 @@ public sealed partial class NetworkConfiguratorSystem : SharedNetworkConfigurato
     }
 
     private void OnShutdown(EntityUid uid, NetworkConfiguratorComponent component, ComponentShutdown args)
+    {
+        CleanupReferences(uid, component);
+    }
+
+    private void OnTerminating(EntityUid uid, NetworkConfiguratorComponent component, ref EntityTerminatingEvent args)
+    {
+        CleanupReferences(uid, component);
+    }
+
+    private void CleanupReferences(EntityUid uid, NetworkConfiguratorComponent component)
     {
         ClearDevices(uid, component);
         ClearActiveDeviceList(uid, component); // Goobstation - Fix desync of configurator lists
@@ -547,6 +558,8 @@ public sealed partial class NetworkConfiguratorSystem : SharedNetworkConfigurato
             prevListComp.Configurators.Remove(configUid);
         }
         configComp.ActiveDeviceList = null;
+        if (!TerminatingOrDeleted(configUid) && configComp.LifeStage < ComponentLifeStage.Removing)
+            Dirty(configUid, configComp);
 
         _deviceListSystem.VerifyDeviceList(prevListUid.Value, prevListComp);
     }
@@ -565,8 +578,9 @@ public sealed partial class NetworkConfiguratorSystem : SharedNetworkConfigurato
         {
             _deviceListSystem.VerifyDeviceList(nextList); // pre-check
 
-            nextListComp.Configurators.Remove(configUid);
+            nextListComp.Configurators.Add(configUid);
             configComp.ActiveDeviceList = nextListUid;
+            Dirty(configUid, configComp);
             _deviceListSystem.VerifyDeviceList(nextList); // post-check
         }
     }
@@ -887,13 +901,17 @@ public sealed partial class NetworkConfiguratorSystem : SharedNetworkConfigurato
         if (!Resolve(conf.Owner, ref conf.Comp))
             return;
 
-        foreach (var (addr, dev) in conf.Comp.Devices)
+        var addresses = conf.Comp.Devices
+            .Where(pair => pair.Value == device.Owner)
+            .Select(pair => pair.Key)
+            .ToArray();
+        foreach (var address in addresses)
         {
-            if (device.Owner == dev)
-                conf.Comp.Devices.Remove(addr);
+            conf.Comp.Devices.Remove(address);
         }
 
-        UpdateListUiState(conf, conf.Comp);
+        if (!TerminatingOrDeleted(conf.Owner))
+            UpdateListUiState(conf, conf.Comp);
     }
     #endregion
 }

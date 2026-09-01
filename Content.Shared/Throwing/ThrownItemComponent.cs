@@ -50,4 +50,14 @@ namespace Content.Shared.Throwing
         [DataField]
         public Vector2? OriginalScale = null;
     }
+
+    /// <summary>
+    /// Server-side reverse index for thrown items whose replicated thrower field points at this entity.
+    /// </summary>
+    [RegisterComponent, Access(typeof(ThrownItemSystem))]
+    public sealed partial class ThrownItemSourceReferenceComponent : Component
+    {
+        [ViewVariables]
+        public HashSet<EntityUid> ThrownItems = new();
+    }
 }

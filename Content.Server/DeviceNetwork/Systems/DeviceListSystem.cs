@@ -19,6 +19,7 @@ public sealed partial class DeviceListSystem : SharedDeviceListSystem
     {
         base.Initialize();
         SubscribeLocalEvent<DeviceListComponent, ComponentShutdown>(OnShutdown);
+        SubscribeLocalEvent<DeviceListComponent, EntityTerminatingEvent>(OnTerminating);
         SubscribeLocalEvent<DeviceListComponent, BeforeBroadcastAttemptEvent>(OnBeforeBroadcast);
         SubscribeLocalEvent<DeviceListComponent, BeforePacketSentEvent>(OnBeforePacketSent);
         SubscribeLocalEvent<BeforeSerializationEvent>(OnMapSave);
@@ -65,12 +66,21 @@ public sealed partial class DeviceListSystem : SharedDeviceListSystem
 
     private void OnShutdown(EntityUid uid, DeviceListComponent component, ComponentShutdown args)
     {
-        foreach (var conf in component.Configurators)
+        CleanupReferences(uid, component);
+    }
+
+    private void OnTerminating(EntityUid uid, DeviceListComponent component, ref EntityTerminatingEvent args)
+    {
+        CleanupReferences(uid, component);
+    }
+
+    private void CleanupReferences(EntityUid uid, DeviceListComponent component)
+    {
+        foreach (var conf in component.Configurators.ToArray())
         {
             _configurator.OnDeviceListShutdown(conf, (uid, component));
         }
-
-        foreach (var device in component.Devices)
+        foreach (var device in component.Devices.ToArray())
         {
             if (_deviceNetworkQuery.TryGetComponent(device, out var comp))
                 comp.DeviceLists.Remove(uid);
@@ -162,7 +172,8 @@ public sealed partial class DeviceListSystem : SharedDeviceListSystem
             return;
 
         list.Comp.Devices.Remove(device);
-        Dirty(list);
+        if (!TerminatingOrDeleted(list.Owner))
+            Dirty(list);
 
         VerifyDeviceList(list.Owner, list.Comp); // Goobstation - Fix desync of configurator lists
     }

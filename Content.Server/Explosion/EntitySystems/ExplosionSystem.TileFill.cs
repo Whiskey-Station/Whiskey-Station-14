@@ -31,7 +31,7 @@ public sealed partial class ExplosionSystem
     /// <param name="maxIntensity">The maximum intensity that the explosion can have at any given tile. This
     /// effectively caps the damage that this explosion can do.</param>
     /// <returns>A list of tile-sets and a list of intensity values which describe the explosion.</returns>
-    private (int, List<float>, ExplosionSpaceTileFlood?, Dictionary<EntityUid, ExplosionGridTileFlood>, Matrix3x2)? GetExplosionTiles(
+    private ExplosionTileGeneration? GetExplosionTiles(
         MapCoordinates epicenter,
         string typeID,
         float totalIntensity,
@@ -41,11 +41,36 @@ public sealed partial class ExplosionSystem
         if (totalIntensity <= 0 || slope <= 0)
             return null;
 
+        var generation = new ExplosionTileGeneration();
+        generation.Enumerator = GenerateExplosionTiles(
+                generation,
+                epicenter,
+                typeID,
+                totalIntensity,
+                slope,
+                maxIntensity)
+            .GetEnumerator();
+        return generation;
+    }
+
+    /// <summary>
+    /// Incrementally builds the immutable tile frontiers used by an explosion.
+    /// Each yield is a cooperative scheduling point charged to the system-wide explosion budget.
+    /// </summary>
+    private IEnumerable<int> GenerateExplosionTiles(
+        ExplosionTileGeneration generation,
+        MapCoordinates epicenter,
+        string typeID,
+        float totalIntensity,
+        float slope,
+        float maxIntensity)
+    {
         var typeIndex = _explosionTypes[typeID];
 
         Vector2i initialTile;
         EntityUid? epicentreGrid = null;
         var (localGrids, referenceGrid, maxDistance) = GetLocalGrids(epicenter, totalIntensity, slope, maxIntensity);
+        yield return 1;
 
         // get the epicenter tile indices
         if (_map.TryFindGridAt(epicenter, out var gridUid, out var candidateGrid) &&
@@ -127,8 +152,16 @@ public sealed partial class ExplosionSystem
 
         // Is this even a multi-tile explosion?
         if (totalIntensity < stepSize)
+        {
             // Bit anticlimactic. All that set up for nothing....
-            return (1, new List<float> { totalIntensity }, spaceData, gridData, spaceMatrix);
+            generation.Result = new ExplosionTileResult(
+                1,
+                new List<float> { totalIntensity },
+                spaceData,
+                gridData,
+                spaceMatrix);
+            yield break;
+        }
 
         // These variables keep track of the total intensity we have distributed
         List<int> tilesInIteration = new() { 1 };
@@ -168,6 +201,9 @@ public sealed partial class ExplosionSystem
                 // Has this tile-set has reached max intensity? If so, stop iterating over it in  future
                 if (intensityIncrease < stepSize)
                     maxIntensityIndex++;
+
+                if ((i - maxIntensityIndex & 31) == 31)
+                    yield return 1;
             }
 
             if (remainingIntensity <= 0) break;
@@ -184,7 +220,7 @@ public sealed partial class ExplosionSystem
             if (previousGridJump != null)
                 encounteredGrids.UnionWith(previousGridJump.Keys);
 
-            foreach (var grid in encounteredGrids)
+            foreach (var grid in encounteredGrids.ToArray())
             {
                 // is this a new grid, for which we must create a new explosion data set
                 if (!gridData.TryGetValue(grid, out var data))
@@ -207,7 +243,9 @@ public sealed partial class ExplosionSystem
                 }
 
                 // get the new neighbours, and populate gridToSpaceTiles in the process.
-                newTileCount += data.AddNewTiles(iteration, previousGridJump?.GetValueOrDefault(grid));
+                foreach (var work in data.AddNewTiles(iteration, previousGridJump?.GetValueOrDefault(grid)))
+                    yield return work;
+                newTileCount += data.LastAddedTileCount;
                 spaceJump.UnionWith(data.SpaceJump);
             }
 
@@ -217,13 +255,18 @@ public sealed partial class ExplosionSystem
 
             // If the explosion has reached space, do that neighbors finding step as well.
             if (spaceData != null)
-                newTileCount += spaceData.AddNewTiles(iteration, previousSpaceJump);
+            {
+                foreach (var work in spaceData.AddNewTiles(iteration, previousSpaceJump))
+                    yield return work;
+                newTileCount += spaceData.LastAddedTileCount;
+            }
 
             // Does adding these tiles bring us above the total target intensity?
             tilesInIteration.Add(newTileCount);
             if (newTileCount * stepSize >= remainingIntensity)
             {
                 iterationIntensity.Add(remainingIntensity / newTileCount);
+                totalTiles += newTileCount;
                 break;
             }
 
@@ -243,13 +286,47 @@ public sealed partial class ExplosionSystem
         }
 
         // Neighbor finding is done. Perform final clean up and return.
-        foreach (var grid in gridData.Values)
+        foreach (var grid in gridData.Values.ToArray())
         {
             grid.CleanUp();
+            yield return 1;
         }
         spaceData?.CleanUp();
+        if (spaceData != null)
+            yield return 1;
 
-        return (totalTiles, iterationIntensity, spaceData, gridData, spaceMatrix);
+        generation.Result = new ExplosionTileResult(totalTiles, iterationIntensity, spaceData, gridData, spaceMatrix);
+    }
+
+    private readonly record struct ExplosionTileResult(
+        int Area,
+        List<float> IterationIntensity,
+        ExplosionSpaceTileFlood? SpaceData,
+        Dictionary<EntityUid, ExplosionGridTileFlood> GridData,
+        Matrix3x2 SpaceMatrix);
+
+    private sealed class ExplosionTileGeneration
+    {
+        public IEnumerator<int> Enumerator = default!;
+        public ExplosionTileResult? Result;
+        public bool Finished { get; private set; }
+
+        public int Process(int workBudget, Func<bool> deadlineExceeded)
+        {
+            var consumed = 0;
+            while (!Finished && consumed < workBudget && !deadlineExceeded())
+            {
+                if (!Enumerator.MoveNext())
+                {
+                    Finished = true;
+                    break;
+                }
+
+                consumed += Math.Max(Enumerator.Current, 1);
+            }
+
+            return consumed;
+        }
     }
 
     /// <summary>
@@ -339,7 +416,13 @@ public sealed partial class ExplosionSystem
         if (results == null)
             return null;
 
-        var (area, iterationIntensity, spaceData, gridData, spaceMatrix) = results.Value;
+        while (!results.Finished)
+            results.Process(int.MaxValue, static () => false);
+
+        if (results.Result is not { } result)
+            return null;
+
+        var (area, iterationIntensity, spaceData, gridData, spaceMatrix) = result;
 
         Log.Info($"Generated explosion preview with {area} tiles in {stopwatch.Elapsed.TotalMilliseconds}ms");
 

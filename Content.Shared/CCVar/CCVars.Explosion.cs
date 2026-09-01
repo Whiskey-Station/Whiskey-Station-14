@@ -6,7 +6,8 @@ namespace Content.Shared.CCVar;
 public sealed partial class CCVars
 {
     /// <summary>
-    ///     How many tiles the explosion system will process per tick
+    ///     Global explosion work budget per tick across all queued explosions. Generation frontier entries and
+    ///     damaged tiles consume units from the same budget.
     /// </summary>
     /// <remarks>
     ///     Setting this too high will put a large load on a single tick. Setting this too low will lead to
@@ -58,12 +59,11 @@ public sealed partial class CCVars
         CVarDef.Create("explosion.max_iterations", 500, CVar.SERVERONLY);
 
     /// <summary>
-    ///     Max Time in milliseconds to spend processing explosions every tick.
+    ///     Maximum wall-clock time in milliseconds for explosion work each tick.
     /// </summary>
     /// <remarks>
-    ///     This time limiting is not perfectly implemented. Firstly, a significant chunk of processing time happens
-    ///     due to queued entity deletions, which happen outside of the system update code. Secondly, explosion
-    ///     spawning cannot currently be interrupted & resumed, and may lead to exceeding this time limit.
+    ///     The deadline covers tile generation, damage, atmosphere exposure, grid tile updates and the queued entity
+    ///     deletion phase. The deletion queue keeps unfinished work for subsequent ticks.
     /// </remarks>
     public static readonly CVarDef<float> ExplosionMaxProcessingTime =
         CVarDef.Create("explosion.max_tick_time", 7f, CVar.SERVERONLY);

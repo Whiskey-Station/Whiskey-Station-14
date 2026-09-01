@@ -1,5 +1,6 @@
 using Content.Shared.Atmos;
 using Robust.Shared.Map;
+using System.Linq;
 
 namespace Content.Server.Explosion.EntitySystems;
 
@@ -23,13 +24,15 @@ public sealed class ExplosionSpaceTileFlood : ExplosionTileFlood
 
     public ushort TileSize = ExplosionSystem.DefaultTileSize;
 
+    public int LastAddedTileCount { get; private set; }
+
     public ExplosionSpaceTileFlood(ExplosionSystem system, MapCoordinates epicentre, EntityUid? referenceGrid, List<EntityUid> localGrids, float maxDistance)
     {
         (_gridBlockMap, TileSize) = system.TransformGridEdges(epicentre, referenceGrid, localGrids, maxDistance);
         system.GetUnblockedDirections(_gridBlockMap, TileSize);
     }
 
-    public int AddNewTiles(int iteration, HashSet<Vector2i> inputSpaceTiles)
+    public IEnumerable<int> AddNewTiles(int iteration, HashSet<Vector2i> inputSpaceTiles)
     {
         NewTiles = new();
         NewBlockedTiles = new();
@@ -38,20 +41,34 @@ public sealed class ExplosionSpaceTileFlood : ExplosionTileFlood
 
         // Adjacent tiles
         if (TileLists.TryGetValue(iteration - 2, out var adjacent))
-            AddNewAdjacentTiles(iteration, adjacent);
+        {
+            foreach (var work in AddNewAdjacentTiles(iteration, adjacent))
+                yield return work;
+        }
         if (FreedTileLists.TryGetValue((iteration - 2) % 3, out var delayedAdjacent))
-            AddNewAdjacentTiles(iteration, delayedAdjacent);
+        {
+            foreach (var work in AddNewAdjacentTiles(iteration, delayedAdjacent))
+                yield return work;
+        }
 
         // Diagonal tiles
         if (TileLists.TryGetValue(iteration - 3, out var diagonal))
-            AddNewDiagonalTiles(iteration, diagonal);
+        {
+            foreach (var work in AddNewDiagonalTiles(iteration, diagonal))
+                yield return work;
+        }
         if (FreedTileLists.TryGetValue((iteration - 3) % 3, out var delayedDiagonal))
-            AddNewDiagonalTiles(iteration, delayedDiagonal);
+        {
+            foreach (var work in AddNewDiagonalTiles(iteration, delayedDiagonal))
+                yield return work;
+        }
 
         // Tiles entering space from some grid.
-        foreach (var tile in inputSpaceTiles)
+        var inputFrontier = inputSpaceTiles.ToArray();
+        foreach (var tile in inputFrontier)
         {
             ProcessNewTile(iteration, tile, AtmosDirection.All);
+            yield return 1;
         }
 
         // Store new tiles
@@ -62,7 +79,7 @@ public sealed class ExplosionSpaceTileFlood : ExplosionTileFlood
         FreedTileLists[iteration % 3] = NewFreedTiles;
 
         // return new tile count
-        return NewTiles.Count + NewBlockedTiles.Count;
+        LastAddedTileCount = NewTiles.Count + NewBlockedTiles.Count;
     }
 
     private void JumpToGrid(BlockedSpaceTile blocker)
@@ -81,14 +98,18 @@ public sealed class ExplosionSpaceTileFlood : ExplosionTileFlood
         }
     }
 
-    private void AddNewAdjacentTiles(int iteration, IEnumerable<Vector2i> tiles)
+    private IEnumerable<int> AddNewAdjacentTiles(int iteration, IEnumerable<Vector2i> tiles)
     {
-        foreach (var tile in tiles)
+        var frontier = tiles.ToArray();
+        foreach (var tile in frontier)
         {
             var unblockedDirections = GetUnblockedDirectionOrAll(tile);
 
             if (unblockedDirections == AtmosDirection.Invalid)
+            {
+                yield return 1;
                 continue;
+            }
 
             for (var i = 0; i < Atmospherics.Directions; i++)
             {
@@ -99,6 +120,8 @@ public sealed class ExplosionSpaceTileFlood : ExplosionTileFlood
 
                 ProcessNewTile(iteration, tile.Offset(direction), i.ToOppositeDir());
             }
+
+            yield return 1;
         }
     }
 

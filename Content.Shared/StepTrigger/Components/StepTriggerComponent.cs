@@ -14,14 +14,14 @@ public sealed partial class StepTriggerComponent : Component
     /// <summary>
     ///     List of entities that are currently colliding with the entity.
     /// </summary>
-    [ViewVariables, AutoNetworkedField]
+    [ViewVariables]
     public HashSet<EntityUid> Colliding = new();
 
     /// <summary>
     ///     The list of entities that are standing on this entity,
     /// which shouldn't be able to trigger it again until stepping off.
     /// </summary>
-    [ViewVariables, AutoNetworkedField]
+    [ViewVariables]
     public HashSet<EntityUid> CurrentlySteppedOn = new();
 
     /// <summary>
@@ -83,6 +83,6 @@ public sealed partial class StepTriggerActiveComponent : Component
 [RegisterComponent]
 public sealed partial class StepTriggerCleanupComponent : Component
 {
-    [DataField]
-    public EntityUid StepTrigger;
+    [ViewVariables]
+    public HashSet<EntityUid> StepTriggers = new();
 }

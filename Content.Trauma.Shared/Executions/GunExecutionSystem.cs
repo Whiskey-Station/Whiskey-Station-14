@@ -357,7 +357,7 @@ public sealed partial class GunExecutionSystem : EntitySystem
     public void DoThrowHit(EntityUid ammo, EntityUid shooter, EntityUid target)
     {
         var thrown = EnsureComp<ThrownItemComponent>(ammo);
-        thrown.Thrower = shooter;
+        _thrownItem.SetThrower((ammo, thrown), shooter);
         _thrownItem.ThrowCollideInteraction(thrown, ammo, target);
         RemComp(ammo, thrown);
     }

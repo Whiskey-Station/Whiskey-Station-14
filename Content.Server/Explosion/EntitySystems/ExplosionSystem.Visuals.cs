@@ -23,7 +23,8 @@ public sealed partial class ExplosionSystem
         Dictionary<NetEntity, Dictionary<int, List<Vector2i>>> tileLists = new();
         foreach (var (grid, data) in component.Tiles)
         {
-            tileLists.Add(GetNetEntity(grid), data);
+            if (TryGetNetEntity(grid, out var netGrid))
+                tileLists.Add(netGrid.Value, data);
         }
 
         args.State = new ExplosionVisualsState(

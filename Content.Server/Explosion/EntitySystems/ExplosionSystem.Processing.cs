@@ -59,6 +59,20 @@ public sealed partial class ExplosionSystem
     private Explosion? _activeExplosion;
 
     /// <summary>
+    /// Tile generation currently being advanced under the same tick budget as damage processing.
+    /// </summary>
+    private ExplosionTileGeneration? _activeGeneration;
+
+    private QueuedExplosion? _activeQueuedExplosion;
+
+    internal bool HasPendingExplosionWork =>
+        _activeExplosion != null || _activeGeneration != null || _explosionQueue.Count != 0;
+
+    internal int CompletedExplosions { get; private set; }
+    internal int LastGeneratedArea { get; private set; }
+    internal int LastTickWork { get; private set; }
+
+    /// <summary>
     /// This list is used when raising <see cref="BeforeExplodeEvent"/> to avoid allocating a new list per event.
     /// </summary>
     private readonly List<EntityUid> _containedEntities = new();
@@ -69,12 +83,15 @@ public sealed partial class ExplosionSystem
 
     private void OnMapRemoved(MapRemovedEvent ev)
     {
-        // If a map was deleted, check the explosion currently being processed belongs to that map.
-        if (_activeExplosion?.Epicenter.MapId != ev.MapId)
+        var processingMap = _activeExplosion?.Epicenter.MapId ?? _activeQueuedExplosion?.Epicenter.MapId;
+        if (processingMap != ev.MapId)
             return;
 
-        QueueDel(_activeExplosion.VisualEnt);
+        if (_activeExplosion is { } explosion)
+            QueueDel(explosion.VisualEnt);
         _activeExplosion = null;
+        _activeGeneration = null;
+        _activeQueuedExplosion = null;
         _nodeGroupSystem.PauseUpdating = false;
         _pathfindingSystem.PauseUpdating = false;
     }
@@ -84,48 +101,65 @@ public sealed partial class ExplosionSystem
     /// </summary>
     public override void Update(float frameTime)
     {
-        if (_activeExplosion == null && _explosionQueue.Count == 0)
+        if (_activeExplosion == null && _activeGeneration == null && _explosionQueue.Count == 0)
             // nothing to do
             return;
 
         Stopwatch.Restart();
 
-        var tilesRemaining = TilesPerTick;
-        while (tilesRemaining > 0 && MaxProcessingTime > Stopwatch.Elapsed.TotalMilliseconds)
+        var workRemaining = TilesPerTick;
+        while (workRemaining > 0 && !DeadlineExceeded())
         {
-            // if there is no active explosion, get a new one to process
             if (_activeExplosion == null)
             {
-                // EXPLOSION TODO allow explosion spawning to be interrupted by time limit. In the meantime, ensure that
-                // there is at-least 1ms of time left before creating a new explosion
-                if (MathF.Max(MaxProcessingTime - 1, 0.1f) < Stopwatch.Elapsed.TotalMilliseconds)
+                if (_activeGeneration == null)
+                {
+                    if (!_explosionQueue.TryDequeue(out var queued))
+                        break;
+
+                    _queuedExplosions.Remove(queued);
+                    _activeQueuedExplosion = queued;
+                    _activeGeneration = GetExplosionTiles(
+                        queued.Epicenter,
+                        queued.Proto.ID,
+                        queued.TotalIntensity,
+                        queued.Slope,
+                        queued.MaxTileIntensity);
+
+                    if (_activeGeneration == null)
+                    {
+                        _activeQueuedExplosion = null;
+                        continue;
+                    }
+
+                    if (SleepNodeSys)
+                    {
+                        _nodeGroupSystem.PauseUpdating = true;
+                        _pathfindingSystem.PauseUpdating = true;
+                    }
+                }
+
+                var generated = _activeGeneration.Process(workRemaining, DeadlineExceeded);
+                workRemaining -= generated;
+                if (!_activeGeneration.Finished)
                     break;
 
-                if (!_explosionQueue.TryDequeue(out var queued))
-                    break;
+                var generation = _activeGeneration;
+                var queuedExplosion = _activeQueuedExplosion;
+                _activeGeneration = null;
+                _activeQueuedExplosion = null;
 
-                _queuedExplosions.Remove(queued);
-                _activeExplosion = SpawnExplosion(queued);
+                if (generation.Result is not { } result || queuedExplosion == null)
+                    continue;
 
-                // explosion spawning can be null if something somewhere went wrong. (e.g., negative explosion
-                // intensity).
+                _activeExplosion = SpawnExplosion(queuedExplosion, result);
                 if (_activeExplosion == null)
                     continue;
 
-                // just a lil nap
-                if (SleepNodeSys)
-                {
-                    _nodeGroupSystem.PauseUpdating = true;
-                    _pathfindingSystem.PauseUpdating = true;
-                    // snooze grid-chunk regeneration?
-                    // snooze power network (recipients look for new suppliers as wires get destroyed).
-                }
+                LastGeneratedArea = _activeExplosion.Area;
 
-                // Generating the flood map is not incremental yet. If spawning alone exhausted this tick's budget,
-                // defer damage and tile updates instead of adding more work to the same stalled tick.
-                if (_activeExplosion.Area > SingleTickAreaLimit ||
-                    Stopwatch.Elapsed.TotalMilliseconds >= MaxProcessingTime)
-                    break; // start processing next turn.
+                if (_activeExplosion.Area > SingleTickAreaLimit || DeadlineExceeded())
+                    break;
             }
 
             // TODO EXPLOSION  check if active explosion is on a paused map. If it is... I guess support swapping out &
@@ -135,8 +169,8 @@ public sealed partial class ExplosionSystem
             try
             {
 #endif
-            var processed = _activeExplosion.Process(tilesRemaining);
-            tilesRemaining -= processed;
+            var processed = _activeExplosion.Process(workRemaining);
+            workRemaining -= processed;
 
             // has the explosion finished processing?
             if (_activeExplosion.FinishedProcessing)
@@ -145,6 +179,7 @@ public sealed partial class ExplosionSystem
                 comp.Lifetime = _cfg.GetCVar(CCVars.ExplosionPersistence);
                 _appearance.SetData(_activeExplosion.VisualEnt, ExplosionAppearanceData.Progress, int.MaxValue);
                 _activeExplosion = null;
+                CompletedExplosions++;
             }
 #if EXCEPTION_TOLERANCE
             }
@@ -154,6 +189,8 @@ public sealed partial class ExplosionSystem
                 if (_activeExplosion != null)
                     QueueDel(_activeExplosion.VisualEnt);
                 _activeExplosion = null;
+                _activeGeneration = null;
+                _activeQueuedExplosion = null;
                 _nodeGroupSystem.PauseUpdating = false;
                 _pathfindingSystem.PauseUpdating = false;
                 throw;
@@ -161,7 +198,13 @@ public sealed partial class ExplosionSystem
 #endif
         }
 
-        Log.Debug($"Processed {TilesPerTick - tilesRemaining} tiles in {Stopwatch.Elapsed.TotalMilliseconds}ms");
+        LastTickWork = TilesPerTick - workRemaining;
+        Log.Debug($"Consumed {LastTickWork} explosion work units in {Stopwatch.Elapsed.TotalMilliseconds}ms");
+
+        // Entity deletion runs after all systems. Give the global deletion queue only the time left in this explosion
+        // tick's deadline; an unfinished deletion backlog remains incremental in EntityManager.
+        var deletionBudget = TimeSpan.FromMilliseconds(Math.Max(0d, MaxProcessingTime - Stopwatch.Elapsed.TotalMilliseconds));
+        EntityManager.SetQueuedDeletionTimeBudget(deletionBudget);
 
         // we have finished processing our tiles. Is there still an ongoing explosion?
         if (_activeExplosion != null)
@@ -170,12 +213,17 @@ public sealed partial class ExplosionSystem
             return;
         }
 
-        if (_explosionQueue.Count > 0)
+        if (_activeGeneration != null || _explosionQueue.Count > 0)
             return;
 
         //wakey wakey
         _nodeGroupSystem.PauseUpdating = false;
         _pathfindingSystem.PauseUpdating = false;
+    }
+
+    internal bool DeadlineExceeded()
+    {
+        return Stopwatch.Elapsed.TotalMilliseconds >= MaxProcessingTime;
     }
 
     /// <summary>
@@ -680,7 +728,9 @@ sealed class Explosion
     /// <summary>
     ///     Have all the tiles on all the grids been processed?
     /// </summary>
-    public bool FinishedProcessing;
+    private bool _finishedDamage;
+
+    public bool FinishedProcessing => _finishedDamage && _tileUpdateDict.Count == 0;
 
     // Variables used for enumerating over tiles, grids, etc
     private DamageSpecifier _currentDamage = default!;
@@ -852,7 +902,7 @@ sealed class Explosion
         }
 
         // No more explosion tiles to process
-        FinishedProcessing = true;
+        _finishedDamage = true;
         return false;
     }
 
@@ -861,10 +911,10 @@ sealed class Explosion
     /// </summary>
     private bool MoveNext()
     {
-        if (FinishedProcessing)
+        if (_finishedDamage)
             return false;
 
-        while (!FinishedProcessing)
+        while (!_finishedDamage)
         {
             if (_currentEnumerator.MoveNext())
                 return true;
@@ -882,12 +932,15 @@ sealed class Explosion
     {
         // In case the explosion terminated early last tick due to exceeding the allocated processing time, use this
         // time to update the tiles.
-        SetTiles();
+        var processed = SetTiles(processingTarget);
+        if (processed >= processingTarget || _system.DeadlineExceeded())
+            return processed;
 
-        int processed;
-        for (processed = 0; processed < processingTarget; processed++)
+        var damageProcessed = 0;
+        var damageTarget = processingTarget - processed;
+        while (damageProcessed < damageTarget)
         {
-            if (processed % ExplosionSystem.TileCheckIteration == 0 &&
+            if (damageProcessed % ExplosionSystem.TileCheckIteration == 0 &&
                 _system.Stopwatch.Elapsed.TotalMilliseconds > _system.MaxProcessingTime)
             {
                 break;
@@ -956,33 +1009,53 @@ sealed class Explosion
                     Cause);
             }
 
+            damageProcessed++;
             if (!MoveNext())
                 break;
         }
 
+        processed += damageProcessed;
+
         // Update damaged/broken tiles on the grid.
-        SetTiles();
+        if (processed < processingTarget && !_system.DeadlineExceeded())
+            processed += SetTiles(processingTarget - processed);
         return processed;
     }
 
-    private void SetTiles()
+    private int SetTiles(int processingTarget)
     {
         // Updating the grid can result in chunk collision regeneration & slow processing by the shuttle system.
         // Therefore, tile breaking may be configure to only happen at the end of an explosion, rather than during every
         // tick.
-        if (!_system.IncrementalTileBreaking && !FinishedProcessing)
-            return;
+        if (!_system.IncrementalTileBreaking && !_finishedDamage)
+            return 0;
 
-        foreach (var (grid, list) in _tileUpdateDict)
+        const int tileBatchSize = 64;
+        var processed = 0;
+        foreach (var (grid, list) in _tileUpdateDict.ToArray())
         {
-            if (list.Count > 0 && _entMan.EntityExists(grid.Owner))
+            while (list.Count > 0 && _entMan.EntityExists(grid.Owner) && processed < processingTarget)
             {
-                _mapSystem.SetTiles(grid.Owner, grid, list);
+                if (_system.DeadlineExceeded())
+                    return processed;
+
+                var count = Math.Min(Math.Min(tileBatchSize, list.Count), processingTarget - processed);
+                var offset = list.Count - count;
+                var batch = list.GetRange(offset, count);
+                list.RemoveRange(offset, count);
+                _mapSystem.SetTiles(grid.Owner, grid, batch);
+                processed += count;
 
                 _system.DirtyHistory(grid.Owner);
             }
+
+            if (list.Count != 0 && _entMan.EntityExists(grid.Owner))
+                return processed;
+
+            _tileUpdateDict.Remove(grid);
         }
-        _tileUpdateDict.Clear();
+
+        return processed;
     }
 }
 

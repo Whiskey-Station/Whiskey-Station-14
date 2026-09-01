@@ -13,6 +13,7 @@ using Content.Shared.Popups;
 using Content.Shared.Random;
 using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
+using Robust.Shared.Network;
 
 namespace Content.Trauma.Shared.Botany.PlantAnalyzer;
 
@@ -25,6 +26,111 @@ public sealed partial class PlantAnalyzerSystem : EntitySystem
     [Dependency] private SharedDoAfterSystem _doAfter = default!;
     [Dependency] private SharedPopupSystem _popup = default!;
     [Dependency] private SharedUserInterfaceSystem _ui = default!;
+    [Dependency] private INetManager _net = default!;
+
+    public override void Initialize()
+    {
+        base.Initialize();
+
+        if (_net.IsServer)
+        {
+            SubscribeLocalEvent<PlantAnalyzerComponent, ComponentStartup>(OnAnalyzerStartup);
+            SubscribeLocalEvent<PlantAnalyzerComponent, ComponentShutdown>(OnAnalyzerShutdown);
+            SubscribeLocalEvent<PlantAnalyzerReferenceComponent, EntityTerminatingEvent>(OnReferenceTerminating);
+            SubscribeLocalEvent<PlantAnalyzerReferenceComponent, ComponentShutdown>(OnReferenceShutdown);
+        }
+    }
+
+    private void OnAnalyzerStartup(Entity<PlantAnalyzerComponent> ent, ref ComponentStartup args)
+    {
+        TrackReference(ent.Owner, ent.Comp.Scanned);
+        TrackReference(ent.Owner, ent.Comp.Plant);
+    }
+
+    private void OnAnalyzerShutdown(Entity<PlantAnalyzerComponent> ent, ref ComponentShutdown args)
+    {
+        UntrackReference(ent.Owner, ent.Comp.Scanned);
+        if (ent.Comp.Plant != ent.Comp.Scanned)
+            UntrackReference(ent.Owner, ent.Comp.Plant);
+    }
+
+    private void OnReferenceTerminating(Entity<PlantAnalyzerReferenceComponent> ent, ref EntityTerminatingEvent args)
+    {
+        CleanupReference(ent);
+    }
+
+    private void OnReferenceShutdown(Entity<PlantAnalyzerReferenceComponent> ent, ref ComponentShutdown args)
+    {
+        CleanupReference(ent);
+    }
+
+    private void CleanupReference(Entity<PlantAnalyzerReferenceComponent> ent)
+    {
+        foreach (var analyzerUid in ent.Comp.Analyzers.ToArray())
+        {
+            if (!TryComp(analyzerUid, out PlantAnalyzerComponent? analyzer) || TerminatingOrDeleted(analyzerUid))
+                continue;
+
+            var dirtyFields = new List<string>(2);
+            if (analyzer.Scanned == ent.Owner)
+            {
+                analyzer.Scanned = null;
+                dirtyFields.Add(nameof(PlantAnalyzerComponent.Scanned));
+            }
+
+            if (analyzer.Plant == ent.Owner)
+            {
+                analyzer.Plant = null;
+                dirtyFields.Add(nameof(PlantAnalyzerComponent.Plant));
+            }
+
+            if (dirtyFields.Count != 0)
+                DirtyFields(analyzerUid, analyzer, null, dirtyFields.ToArray());
+        }
+
+        ent.Comp.Analyzers.Clear();
+    }
+
+    private void TrackReference(EntityUid analyzer, EntityUid? target)
+    {
+        if (_net.IsClient || target is not { } uid || TerminatingOrDeleted(uid))
+            return;
+
+        EnsureComp<PlantAnalyzerReferenceComponent>(uid).Analyzers.Add(analyzer);
+    }
+
+    private void UntrackReference(EntityUid analyzer, EntityUid? target)
+    {
+        if (_net.IsClient || target is not { } uid || !TryComp(uid, out PlantAnalyzerReferenceComponent? references))
+            return;
+
+        references.Analyzers.Remove(analyzer);
+        if (references.Analyzers.Count == 0)
+            RemCompDeferred(uid, references);
+    }
+
+    private void RefreshReferences(Entity<PlantAnalyzerComponent> ent, EntityUid? oldScanned, EntityUid? oldPlant)
+    {
+        HashSet<EntityUid> oldReferences = new();
+        HashSet<EntityUid> newReferences = new();
+        if (oldScanned is { } oldScannedUid)
+            oldReferences.Add(oldScannedUid);
+        if (oldPlant is { } oldPlantUid)
+            oldReferences.Add(oldPlantUid);
+        if (ent.Comp.Scanned is { } scannedUid)
+            newReferences.Add(scannedUid);
+        if (ent.Comp.Plant is { } plantUid)
+            newReferences.Add(plantUid);
+
+        foreach (var oldReference in oldReferences)
+        {
+            if (!newReferences.Contains(oldReference))
+                UntrackReference(ent.Owner, oldReference);
+        }
+
+        foreach (var newReference in newReferences)
+            TrackReference(ent.Owner, newReference);
+    }
 
     [SubscribeLocalEvent]
     private void OnAfterInteract(Entity<PlantAnalyzerComponent> ent, ref AfterInteractEvent args)
@@ -101,7 +207,10 @@ public sealed partial class PlantAnalyzerSystem : EntitySystem
         // let the UI update the seed's data without rescanning, if it was scanned already
         if (ent.Comp.Scanned == seed.Owner)
         {
+            var oldScanned = ent.Comp.Scanned;
+            var oldPlant = ent.Comp.Plant;
             ent.Comp.Plant = uid;
+            RefreshReferences(ent, oldScanned, oldPlant);
             DirtyField(ent, ent.Comp, nameof(PlantAnalyzerComponent.Plant));
         }
         return uid;
@@ -167,8 +276,11 @@ public sealed partial class PlantAnalyzerSystem : EntitySystem
 
     public void ScanPlant(Entity<PlantAnalyzerComponent> ent, EntityUid target, EntityUid user)
     {
+        var oldScanned = ent.Comp.Scanned;
+        var oldPlant = ent.Comp.Plant;
         ent.Comp.Scanned = target;
         (ent.Comp.Plant, ent.Comp.Seed) = GetPlantData(target);
+        RefreshReferences(ent, oldScanned, oldPlant);
 
         // mutations list isnt networked, have to do it ourselves
         ent.Comp.ScannedMutations.Clear();

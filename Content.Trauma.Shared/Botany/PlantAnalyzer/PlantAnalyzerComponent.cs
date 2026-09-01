@@ -81,6 +81,16 @@ public sealed partial class PlantAnalyzerComponent : Component
     public int DatabankIndex = 0;
 }
 
+/// <summary>
+/// Reverse index for analyzer components that currently replicate this entity.
+/// </summary>
+[RegisterComponent, Access(typeof(PlantAnalyzerSystem))]
+public sealed partial class PlantAnalyzerReferenceComponent : Component
+{
+    [ViewVariables]
+    public HashSet<EntityUid> Analyzers = new();
+}
+
 // has to match the UI's tab order
 [Serializable, NetSerializable]
 public enum PlantAnalyzerModes : byte
