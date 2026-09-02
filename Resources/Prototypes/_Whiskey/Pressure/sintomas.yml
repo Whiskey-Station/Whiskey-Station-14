@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Os sintomas da pressão mental.
+#
+# O canal é escolhido pela fonte, e não pelo total: é isso que uma barra de
+# sanidade não consegue fazer. Ter visto morte aperta a visão, porque a pessoa
+# passa a olhar para um ponto só e perde o resto da sala.
+#
+# O cone base do humano é 270 graus, que é mais ou menos a visão periférica de
+# verdade. O modificador é multiplicativo, então 0.67 dá 180 e 0.5 dá 135.
+#
+# NÃO existe degrau que zere a visão de propósito. Fechar o olho sozinho é o
+# jogo jogando pela pessoa, e numa rodada de uma hora isso vira raiva, não
+# susto. Perder a visão de lado já assusta e mantém o controle na mão de quem
+# está jogando.
+
+- type: entity
+  parent: StatusEffectBase
+  id: StatusEffectVisaoApertada
+  name: visão apertada
+  components:
+  - type: ViewconeModifier
+    angleModifier: 0.67 # 270 vira 180
+
+- type: entity
+  parent: StatusEffectBase
+  id: StatusEffectVisaoTunel
+  name: visão em túnel
+  components:
+  - type: ViewconeModifier
+    angleModifier: 0.5 # 270 vira 135
