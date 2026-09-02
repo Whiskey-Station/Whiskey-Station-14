@@ -20,16 +20,25 @@
   # O canal desta fonte é a visão: quem acabou de ver alguém morrer fica olhando
   # para um ponto e perde o resto da sala.
   #
+  # ATENÇÃO ao ler estes números: o decaimento é por CICLO, e não por segundo.
+  # O ciclo é o DecayInterval do componente, que hoje são cinco segundos. Ou
+  # seja 0,5 de decaimento não tira meio ponto por segundo, tira meio ponto a
+  # cada cinco. Eu já errei essa conta uma vez e escrevi durações cinco vezes
+  # menores do que as de verdade.
+  #
   # Uma morte sozinha entra com 25 e não faz nada, de propósito: uma morte é
   # coisa de rodada normal. O primeiro degrau é 30, ou seja precisa de uma
-  # segunda antes de a primeira sair, e a primeira leva 50 segundos para
-  # sumir. Duas mortes na mesma cena é que apertam.
+  # segunda antes de a primeira sair, e a primeira sozinha leva pouco mais de
+  # quatro minutos para sumir. Duas mortes na mesma cena é que apertam.
   #
   # O segundo degrau é 45 e não 50 porque duas mortes dão exatamente 50: no
-  # limiar cravado o sintoma ligava e desligava no primeiro tique de
-  # decaimento, ou seja piscava. Com 45 sobram 5 de folga, que a 0,5 por
-  # segundo rendem dez segundos de visão em túnel para quem viu duas mortes, e
-  # trinta para quem chegou ao teto.
+  # limiar cravado o sintoma ligava e desligava no primeiro ciclo de
+  # decaimento, ou seja piscava. Com 45 sobram 5 de folga.
+  #
+  # Em tempo de jogo, medido: quem viu duas mortes fica com a visão apertada
+  # por volta de três minutos e meio e com a visão em túnel por volta de
+  # cinquenta e cinco segundos. Quem chegou ao teto de 60 fica cinco minutos
+  # com a visão apertada e dois minutos e meio com a em túnel.
   symptoms:
   - at: 30
     effect: StatusEffectVisaoApertada
