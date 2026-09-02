@@ -57,7 +57,9 @@
 
 - type: pressureSource
   id: WhiskeyPressaoDor
-  # Média e rápida de sair, porque a dor passa quando o ferimento é tratado.
+  # Média e a mais rápida de sair, porque a dor passa quando o ferimento é
+  # tratado. Como em toda fonte, o decaimento é por ciclo de cinco segundos, e
+  # não por segundo.
   weight: 12
   cap: 35
   decay: 3
@@ -73,10 +75,26 @@
   # uma cirurgia, que é exatamente o tipo de coisa que gera raiva em vez de
   # tensão.
   #
-  # Uma pancada entra com 12 e não faz nada. Duas em sequência passam de 20,
-  # e como esta fonte sai rápido, a 3 por segundo, precisa ser sequência mesmo.
+  # O degrau é 15 e não 20 por causa de um defeito que só apareceu jogando: com
+  # 20, o log registrou quatro ciclos de liga e desliga seguidos, e a gagueira
+  # PISCAVA em vez de durar.
+  #
+  # A causa não era a fonte sair rápido demais, que foi o meu primeiro palpite.
+  # Era o degrau cair bem no meio da faixa em que o peso passa a briga inteira
+  # oscilando: uma pancada leva a 24, o ciclo seguinte derruba para 18, a
+  # próxima pancada sobe para 30, e o sintoma acompanha esse sobe e desce.
+  #
+  # Com 15 o peso de duas pancadas fica bem acima do degrau e só desce quando a
+  # briga acaba de verdade. Simulei os três decaimentos possíveis e todos param
+  # de piscar assim que o degrau desce, o que mostra que quem estava errado era
+  # o degrau e não o decaimento.
+  #
+  # Em tempo de jogo: uma pancada entra com 12 e não faz nada. Duas dão 24 e
+  # rendem vinte segundos de gagueira, três batem no teto de 35 e rendem trinta
+  # e cinco. Do teto até zero são sessenta segundos, contra dez minutos da
+  # morte, então esta continua sendo de longe a fonte que sai mais rápido.
   symptoms:
-  - at: 20
+  - at: 15
     effect: StatusEffectStutter
 
 - type: pressureSource
