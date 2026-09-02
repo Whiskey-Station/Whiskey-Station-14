@@ -11,11 +11,14 @@ on:
 jobs:
   Label:
     if: ( github.event.pull_request.draft == false )
+    permissions: # Trauma - allow conflict labels when the optional bot token is unavailable.
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Check for Merge Conflicts
         uses: eps1lon/actions-label-merge-conflict@v3.1.0
         with:
           dirtyLabel: "S: Merge Conflict"
-          repoToken: "${{ secrets.BOT_TOKEN }}"
+          repoToken: "${{ secrets.BOT_TOKEN || github.token }}" # Trauma - fall back to the scoped workflow token.
           commentOnDirty: "This pull request has conflicts, please resolve those before we can evaluate the pull request."

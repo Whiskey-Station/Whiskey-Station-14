@@ -3,12 +3,15 @@ on: pull_request_target
 
 jobs:
   size-label:
+    permissions: # Trauma - allow labels when the optional bot token is unavailable.
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: size-label
         uses: "pascalgn/size-label-action@v0.5.5"
         env:
-          GITHUB_TOKEN: "${{ secrets.BOT_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.BOT_TOKEN || github.token }}" # Trauma - fall back to the scoped workflow token.
         with:
           # Custom size configuration
           sizes: >
