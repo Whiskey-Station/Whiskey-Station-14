@@ -16,6 +16,12 @@ using Content.Goobstation.Shared.EntityConditions;
 using Content.Shared.Chemistry.Reagent;
 using Content.Shared.EntityEffects.Effects.Damage;
 using Content.Shared.EntityEffects.Effects.StatusEffects;
+using Content.Shared.EntityConditions;
+using Content.Shared.StatusEffectNew;
+using Content.Shared.Chemistry.Components.SolutionManager;
+using Content.Shared.Body.Systems;
+using Content.Shared.Chemistry.Components;
+using Content.Shared.FixedPoint;
 using NUnit.Framework;
 using Robust.Shared.Localization;
 using Robust.Shared.Prototypes;
@@ -39,6 +45,7 @@ public sealed class RadiationStormTest : GameTest
     private static readonly EntProtoId Tempestade = "WeatherRadiationStorm";
     private static readonly EntProtoId Maints = "AreaMaints";
     private static readonly ProtoId<ReagentPrototype> Iodo = "PotassiumIodide";
+    private static readonly EntProtoId Protecao = "StatusEffectRadiationProtection";
 
     /// <summary>
     /// O que o anúncio promete tem que ser verdade no clima.
@@ -274,5 +281,83 @@ public sealed class RadiationStormTest : GameTest
             "a host pediu uma tempestade por rodada");
 
         await Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A condição do iodo, avaliada contra uma pessoa de verdade.
+    /// </summary>
+    /// <remarks>
+    /// O teste de contrato ao lado ficou verde enquanto o recurso estava
+    /// quebrado em jogo, porque ele só olha nomes: o clima cita um status e o
+    /// reagente aplica um status com o mesmo id. Isto aqui pergunta a coisa que
+    /// importa, que é se uma pessoa com o status é poupada.
+    /// </remarks>
+    [Test]
+    public async Task QuemTemOStatusDeProtecaoNaoEAfetado()
+    {
+        var pessoa = await Spawn("MobHuman");
+
+        await Server.WaitAssertion(() =>
+        {
+            var nome = Server.EntMan.ComponentFactory.GetComponentName(typeof(WeatherEffectsComponent));
+            Assert.That(Server.ProtoMan.Index(Tempestade).Components.TryGetComponent(nome, out var raw), Is.True);
+            var efeitos = (WeatherEffectsComponent) raw!;
+
+            var condicoes = Server.System<SharedEntityConditionsSystem>();
+            var status = Server.System<StatusEffectsSystem>();
+
+            // Sem proteção, a tempestade tem que pegar.
+            Assert.That(condicoes.TryConditions(pessoa, efeitos.Conditions), Is.True,
+                "sem proteção a pessoa tem que ser afetada, senão o teste não mede nada");
+
+            // Com o status, tem que ser poupada por inteiro.
+            status.TryAddStatusEffect(pessoa, Protecao, out _);
+            Assert.That(status.HasStatusEffect(pessoa, Protecao), Is.True,
+                "o status precisa estar aplicado para o resto do teste valer");
+
+            Assert.That(condicoes.TryConditions(pessoa, efeitos.Conditions), Is.False,
+                "com o status de proteção contra radiação a pessoa não pode ser afetada");
+        });
+    }
+
+    /// <summary>
+    /// Mede a janela real de proteção depois de uma dose de iodo.
+    /// </summary>
+    /// <remarks>
+    /// Esta é a pergunta que faltava. O teste ao lado prova que a condição
+    /// funciona quando o status existe; este mede se o status existe pelo tempo
+    /// que a tempestade dura, que é o que falhou no teste em jogo.
+    ///
+    /// A conta que preocupa: a dose da pílula é 20u, o metabolismo consome 0,5
+    /// por ciclo de um segundo, e o clima fica 40 segundos no ar.
+    /// </remarks>
+    [Test]
+    public async Task UmaDoseDeIodoProtegeATempestadeInteira()
+    {
+        var pessoa = await Spawn("MobHuman");
+        var status = Server.System<StatusEffectsSystem>();
+
+        await Server.WaitPost(() =>
+        {
+            var solucao = new Solution();
+            solucao.AddReagent(Iodo, FixedPoint2.New(20));
+            Server.System<BloodstreamSystem>().TryAddToBloodstream(pessoa, solucao);
+        });
+
+        // Deixa metabolizar por um instante, para o status aparecer.
+        await RunSeconds(3);
+
+        await Server.WaitAssertion(() =>
+            Assert.That(status.HasStatusEffect(pessoa, Protecao), Is.True,
+                "três segundos depois da dose a proteção já tinha que estar de pé"));
+
+        // Os 40 segundos que o clima fica no ar: 10 do estágio mais 15 de
+        // entrada e 15 de saída do crossfade.
+        await RunSeconds(40);
+
+        await Server.WaitAssertion(() =>
+            Assert.That(status.HasStatusEffect(pessoa, Protecao), Is.True,
+                "a dose precisa cobrir os 40 segundos inteiros, senão quem se preparou "
+                + "toma dano no fim da tempestade e o preparo não vale"));
     }
 }
