@@ -5,6 +5,7 @@
 using System.Linq;
 using Content.Shared._Whiskey.Pressure;
 using Content.Shared.Examine;
+using Content.Shared.StatusEffectNew;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
@@ -22,6 +23,7 @@ public sealed partial class MentalPressureSystem : EntitySystem
 {
     [Dependency] private IGameTiming _timing = default!;
     [Dependency] private IPrototypeManager _proto = default!;
+    [Dependency] private StatusEffectsSystem _status = default!; // Whiskey - sintoma por fonte
 
     public override void Initialize()
     {
@@ -154,11 +156,60 @@ public sealed partial class MentalPressureSystem : EntitySystem
             Log.Debug($"pressão: {ToPrettyString(ent.Owner)} total {ent.Comp.Total:F1} [{detalhe}]");
         }
 
+        AtualizarSintomas(ent);
+
         if (MathF.Abs(ent.Comp.Total - antes) < 0.001f)
             return;
 
         var ev = new MentalPressureChangedEvent(antes, ent.Comp.Total);
         RaiseLocalEvent(ent, ev);
+    }
+
+    /// <summary>
+    /// Liga e desliga os sintomas conforme o peso de cada fonte.
+    /// </summary>
+    /// <remarks>
+    /// Roda por fonte, e não pelo total, porque é isso que o sistema promete:
+    /// ter visto morte não deve dar o mesmo sintoma que ficar no escuro, mesmo
+    /// que os dois somem o mesmo tanto. Uma barra única nunca consegue escolher
+    /// o canal.
+    ///
+    /// A fonte já sumiu do dicionário quando zera, e por isso o sintoma dela
+    /// sai junto: quem deixou de estar sob aquela pressão para de ter aquele
+    /// sintoma, sem precisar de relógio próprio.
+    /// </remarks>
+    private void AtualizarSintomas(Entity<MentalPressureComponent> ent)
+    {
+        foreach (var fonte in _proto.EnumeratePrototypes<PressureSourcePrototype>())
+        {
+            if (fonte.Symptoms.Count == 0)
+                continue;
+
+            var peso = ent.Comp.Sources.GetValueOrDefault(fonte.ID, 0f);
+
+            foreach (var sintoma in fonte.Symptoms)
+            {
+                var deveTer = peso >= sintoma.At;
+                var tem = _status.HasStatusEffect(ent.Owner, sintoma.Effect);
+
+                if (deveTer == tem)
+                    continue;
+
+                // Sintoma ligando e desligando é raro e vale registrar em Info:
+                // é o que permite ler, depois de um teste em jogo, se o sintoma
+                // não veio ou se veio e não foi percebido.
+                Log.Info(
+                    $"pressão: {ToPrettyString(ent.Owner)} fonte {fonte.ID} peso {peso:F1}, "
+                    + $"degrau {sintoma.At} -> {(deveTer ? "LIGA" : "desliga")} {sintoma.Effect.Id}");
+
+                if (deveTer)
+                    // Sem prazo: quem manda no fim é o peso da fonte, e ele
+                    // já cai sozinho no decaimento. Prazo fixo brigaria com isso.
+                    _status.TryAddStatusEffect(ent.Owner, sintoma.Effect, out _);
+                else
+                    _status.TryRemoveStatusEffect(ent.Owner, sintoma.Effect);
+            }
+        }
     }
 
     /// <summary>
