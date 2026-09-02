@@ -40,6 +40,12 @@ public sealed partial class MentalPressureSystem : EntitySystem
         if (!Resolve(ent, ref ent.Comp, false) || !_proto.TryIndex(fonte, out var proto))
             return;
 
+        // Quem tem fobia sente a fonte dela e nenhuma outra. Sai antes de mexer
+        // no relógio de decaimento de propósito: uma fonte que a pessoa não
+        // sente não deve nem adiar o decaimento das que ela sente.
+        if (!ent.Comp.Sente(fonte))
+            return;
+
         var antes = ent.Comp.Total;
         var atual = ent.Comp.Sources.GetValueOrDefault(fonte);
 
