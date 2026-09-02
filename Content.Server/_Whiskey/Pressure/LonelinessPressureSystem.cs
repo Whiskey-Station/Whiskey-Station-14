@@ -2,13 +2,16 @@
 // SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+using Content.Server.Popups;
 using Content.Shared._Whiskey.Pressure;
 using Content.Shared.Eye.Blinding.Components;
 using Content.Shared.Friends.Components;
 using Content.Shared.Mobs.Components;
+using Content.Shared.Popups;
 using Robust.Server.GameObjects;
 using Robust.Shared.Player;
 using Robust.Shared.Prototypes;
+using Robust.Shared.Random;
 using Robust.Shared.Timing;
 
 namespace Content.Server._Whiskey.Pressure;
@@ -42,6 +45,13 @@ namespace Content.Server._Whiskey.Pressure;
 /// O acúmulo é lento de propósito. O comentário de lá é
 /// <c>"Pretty low, ~4 minutes to reach passive cap"</c>. Ficar sozinho não
 /// assusta, acumula.
+///
+/// E a pessoa é avisada de vez em quando, que no .dm é o
+/// <c>to_chat(owner, span_warning("You feel terribly lonely..."))</c> com 10%
+/// de chance e um tempo mínimo entre avisos. Isto não é enfeite: sem aviso a
+/// pressão sobe calada, e quem está jogando só descobre se resolver se
+/// examinar. Já aconteceu de um sintoma desta família passar despercebido em
+/// teste em jogo exatamente por não avisar nada.
 /// </remarks>
 public sealed partial class LonelinessPressureSystem : EntitySystem
 {
@@ -61,6 +71,8 @@ public sealed partial class LonelinessPressureSystem : EntitySystem
     [Dependency] private EntityLookupSystem _lookup = default!;
     [Dependency] private TransformSystem _transform = default!;
     [Dependency] private MentalPressureSystem _pressao = default!;
+    [Dependency] private PopupSystem _popup = default!;
+    [Dependency] private IRobustRandom _random = default!;
 
     /// <summary>
     /// De quanto em quanto tempo a solidão é conferida.
@@ -72,7 +84,39 @@ public sealed partial class LonelinessPressureSystem : EntitySystem
     /// </remarks>
     private static readonly TimeSpan Intervalo = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Chance de avisar a pessoa, por ciclo, quando ela está sozinha.
+    /// </summary>
+    /// <remarks>
+    /// Vem do <c>SPT_PROB(10, seconds_per_tick)</c> do TG, e copiar o 10 seria
+    /// errado. O SPT_PROB não quer dizer "10% por tique": ele ajusta 10% POR
+    /// SEGUNDO ao tamanho do tique, por <c>1 - (1 - p) ^ segundos</c>. Como
+    /// aqui o ciclo é de cinco segundos, o equivalente é
+    /// 1 - 0,9^5, ou seja 41%.
+    ///
+    /// A diferença não é acadêmica: com 10% o aviso sairia a cada cinquenta
+    /// segundos em média, e com 41% sai a cada doze, que é o ritmo do original.
+    ///
+    /// É o mesmo engano de unidade que o decaimento por ciclo já me custou uma
+    /// vez. Número que veio de outro jogo carrega a escala de tempo dele junto.
+    /// </remarks>
+    private const float ChanceDeAvisar = 0.41f;
+
+    /// <summary>
+    /// Tempo mínimo entre dois avisos, do <c>TERROR_MESSAGE_CD</c> do TG.
+    /// </summary>
+    /// <remarks>
+    /// Existe para o aviso não virar spam. A pressão continua subindo no
+    /// silêncio entre um e outro; o que o tempo segura é só o texto.
+    /// </remarks>
+    private static readonly TimeSpan EntreAvisos = TimeSpan.FromSeconds(45);
+
     private TimeSpan _proxima;
+
+    /// <summary>
+    /// Quando cada pessoa pode ser avisada de novo.
+    /// </summary>
+    private readonly Dictionary<EntityUid, TimeSpan> _proximoAviso = new();
 
     public override void Update(float frameTime)
     {
@@ -96,7 +140,23 @@ public sealed partial class LonelinessPressureSystem : EntitySystem
                 continue;
 
             _pressao.Adicionar((uid, pressao), Fonte);
+            TalvezAvisar(uid, agora);
         }
+    }
+
+    /// <summary>
+    /// De vez em quando, diz à pessoa que ela está se sentindo sozinha.
+    /// </summary>
+    private void TalvezAvisar(EntityUid uid, TimeSpan agora)
+    {
+        if (_proximoAviso.TryGetValue(uid, out var quando) && agora < quando)
+            return;
+
+        if (!_random.Prob(ChanceDeAvisar))
+            return;
+
+        _proximoAviso[uid] = agora + EntreAvisos;
+        _popup.PopupEntity(Loc.GetString("pressure-loneliness-warning"), uid, uid, PopupType.MediumCaution);
     }
 
     /// <summary>

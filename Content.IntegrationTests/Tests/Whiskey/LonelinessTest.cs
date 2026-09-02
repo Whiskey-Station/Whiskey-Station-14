@@ -12,6 +12,7 @@ using Content.Shared.Friends.Components;
 using NUnit.Framework;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
+using Robust.Shared.Localization;
 using Robust.Shared.Prototypes;
 
 namespace Content.IntegrationTests.Tests.Whiskey;
@@ -152,5 +153,26 @@ public sealed class LonelinessTest : GameTest
 
         Assert.That(peso, Is.GreaterThan(0f),
             "cego só conta companhia a um tile, então cinco tiles continua sendo solidão");
+    }
+
+    /// <summary>
+    /// O texto do aviso existe nos dois idiomas.
+    /// </summary>
+    /// <remarks>
+    /// Sem isto o aviso sai com o id cru na tela, e o jogador lê
+    /// "pressure-loneliness-warning" em vez da frase. Não dá erro nenhum, que
+    /// é o que torna esse engano fácil de publicar.
+    /// </remarks>
+    [Test]
+    public async Task OAvisoTemTexto()
+    {
+        await Server.WaitAssertion(() =>
+        {
+            Assert.That(Server.ResolveDependency<ILocalizationManager>()
+                    .TryGetString("pressure-loneliness-warning", out var texto), Is.True,
+                "o aviso de solidão não tem texto, e o jogador veria o id cru");
+
+            Assert.That(texto, Is.Not.Empty);
+        });
     }
 }

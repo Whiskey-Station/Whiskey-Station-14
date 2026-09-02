@@ -8,3 +8,7 @@ entity-effect-guidebook-add-mental-pressure =
         [1] Weighs
         *[other] weigh
     } on the mind of whoever consumes it
+
+# The warning the person gets themselves, so the pressure does not build up in
+# silence.
+pressure-loneliness-warning = You feel terribly lonely...
