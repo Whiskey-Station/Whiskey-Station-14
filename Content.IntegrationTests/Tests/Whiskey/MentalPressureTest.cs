@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using System.Collections.Generic;
+using System.Linq;
 using Content.IntegrationTests.Fixtures;
 using Content.Server._Whiskey.Pressure;
+using Content.Server.Examine;
 using Content.Shared._Whiskey.Pressure;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Localization;
@@ -24,6 +26,8 @@ public sealed class MentalPressureTest : GameTest
 {
     private static readonly ProtoId<PressureSourcePrototype> Morte = "WhiskeyPressaoMorte";
     private static readonly ProtoId<PressureSourcePrototype> Escuro = "WhiskeyPressaoEscuro";
+    private static readonly ProtoId<PressureSourcePrototype> Dor = "WhiskeyPressaoDor";
+    private static readonly ProtoId<PressureSourcePrototype> Solidao = "WhiskeyPressaoSolidao";
 
     /// <summary>
     /// Duas fontes diferentes convivem, cada uma com o próprio peso, e o total
@@ -167,6 +171,130 @@ public sealed class MentalPressureTest : GameTest
             Assert.That(total, Is.GreaterThan(0), "nenhuma fonte declarada, então este teste não confere nada");
             Assert.That(faltando, Is.Empty,
                 "fonte sem texto de examinar: " + string.Join(", ", faltando));
+        });
+    }
+
+    /// <summary>
+    /// A soma das fontes respeita o teto geral.
+    /// </summary>
+    /// <remarks>
+    /// Apontado em revisão, e o número mostra por que importa: as quatro fontes
+    /// declaradas hoje têm tetos que somam 160, contra um Max de 100. Ou seja
+    /// basta as quatro estarem ativas ao mesmo tempo para o clamp do Recalcular
+    /// ser exercitado, e nenhum teste passava por esse caminho.
+    ///
+    /// O teste cobra as duas coisas juntas: que o total respeite o teto, e que
+    /// as fontes continuem guardadas por inteiro por baixo dele. Se o clamp
+    /// fosse aplicado nas fontes em vez do total, a origem se perderia, que é
+    /// justamente o que o sistema existe para evitar.
+    /// </remarks>
+    [Test]
+    public async Task SomaDeVariasFontesRespeitaOTetoGeral()
+    {
+        var pair = Pair;
+        var server = Server;
+        var mapa = await pair.CreateTestMap();
+
+        EntityUid pessoa = default;
+
+        await server.WaitPost(() =>
+        {
+            pessoa = server.EntMan.SpawnAtPosition("MobHuman", mapa.GridCoords);
+            server.EntMan.AddComponent<MentalPressureComponent>(pessoa);
+
+            var sis = server.System<MentalPressureSystem>();
+
+            // Enche cada fonte até o teto dela, para a soma passar de 100.
+            foreach (var fonte in new[] { Morte, Escuro, Dor, Solidao })
+            {
+                for (var i = 0; i < 30; i++)
+                    sis.Adicionar(pessoa, fonte);
+            }
+        });
+        await pair.RunTicksSync(2);
+
+        await server.WaitAssertion(() =>
+        {
+            var comp = server.EntMan.GetComponent<MentalPressureComponent>(pessoa);
+            var somaDasFontes = comp.Sources.Values.Sum();
+
+            TestContext.Out.WriteLine(
+                $"soma das fontes: {somaDasFontes}, total: {comp.Total}, teto: {comp.Max}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(somaDasFontes, Is.GreaterThan(comp.Max),
+                    "o cenário precisa passar do teto, senão o clamp não é exercitado");
+
+                Assert.That(comp.Total, Is.LessThanOrEqualTo(comp.Max),
+                    "o total não pode passar do teto geral");
+
+                Assert.That(comp.Sources, Has.Count.EqualTo(4),
+                    "o teto é do total, e não das fontes: a origem tem que continuar inteira por baixo dele");
+            });
+        });
+    }
+
+    /// <summary>
+    /// O examinar mostra a pressão mais pesada primeiro.
+    /// </summary>
+    /// <remarks>
+    /// Apontado em revisão: o OnExamined ordena por peso e nada testava a ordem.
+    ///
+    /// A ordem não é enfeite. Quem examina lê primeiro o que mais importa, em
+    /// vez da ordem em que as coisas aconteceram, e é isso que transforma o
+    /// examinar em deixa de conversa para o Psicólogo. Com a ordem trocada, a
+    /// primeira linha seria a mais fraca e a leitura mudaria de sentido.
+    /// </remarks>
+    [Test]
+    public async Task OExaminarMostraAPressaoMaisPesadaPrimeiro()
+    {
+        var pair = Pair;
+        var server = Server;
+        var mapa = await pair.CreateTestMap();
+
+        EntityUid pessoa = default;
+        EntityUid quemOlha = default;
+
+        await server.WaitPost(() =>
+        {
+            pessoa = server.EntMan.SpawnAtPosition("MobHuman", mapa.GridCoords);
+            quemOlha = server.EntMan.SpawnAtPosition("MobHuman", mapa.GridCoords);
+            server.EntMan.AddComponent<MentalPressureComponent>(pessoa);
+
+            var sis = server.System<MentalPressureSystem>();
+
+            // O escuro entra primeiro e é o mais leve, com peso 4. A morte entra
+            // depois e é a mais pesada, com 25. Se a saída fosse por ordem de
+            // chegada, o escuro viria na frente.
+            sis.Adicionar(pessoa, Escuro);
+            sis.Adicionar(pessoa, Morte);
+        });
+        await pair.RunTicksSync(2);
+
+        await server.WaitAssertion(() =>
+        {
+            var texto = server.System<ExamineSystem>()
+                .GetExamineText(pessoa, quemOlha)
+                .ToMarkup();
+
+            var protos = server.ProtoMan;
+            var loc = server.ResolveDependency<ILocalizationManager>();
+            var daMorte = loc.GetString(protos.Index(Morte).Description);
+            var doEscuro = loc.GetString(protos.Index(Escuro).Description);
+
+            var posMorte = texto.IndexOf(daMorte, System.StringComparison.Ordinal);
+            var posEscuro = texto.IndexOf(doEscuro, System.StringComparison.Ordinal);
+
+            TestContext.Out.WriteLine($"posição da morte: {posMorte}, do escuro: {posEscuro}");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(posMorte, Is.GreaterThanOrEqualTo(0), "o texto da morte tinha que aparecer");
+                Assert.That(posEscuro, Is.GreaterThanOrEqualTo(0), "o texto do escuro tinha que aparecer");
+                Assert.That(posMorte, Is.LessThan(posEscuro),
+                    "a pressão mais pesada tem que vir primeiro, mesmo tendo chegado depois");
+            });
         });
     }
 }
