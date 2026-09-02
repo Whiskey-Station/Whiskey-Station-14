@@ -70,3 +70,6 @@ jolly-thought-16 = You are at peace with the world, and the world can explain it
 
 trait-sensitive-name = Sensitive
 trait-sensitive-desc = What happens around you stays with you. Seeing someone die narrows your sight for a while, and pain in a row leaves you stuttering. It passes on its own, and a doctor who looks closely can tell what is weighing on you.
+
+trait-monophobia-name = Monophobia
+trait-monophobia-desc = You cannot stand being alone. Away from people the weight builds up slowly, and someone showing up nearby is enough for it to start fading. A pet counts as company too. If you cannot see, only someone right beside you counts.
