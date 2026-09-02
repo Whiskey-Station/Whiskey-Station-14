@@ -24,10 +24,16 @@
   # coisa de rodada normal. O primeiro degrau é 30, ou seja precisa de uma
   # segunda antes de a primeira sair, e a primeira leva 50 segundos para
   # sumir. Duas mortes na mesma cena é que apertam.
+  #
+  # O segundo degrau é 45 e não 50 porque duas mortes dão exatamente 50: no
+  # limiar cravado o sintoma ligava e desligava no primeiro tique de
+  # decaimento, ou seja piscava. Com 45 sobram 5 de folga, que a 0,5 por
+  # segundo rendem dez segundos de visão em túnel para quem viu duas mortes, e
+  # trinta para quem chegou ao teto.
   symptoms:
   - at: 30
     effect: StatusEffectVisaoApertada
-  - at: 50
+  - at: 45
     effect: StatusEffectVisaoTunel
 
 - type: pressureSource
