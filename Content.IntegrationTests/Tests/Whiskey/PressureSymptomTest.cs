@@ -106,12 +106,19 @@ public sealed class PressureSymptomTest : GameTest
     /// Escrito depois de um teste em jogo, e é o tipo de defeito que nenhum
     /// teste anterior pegaria: tudo funcionava, e mesmo assim o log registrou
     /// quatro ciclos de liga e desliga seguidos. A gagueira PISCAVA em vez de
-    /// durar, porque a fonte caía rápido demais para o degrau que tinha.
+    /// durar, porque o degrau caía bem no meio da faixa em que o peso oscila
+    /// durante uma briga.
     ///
-    /// A conta que decide, para a fonte alcançar o degrau pelo caminho mais
-    /// curto: quantos gatilhos são precisos, quanto peso sobra acima do degrau
-    /// depois deles, e quanto tempo esse excedente leva para evaporar no
-    /// decaimento da própria fonte.
+    /// A conta espelha o Update de propósito, em vez de dividir peso por
+    /// decaimento. Duas razões. Uma unidade de decaimento não é um segundo, é
+    /// um ciclo inteiro de <see cref="MentalPressureComponent.DecayInterval"/>,
+    /// e a divisão crua responde em ciclos achando que responde em segundos.
+    /// A outra é o critério de desligar ser >= e não >, o que rende um ciclo a
+    /// mais que a divisão não enxerga.
+    ///
+    /// O intervalo vem do componente e não de uma constante daqui: se um dia
+    /// ele mudar, este teste tem que mudar de resposta junto, senão volta a
+    /// medir uma coisa e afirmar outra.
     ///
     /// Sintoma que dura menos que o mínimo aqui aparece para quem joga como
     /// defeito, e não como consequência.
@@ -119,7 +126,10 @@ public sealed class PressureSymptomTest : GameTest
     [Test]
     public async Task NenhumSintomaPiscaEmPoucosSegundos()
     {
-        const float minimoSegundos = 5f;
+        // Três ciclos de decaimento. Menos que isto não dá tempo de alguém
+        // perto perceber, e o sintoma vira ruído.
+        var intervalo = (float) new MentalPressureComponent().DecayInterval.TotalSeconds;
+        var minimoSegundos = intervalo * 3f;
 
         await Server.WaitAssertion(() =>
         {
@@ -140,11 +150,22 @@ public sealed class PressureSymptomTest : GameTest
                         $"a fonte {fonte.ID} nunca alcança o degrau {sintoma.At}: "
                         + $"o teto dela é {fonte.Cap}, então o sintoma é inalcançável");
 
-                    var duracao = (peso - sintoma.At) / fonte.Decay;
+                    // Quantos ciclos de decaimento até o peso cair abaixo do
+                    // degrau, contados como o Update conta.
+                    var ciclos = 0;
+                    var restante = peso;
+                    while (restante >= sintoma.At && ciclos < 1000)
+                    {
+                        restante -= fonte.Decay;
+                        ciclos++;
+                    }
+
+                    var duracao = ciclos * intervalo;
 
                     TestContext.Out.WriteLine(
                         $"{fonte.ID} -> {sintoma.Effect.Id}: {gatilhos} gatilho(s), "
-                        + $"peso {peso}, degrau {sintoma.At}, dura {duracao:F1}s");
+                        + $"peso {peso}, degrau {sintoma.At}, "
+                        + $"dura {ciclos} ciclo(s) = {duracao:F0}s");
 
                     Assert.That(duracao, Is.GreaterThanOrEqualTo(minimoSegundos),
                         $"{fonte.ID} liga {sintoma.Effect.Id} e desliga em {duracao:F1}s. "
