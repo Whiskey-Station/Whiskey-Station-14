@@ -134,3 +134,27 @@
       # Verde acinzentado, para o pensamento bom não se confundir com o roxo
       # da depressão nem com comunicado da estação.
       messageColor: "#8CA88C"
+
+# ---------------------------------------------------------------------------
+# Sensível: o traço que liga a pressão mental.
+#
+# Existe porque a pressão precisava de alguém que a sentisse. O sistema, o
+# motor de sintomas e as duas fontes com gatilho entraram sem que nenhum traço
+# do jogo desse MentalPressureComponent, ou seja o jogador jamais teria
+# pressão. Este traço é a resposta à pergunta que ficou aberta lá: quem tem.
+#
+# É opt-in por traço pela mesma razão do humor, que a equipe já decidiu: estado
+# mental obrigatório mexe na rodada de quem não pediu por isso. Quem escolhe
+# este traço está pedindo.
+#
+# Não configura nada. Os pesos, os tetos, os ritmos de saída e os sintomas
+# ficam nas fontes, em Pressure/fontes.yml, porque balancear pressão é ajustar
+# número e não devia exigir mexer em traço.
+# ---------------------------------------------------------------------------
+- type: trait
+  id: Sensitive
+  name: trait-sensitive-name
+  description: trait-sensitive-desc
+  category: Disabilities
+  components:
+    - type: MentalPressure
