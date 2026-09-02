@@ -146,6 +146,16 @@ public sealed partial class MentalPressureSystem : EntitySystem
         ent.Comp.Total = MathF.Min(soma, ent.Comp.Max);
         Dirty(ent);
 
+        // Registro do estado, com as fontes abertas. Em Debug, então não sai em
+        // produção, mas destrava diagnóstico: sem isto, "não aconteceu nada" num
+        // teste em jogo não se distingue de "aconteceu e passou despercebido",
+        // e as duas coisas pedem consertos diferentes.
+        if (ent.Comp.Sources.Count > 0)
+        {
+            var detalhe = string.Join(", ", ent.Comp.Sources.Select(p => $"{p.Key.Id}={p.Value:F1}"));
+            Log.Debug($"pressão: {ToPrettyString(ent.Owner)} total {ent.Comp.Total:F1} [{detalhe}]");
+        }
+
         AtualizarSintomas(ent);
 
         if (MathF.Abs(ent.Comp.Total - antes) < 0.001f)
@@ -184,6 +194,13 @@ public sealed partial class MentalPressureSystem : EntitySystem
 
                 if (deveTer == tem)
                     continue;
+
+                // Sintoma ligando e desligando é raro e vale registrar em Info:
+                // é o que permite ler, depois de um teste em jogo, se o sintoma
+                // não veio ou se veio e não foi percebido.
+                Log.Info(
+                    $"pressão: {ToPrettyString(ent.Owner)} fonte {fonte.ID} peso {peso:F1}, "
+                    + $"degrau {sintoma.At} -> {(deveTer ? "LIGA" : "desliga")} {sintoma.Effect.Id}");
 
                 if (deveTer)
                     // Sem prazo: quem manda no fim é o peso da fonte, e ele
