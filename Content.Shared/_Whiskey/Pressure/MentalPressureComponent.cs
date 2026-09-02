@@ -98,6 +98,17 @@ public sealed partial class MentalPressureComponent : Component
     ///
     /// Vazia por padrão porque é o que o Sensível quer: quem é sensível é
     /// sensível a tudo. Quem tem uma fobia lista a fonte dela.
+    ///
+    /// NÃO é networkado, e a regra 14 do regulamento pede a razão registrada,
+    /// já que o componente é adicionado com este campo modificado pelo traço.
+    /// A razão: quem consulta é só o servidor, na hora de decidir se a pressão
+    /// entra. O cliente nunca pergunta se alguém sente uma fonte, porque o que
+    /// ele desenha é o total e o alerta, e esses já vêm prontos. Networkar uma
+    /// lista que nasce do prototype e nunca muda em jogo seria tráfego para
+    /// nada, em todo jogador que tiver o traço.
+    ///
+    /// Se um dia a interface precisar mostrar a que a pessoa é sensível, isto
+    /// vira AutoNetworkedField e a razão acima deixa de valer.
     /// </remarks>
     [DataField]
     public HashSet<ProtoId<PressureSourcePrototype>> SusceptibleTo = new();
