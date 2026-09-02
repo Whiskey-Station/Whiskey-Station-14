@@ -98,4 +98,60 @@ public sealed class PressureSymptomTest : GameTest
             }
         });
     }
+
+    /// <summary>
+    /// Sintoma que liga e desliga em poucos segundos não comunica nada.
+    /// </summary>
+    /// <remarks>
+    /// Escrito depois de um teste em jogo, e é o tipo de defeito que nenhum
+    /// teste anterior pegaria: tudo funcionava, e mesmo assim o log registrou
+    /// quatro ciclos de liga e desliga seguidos. A gagueira PISCAVA em vez de
+    /// durar, porque a fonte caía rápido demais para o degrau que tinha.
+    ///
+    /// A conta que decide, para a fonte alcançar o degrau pelo caminho mais
+    /// curto: quantos gatilhos são precisos, quanto peso sobra acima do degrau
+    /// depois deles, e quanto tempo esse excedente leva para evaporar no
+    /// decaimento da própria fonte.
+    ///
+    /// Sintoma que dura menos que o mínimo aqui aparece para quem joga como
+    /// defeito, e não como consequência.
+    /// </remarks>
+    [Test]
+    public async Task NenhumSintomaPiscaEmPoucosSegundos()
+    {
+        const float minimoSegundos = 5f;
+
+        await Server.WaitAssertion(() =>
+        {
+            foreach (var fonte in Server.ProtoMan.EnumeratePrototypes<PressureSourcePrototype>())
+            {
+                foreach (var sintoma in fonte.Symptoms)
+                {
+                    // Quantos gatilhos para alcançar o degrau, respeitando o teto.
+                    var peso = 0f;
+                    var gatilhos = 0;
+                    while (peso < sintoma.At && gatilhos < 100)
+                    {
+                        peso = MathF.Min(peso + fonte.Weight, fonte.Cap);
+                        gatilhos++;
+                    }
+
+                    Assert.That(peso, Is.GreaterThanOrEqualTo(sintoma.At),
+                        $"a fonte {fonte.ID} nunca alcança o degrau {sintoma.At}: "
+                        + $"o teto dela é {fonte.Cap}, então o sintoma é inalcançável");
+
+                    var duracao = (peso - sintoma.At) / fonte.Decay;
+
+                    TestContext.Out.WriteLine(
+                        $"{fonte.ID} -> {sintoma.Effect.Id}: {gatilhos} gatilho(s), "
+                        + $"peso {peso}, degrau {sintoma.At}, dura {duracao:F1}s");
+
+                    Assert.That(duracao, Is.GreaterThanOrEqualTo(minimoSegundos),
+                        $"{fonte.ID} liga {sintoma.Effect.Id} e desliga em {duracao:F1}s. "
+                        + "Sintoma que pisca parece defeito para quem joga: ou o degrau "
+                        + "desce, ou o peso sobe, ou o decaimento cai");
+                }
+            }
+        });
+    }
 }
