@@ -158,3 +158,30 @@
   category: Disabilities
   components:
     - type: MentalPressure
+
+# ---------------------------------------------------------------------------
+# Monofobia: medo de ficar sozinho, do quirk monophobia do /tg/station.
+#
+# É a primeira fobia do fork, e a primeira que usa a lista de suscetibilidade
+# em vez de sentir tudo. A diferença para o Sensível é essa e é o ponto: quem
+# tem monofobia sofre de ficar sozinho e NÃO sofre de ver morte nem de levar
+# pancada. No .dm cada medo é um trauma separado que não conhece os outros, e
+# sem a lista este traço seria o Sensível com outro nome.
+#
+# O valor do quirk no TG é -3, ou seja negativo mas leve, e o desenho combina:
+# a fonte é fraca por vez e com teto alto, e outro jogador resolve só de
+# aparecer. É a única pressão do sistema que alguém de fora desfaz sem fazer
+# nada, e é por isso que ela não precisa ser forte.
+#
+# Não configura peso nem ritmo, igual ao Sensível: isso mora na fonte, em
+# Pressure/fontes.yml.
+# ---------------------------------------------------------------------------
+- type: trait
+  id: Monophobia
+  name: trait-monophobia-name
+  description: trait-monophobia-desc
+  category: Disabilities
+  components:
+    - type: MentalPressure
+      susceptibleTo:
+      - WhiskeyPressaoSolidao

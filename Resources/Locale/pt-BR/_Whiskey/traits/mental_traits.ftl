@@ -70,3 +70,6 @@ jolly-thought-16 = Você está de bem com o mundo, e o mundo que se explique.
 
 trait-sensitive-name = Sensível
 trait-sensitive-desc = O que acontece perto de você fica com você. Ver alguém morrer aperta a sua visão por um tempo, e pancada em sequência deixa você gaguejando. Passa sozinho, e quem examinar de perto consegue ver o que está pesando.
+
+trait-monophobia-name = Monofobia
+trait-monophobia-desc = Você não suporta ficar sozinho. Longe de gente, o peso vai subindo aos poucos, e basta alguém aparecer por perto para ele começar a sair. Um bicho de estimação também serve de companhia. Se você não enxergar, só conta quem estiver do seu lado.
