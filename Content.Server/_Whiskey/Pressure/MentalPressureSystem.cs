@@ -64,6 +64,20 @@ public sealed partial class MentalPressureSystem : EntitySystem
     /// Tira pressão de UMA fonte, que é o que permite tratar a causa em vez do
     /// total. Sair da sala do cadáver mexe só naquela entrada.
     /// </summary>
+    /// <remarks>
+    /// A assimetria com o <see cref="Adicionar"/> é de propósito, e foi
+    /// apontada em revisão.
+    ///
+    /// O Adicionar precisa do prototype porque lê o peso e o teto dele: sem o
+    /// prototype não existe quanto acrescentar. Aliviar não precisa de nada
+    /// disso, porque a quantidade vem de quem chama e a operação é sobre uma
+    /// entrada que já está no dicionário.
+    ///
+    /// A consequência é boa: se um prototype for removido embaixo de um jogo em
+    /// andamento, ainda dá para limpar a entrada órfã de quem já estava sob
+    /// aquela pressão. Exigir o prototype aqui deixaria essa pressão presa até
+    /// o Update passar e descartá-la.
+    /// </remarks>
     public void Aliviar(Entity<MentalPressureComponent?> ent, ProtoId<PressureSourcePrototype> fonte, float quanto)
     {
         if (!Resolve(ent, ref ent.Comp, false) || !ent.Comp.Sources.TryGetValue(fonte, out var atual))
