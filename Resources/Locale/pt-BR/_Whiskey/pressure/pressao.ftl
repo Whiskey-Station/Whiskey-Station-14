@@ -10,3 +10,7 @@ entity-effect-guidebook-add-mental-pressure =
         [1] Pesa
         *[other] pesam
     } na cabeça de quem consome
+
+# O aviso que a própria pessoa recebe. Existe para a pressão não subir calada:
+# sem ele, quem está jogando só descobre se resolver se examinar.
+pressure-loneliness-warning = Você se sente terrivelmente sozinho...
