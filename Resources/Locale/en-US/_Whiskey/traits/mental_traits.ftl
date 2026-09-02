@@ -67,3 +67,6 @@ jolly-thought-13 = None of this will last, but for now it is wonderful.
 jolly-thought-14 = The canteen coffee is not so bad after all.
 jolly-thought-15 = A strange calm settles in, the kind you do not question.
 jolly-thought-16 = You are at peace with the world, and the world can explain itself.
+
+trait-sensitive-name = Sensitive
+trait-sensitive-desc = What happens around you stays with you. Seeing someone die narrows your sight for a while, and pain in a row leaves you stuttering. It passes on its own, and a doctor who looks closely can tell what is weighing on you.

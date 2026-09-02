@@ -67,3 +67,6 @@ jolly-thought-13 = Nada disso vai durar, mas por enquanto está ótimo.
 jolly-thought-14 = O café da cantina até que não é tão ruim assim.
 jolly-thought-15 = Deu uma paz esquisita, dessas que a gente não questiona.
 jolly-thought-16 = Você está de bem com o mundo, e o mundo que se explique.
+
+trait-sensitive-name = Sensível
+trait-sensitive-desc = O que acontece perto de você fica com você. Ver alguém morrer aperta a sua visão por um tempo, e pancada em sequência deixa você gaguejando. Passa sozinho, e quem examinar de perto consegue ver o que está pesando.
