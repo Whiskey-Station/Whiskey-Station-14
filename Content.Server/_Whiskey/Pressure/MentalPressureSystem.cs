@@ -144,6 +144,16 @@ public sealed partial class MentalPressureSystem : EntitySystem
         ent.Comp.Total = MathF.Min(soma, ent.Comp.Max);
         Dirty(ent);
 
+        // Registro do estado, com as fontes abertas. Em Debug, então não sai em
+        // produção, mas destrava diagnóstico: sem isto, "não aconteceu nada" num
+        // teste em jogo não se distingue de "aconteceu e passou despercebido",
+        // e as duas coisas pedem consertos diferentes.
+        if (ent.Comp.Sources.Count > 0)
+        {
+            var detalhe = string.Join(", ", ent.Comp.Sources.Select(p => $"{p.Key.Id}={p.Value:F1}"));
+            Log.Debug($"pressão: {ToPrettyString(ent.Owner)} total {ent.Comp.Total:F1} [{detalhe}]");
+        }
+
         if (MathF.Abs(ent.Comp.Total - antes) < 0.001f)
             return;
 
