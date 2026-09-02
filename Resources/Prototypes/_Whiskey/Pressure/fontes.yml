@@ -20,14 +20,29 @@
   # O canal desta fonte é a visão: quem acabou de ver alguém morrer fica olhando
   # para um ponto e perde o resto da sala.
   #
+  # ATENÇÃO ao ler estes números: o decaimento é por CICLO, e não por segundo.
+  # O ciclo é o DecayInterval do componente, que hoje são cinco segundos. Ou
+  # seja 0,5 de decaimento não tira meio ponto por segundo, tira meio ponto a
+  # cada cinco. Eu já errei essa conta uma vez e escrevi durações cinco vezes
+  # menores do que as de verdade.
+  #
   # Uma morte sozinha entra com 25 e não faz nada, de propósito: uma morte é
   # coisa de rodada normal. O primeiro degrau é 30, ou seja precisa de uma
-  # segunda antes de a primeira sair, e a primeira leva 50 segundos para
-  # sumir. Duas mortes na mesma cena é que apertam.
+  # segunda antes de a primeira sair, e a primeira sozinha leva pouco mais de
+  # quatro minutos para sumir. Duas mortes na mesma cena é que apertam.
+  #
+  # O segundo degrau é 45 e não 50 porque duas mortes dão exatamente 50: no
+  # limiar cravado o sintoma ligava e desligava no primeiro ciclo de
+  # decaimento, ou seja piscava. Com 45 sobram 5 de folga.
+  #
+  # Em tempo de jogo, medido: quem viu duas mortes fica com a visão apertada
+  # por volta de três minutos e meio e com a visão em túnel por volta de
+  # cinquenta e cinco segundos. Quem chegou ao teto de 60 fica cinco minutos
+  # com a visão apertada e dois minutos e meio com a em túnel.
   symptoms:
   - at: 30
     effect: StatusEffectVisaoApertada
-  - at: 50
+  - at: 45
     effect: StatusEffectVisaoTunel
 
 - type: pressureSource
@@ -42,7 +57,9 @@
 
 - type: pressureSource
   id: WhiskeyPressaoDor
-  # Média e rápida de sair, porque a dor passa quando o ferimento é tratado.
+  # Média e a mais rápida de sair, porque a dor passa quando o ferimento é
+  # tratado. Como em toda fonte, o decaimento é por ciclo de cinco segundos, e
+  # não por segundo.
   weight: 12
   cap: 35
   decay: 3
@@ -58,10 +75,26 @@
   # uma cirurgia, que é exatamente o tipo de coisa que gera raiva em vez de
   # tensão.
   #
-  # Uma pancada entra com 12 e não faz nada. Duas em sequência passam de 20,
-  # e como esta fonte sai rápido, a 3 por segundo, precisa ser sequência mesmo.
+  # O degrau é 15 e não 20 por causa de um defeito que só apareceu jogando: com
+  # 20, o log registrou quatro ciclos de liga e desliga seguidos, e a gagueira
+  # PISCAVA em vez de durar.
+  #
+  # A causa não era a fonte sair rápido demais, que foi o meu primeiro palpite.
+  # Era o degrau cair bem no meio da faixa em que o peso passa a briga inteira
+  # oscilando: uma pancada leva a 24, o ciclo seguinte derruba para 18, a
+  # próxima pancada sobe para 30, e o sintoma acompanha esse sobe e desce.
+  #
+  # Com 15 o peso de duas pancadas fica bem acima do degrau e só desce quando a
+  # briga acaba de verdade. Simulei os três decaimentos possíveis e todos param
+  # de piscar assim que o degrau desce, o que mostra que quem estava errado era
+  # o degrau e não o decaimento.
+  #
+  # Em tempo de jogo: uma pancada entra com 12 e não faz nada. Duas dão 24 e
+  # rendem vinte segundos de gagueira, três batem no teto de 35 e rendem trinta
+  # e cinco. Do teto até zero são sessenta segundos, contra dez minutos da
+  # morte, então esta continua sendo de longe a fonte que sai mais rápido.
   symptoms:
-  - at: 20
+  - at: 15
     effect: StatusEffectStutter
 
 - type: pressureSource
