@@ -110,8 +110,8 @@
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Moeda Eldritch</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">1</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Secundário T1</Box></ColorBox>
-    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">1 ouro, 1 prata</Box></ColorBox>
-    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Ao ser lançada, alterna os bolts de portas ou abre e fecha portas.</Box></ColorBox>
+    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">1 ouro ou 1 prata</Box></ColorBox>
+    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Ao ser acionada, alterna os bolts das portas ou abre e fecha portas.</Box></ColorBox>
 
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Mistérios da Criação</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">1</Box></ColorBox>
@@ -123,7 +123,7 @@
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">1</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Secundário T2</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Cinto de ferramentas, 3 barras, pulmões</Box></ColorBox>
-    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Oferece muito espaço de armazenamento e um escudo recarregável.</Box></ColorBox>
+    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Oferece muito espaço de armazenamento, foco e um escudo recarregável.</Box></ColorBox>
 
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Faca de Entalhe</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">1</Box></ColorBox>

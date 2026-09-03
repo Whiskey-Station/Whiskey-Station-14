@@ -8,31 +8,12 @@
   - Zombie
   - Revolutionary
   - AllHostile
-  #- Wizard # Goob
+  - Wizard
   - Xenoborg
-  # <Trauma>
-  - Heretic
-  - Blob
-  - Shadowling
-  friendly:
-  - Wizard # was hostile, now they're friendly
-  - PirateFaction
-  - Lavafauna
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: NanoTrasen
   hostile:
-  # <Goob>
-  - Changeling
-  - Heretic
-  - Blob
-  - Shadowling
-  - PirateFaction
-  - Wraith
-  - Lavafauna
-  # </Goob>
   - SimpleHostile
   - Syndicate
   - Xeno
@@ -42,36 +23,28 @@
   - AllHostile
   - Wizard
   - Xenoborg
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: Mouse
-  # Goobstation - not hostile to anything so they don't attack things
+  hostile:
+  - PetsNT
+  - AllHostile
+  - Wizard
 
 - type: npcFaction
   id: Passive
 
 - type: npcFaction
   id: PetsNT
-  # friendly: # Trauma
-  # - NanoTrasen
+  friendly:
+  - NanoTrasen
   hostile:
-  # <Goob>
-  - Balloon # Pets can join the fight against the balloons
-  - Blob
-  - Lavafauna
-  # </Goob>
   - Mouse
   - SimpleHostile
   - Zombie
   - Xeno
   - AllHostile
   - Dragon
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: SimpleHostile
@@ -85,18 +58,8 @@
   - Dragon
   - Xeno
   - AllHostile
-  #- Wizard # Goob
+  - Wizard
   - Xenoborg
-  # <Goob>
-  - Heretic
-  - Blob
-  - PirateFaction
-  - Lavafauna
-  friendly:
-  - Wizard # was hostile, now they're friendly
-  - Shadowling
-  - Wraith
-  # </Goob>
 
 - type: npcFaction
   id: SimpleNeutral
@@ -104,15 +67,6 @@
 - type: npcFaction
   id: Syndicate
   hostile:
-  # <Goob>
-  - Changeling
-  - Heretic
-  - Blob
-  - PirateFaction
-  - Shadowling
-  - Wraith
-  - Lavafauna
-  # </Goob>
   - NanoTrasen
   - SimpleHostile
   - Xeno
@@ -122,20 +76,10 @@
   - AllHostile
   - Wizard
   - Xenoborg
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: Xeno
   hostile:
-  # <Goob>
-  - Heretic
-  - Blob
-  - PirateFaction
-  - Wraith
-  - Lavafauna
-  # </Goob>
   - NanoTrasen
   - Syndicate
   - Passive
@@ -143,30 +87,13 @@
   - Zombie
   - Revolutionary
   - AllHostile
-  #- Wizard # Goob - made friendly
+  - Wizard
   - Dragon
   - Xenoborg
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
-  friendly: # Goob - wizard is now friendly
-  - Wizard
 
 - type: npcFaction
   id: Zombie
-  # <Trauma>
-  friendly:
-  - InitialInfected
   hostile:
-  - Changeling
-  - Heretic
-  - Blob
-  - Shadowling
-  - PirateFaction
-  - Wraith
-  - Lavafauna
-  - CrabFaction
-  # </Trauma>
   - NanoTrasen
   - SimpleNeutral
   - SimpleHostile
@@ -182,23 +109,6 @@
 - type: npcFaction
   id: Revolutionary
   hostile:
-  # <Goob>
-  - Changeling
-  - Heretic
-  - Blob
-  - Shadowling
-  - Wizard
-  - PirateFaction
-  - Lavafauna
-  # </Goob>
-  # <Trauma> - made more hostile for rev turrets
-  - Mouse
-  - Passive
-  - PetsNT
-  - SimpleNeutral
-  - Syndicate
-  - Xeno
-  # </Trauma>
   - NanoTrasen
   - Zombie
   - SimpleHostile
@@ -206,22 +116,10 @@
   - AllHostile
   - Wizard
   - Xenoborg
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: AllHostile
   hostile:
-  # <Goob>
-  - Changeling
-  - Heretic
-  - Blob
-  - Shadowling
-  - PirateFaction
-  - Wraith
-  - Lavafauna
-  # </Goob>
   - NanoTrasen
   - Dragon
   - Mouse
@@ -235,9 +133,6 @@
   - Revolutionary
   - Wizard
   - Xenoborg
-  # <Trauma>
-  - CrabFaction
-  # </Trauma>
 
 - type: npcFaction
   id: Wizard
@@ -259,20 +154,15 @@
 - type: npcFaction
   id: Xenoborg
   hostile:
-  # <Goob>
-  - Changeling
-  - Heretic
-  - PirateFaction
-  - Blob
-  - Shadowling
-  # </Goob>
   # they have brains
   - NanoTrasen
   - Syndicate
   - Zombie
   - Revolutionary
   - Wizard
+
   - Xeno # rivalry
+
   # cause they are hostile to them
   - SimpleHostile
   - AllHostile

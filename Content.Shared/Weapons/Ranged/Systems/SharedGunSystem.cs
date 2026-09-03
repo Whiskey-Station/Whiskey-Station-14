@@ -751,6 +751,17 @@ public abstract partial class SharedGunSystem : EntitySystem
         Physics.SetLinearVelocity(uid, finalLinear, body: physics);
 
         Physics.UpdateIsPredicted(uid, physics);
+        Dirty(uid, projectile);
+        // </Trauma>
+
+        // <Trauma>
+        // O OriginalShooter, o SetWorldRotation e o TargetCoordinates ficaram
+        // fora daqui de propósito: eles já acontecem no topo do método, porque
+        // o Whiskey subiu esse trecho para montar dano e comportamento antes de
+        // o projétil entrar na física predita. Repetir aqui redeclararia
+        // "target" no mesmo escopo, que foi o erro CS0128 deste merge.
+        if (user != null)
+            projectile.IgnoredEntities.Add(user.Value);
 
         if (user is {} userUid)
         {
