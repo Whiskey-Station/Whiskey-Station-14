@@ -124,6 +124,36 @@ public sealed class WhiskeyChangelogTest : GameTest
         });
     }
 
+    /// <summary>
+    /// O gerador automático escreve no changelog da Whiskey.
+    /// </summary>
+    /// <remarks>
+    /// Este é o teste que impede a aba de esvaziar sozinha. O changelog é
+    /// gerado pelo Tools/changelog a partir do :cl: das PRs, e enquanto ele
+    /// apontasse para o arquivo do Trauma, toda mudança nossa continuaria
+    /// caindo na aba do fork pai. Era essa a causa de não existir aba da
+    /// Whiskey, e não a falta do arquivo.
+    ///
+    /// O próprio gerador traz o aviso "IF YOU ARE A FORK, CHANGE THESE" no
+    /// upstream, e a Whiskey nunca o tinha atendido.
+    /// </remarks>
+    [Test]
+    public async Task OGeradorEscreveNoChangelogDaWhiskey()
+    {
+        await Client.WaitAssertion(() =>
+        {
+            var caminho = "../../Tools/changelog/changelog.js";
+            Assert.That(System.IO.File.Exists(caminho), Is.True,
+                "o gerador de changelog sumiu do lugar esperado");
+
+            var js = System.IO.File.ReadAllText(caminho);
+
+            Assert.That(js, Does.Contain("const MainCategoryPath = \"WhiskeyChangelog.yml\""),
+                "o gerador está escrevendo no changelog de outro fork, então as "
+                + "entradas da Whiskey vão parar na aba errada");
+        });
+    }
+
     private System.Collections.Generic.List<int> LerIds(ResPath caminho)
     {
         using var stream = _res.ContentFileReadText(caminho);
