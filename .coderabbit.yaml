@@ -1,0 +1,130 @@
+# Configuração do CodeRabbit para a Whiskey Station 14.
+#
+# Existe porque o padrão dele revisa C# genérico e briga com as convenções
+# daqui. Sem isto ele sugere traduzir método para inglês, encurtar comentário
+# que é longo de propósito e mexer em pasta herdada que a gente não mantém.
+#
+# O que ele deve fazer é lembrar o REGULAMENTO-MAINTAINERS.md na revisão, que é
+# onde a revisão humana escorrega quando a PR é grande.
+
+language: pt-BR
+
+tone_instructions: >-
+  Escreva em português do Brasil, direto e sem bajular. Use acentos sempre e
+  nunca use travessão. Aponte o problema com a evidência junto.
+
+reviews:
+  # Nem toda observação vira comentário: só o que muda decisão. Ruído em PR
+  # pequena faz a revisão humana parar de ler o bot.
+  profile: chill
+
+  high_level_summary: true
+
+  path_filters:
+    # Código herdado. A gente não mantém, e revisar diff de sincronização com
+    # upstream é ruído puro: são milhares de linhas que ninguém aqui escreveu.
+    - "!RobustToolbox/**"
+    # Projetos inteiros de outro fork. Conferido que existem com a lista de
+    # Content.*/ na raiz: Goobstation, Lavaland e Medical são projetos próprios.
+    - "!Content.Goobstation.*/**"
+    - "!Content.Lavaland.*/**"
+    - "!Content.Medical.*/**"
+    # Pastas de outro fork DENTRO dos projetos compartilhados. Estas são as que
+    # existem de verdade em Content.Shared, e a lista veio de ls e não de
+    # palpite. _Trauma fica de fora desta lista de propósito: é o fork pai, a
+    # Whiskey mexe nele e essas mudanças precisam de revisão.
+    - "!**/_Citadel/**"
+    - "!**/_DV/**"
+    - "!**/_ES/**"
+    - "!**/_EinsteinEngines/**"
+    - "!**/_Funkystation/**"
+    - "!**/_Ganimed/**"
+    - "!**/_Impstation/**"
+    - "!**/_NF/**"
+    - "!**/_ST/**"
+    - "!**/_Starfall/**"
+    - "!**/_Starlight/**"
+    - "!**/_Sunrise/**"
+    # Recursos binários e mapas não se revisam por diff.
+    - "!Resources/Maps/**"
+    - "!Resources/Textures/**"
+    - "!Resources/Audio/**"
+    - "!**/*.rsi/**"
+    # Locale é revisado por quem fala o idioma, não por linter.
+    - "!Resources/Locale/**/*.ftl"
+
+  path_instructions:
+    - path: "**/*.cs"
+      instructions: >-
+        Convenções DESTE projeto, que não são erro e não devem ser apontadas:
+        nomes de método e comentários em português são propositais; comentários
+        longos que explicam a DECISÃO também, porque aqui o comentário registra
+        o porquê e não o quê.
+
+        Cobre o regulamento de maintainers. Regra 13: lógica de jogo usa
+        IGameTiming.CurTime, nunca frameTime, e o EntityQueryEnumerator deve
+        começar pelo componente menos comum. Regra 14: componente em Shared
+        precisa ser networkado, ou ter a razão escrita no código quando o
+        componente é adicionado com campo modificado. Regra 8: alteração em
+        arquivo de upstream precisa de marcação <Whiskey> ou <Trauma>. Regra 10:
+        prefira TryComp a acessar o EntityManager direto.
+
+        Analisadores que só reprovam em Release, e por isso passam despercebido
+        em build local: campo com [Dependency] não pode ser readonly (RA0051),
+        classe com [Dependency] precisa ser partial (RA0049), e Index com
+        literal de string deve usar ProtoId (RA0033).
+
+        Aponte teste que confere contrato em vez de comportamento. Um teste que
+        verifica só que um prototype cita um id fica verde com o recurso
+        quebrado em jogo, e isso já aconteceu aqui mais de uma vez.
+
+    - path: "Content.Server/_Whiskey/**"
+      instructions: >-
+        Código próprio do servidor. Confira custo em caminho que roda todo
+        tique: busca por raio e cálculo de luz são caros, e o servidor de
+        produção roda com muitos jogadores.
+
+        Número que veio de outro jogo carrega a escala de tempo dele junto.
+        Quando um valor for portado do /tg/station, confira se a unidade foi
+        convertida: lá o tique é de um a dois segundos, aqui os ciclos costumam
+        ser de cinco. Copiar o número sem converter já causou erro de fator
+        cinco neste projeto.
+
+    - path: "Resources/Prototypes/_Whiskey/**"
+      instructions: >-
+        Conteúdo próprio. Regra 18: a ordem dos campos é type, abstract, parent,
+        id, name, suffix, description. Confira se o balanceamento está
+        explicado em comentário, e se as durações citadas batem com a unidade do
+        campo.
+
+        Todo id de prototype citado precisa existir. Id errado não dá erro
+        nenhum: o recurso simplesmente não acontece em jogo.
+
+    - path: "Content.IntegrationTests/**"
+      instructions: >-
+        O teste tem que responder a pergunta que o jogador faria, e não a que o
+        prototype responde. Prefira teste que cria a entidade, aplica a ação e
+        mede o efeito. Desconfie de teste que só lê prototype e afirma que o
+        recurso funciona.
+
+  auto_review:
+    enabled: true
+    drafts: false
+    # PR de sincronização com upstream não se revisa por diff.
+    ignore_title_keywords:
+      - "Merge upstream"
+      - "Sync"
+      - "Automatic changelog update"
+
+  tools:
+    # O CI já compila em Release com os analisadores do Robust, que é a checagem
+    # que vale para C# aqui. Ligar linter genérico por cima só duplicaria ruído.
+    github-checks:
+      enabled: true
+    yamllint:
+      enabled: false # o Content.YAMLLinter do projeto sabe as regras dos prototypes
+    gitleaks:
+      enabled: true
+
+chat:
+  auto_reply: true
