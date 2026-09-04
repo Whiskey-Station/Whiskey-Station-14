@@ -1,0 +1,107 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# O changelog da Whiskey, separado do TraumaChangelog.
+#
+# Antes disto as nossas entradas ficavam dentro do arquivo do Trauma, então
+# apareciam na aba Trauma e ninguém distinguia o que era nosso do que veio do
+# fork pai. A ordem é -3 para a aba nascer antes da do Trauma, que é -2.
+#
+# Os ids continuam de onde o TraumaChangelog parou, e não recomeçam do 1. O
+# aviso de novidade no botão é LastReadId < MaxId, e o arquivo lido é o que o
+# ChangelogManager chama de principal. Se os ids daqui recomeçassem do 1, quem
+# já jogou teria LastReadId na casa do milhar e nunca mais veria o aviso.
+
+Name: Whiskeylog
+Order: -3
+Entries:
+- author: Whiskey Station
+  changes:
+  - type: Add
+    message: >-
+      Integrado o upstream atual da Trauma Station, incluindo os sistemas selecionados
+      das demais forks.
+  - type: Add
+    message: >-
+      Integrados conteúdos de teleciência, Ratvar, medicina, combate e qualidade de
+      vida.
+  - type: Tweak
+    message: A população de ratos foi limitada a 24 entidades.
+  - type: Fix
+    message: >-
+      Resolvidas incompatibilidades entre forks em protótipos, mapas, localizações e
+      recursos.
+  - type: Fix
+    message: >-
+      Reforçadas a validação de áudio dos anúncios e a compatibilidade do cliente com
+      o ACZ.
+  - type: Fix
+    message: >-
+      Reparadas entidades legadas em Lavaland, nas ruínas de Atlas e nos mapas de
+      shuttles.
+  - type: Fix
+    message: >-
+      Restaurados os links vazios da nave-capitânia e a compatibilidade das CVars de
+      áudio com o cliente oficial.
+  - type: Fix
+    message: >-
+      Fortalecido o estado final da construção do Ripley durante a rodada e a
+      inicialização de mapas.
+  id: 1544
+  time: '2026-08-14T11:27:40.0000000+00:00'
+
+- author: Whiskey Station
+  changes:
+  - type: Tweak
+    message: >-
+      Regras do servidor, Space Law e todo o livro-guia receberam uma tradução
+      manual completa para PT-BR, preservando gírias e termos da cultura SS14.
+  - type: Fix
+    message: >-
+      Links, tabelas, números, atalhos e marcação dos 340 capítulos foram
+      revisados contra truncamentos e problemas de estrutura.
+  id: 1545
+  time: '2026-08-24T05:25:20.0000000+00:00'
+
+- author: Whiskey Station
+  changes:
+  - type: Fix
+    message: >-
+      O PDA volta a abrir corretamente na tela inicial e a data só é atualizada
+      quando o servidor fornece um valor válido.
+  - type: Tweak
+    message: >-
+      Incêndios de piso agora perdem força sozinhos, propagam muito menos e uma
+      aplicação direta de água ou extintor apaga uma chama inicial.
+  - type: Tweak
+    message: >-
+      O evento aleatório de incêndio elétrico ficou menor, mais raro, limitado
+      a uma ocorrência por rodada e passa a criar apenas chamas iniciais.
+  - type: Tweak
+    message: Ovinia foi desativada para seleção no início da rodada.
+  - type: Fix
+    message: >-
+      Fantasmas criados automaticamente após a morte podem retornar ao corpo,
+      evitando também a corrida que fazia o comando /ghost parecer não funcionar.
+  id: 1546
+  time: '2026-08-25T21:57:39.0000000+00:00'
+  url: https://github.com/Whiskey-Station/Whiskey-Station-14/pull/36
+
+- author: Whiskey Station
+  changes:
+  - type: Fix
+    message: >-
+      A contagem pública do servidor agora inclui administradores quando essa
+      opção está habilitada, sem alterar a fila nem o limite de vagas.
+  id: 1547
+  time: '2026-08-25T23:54:43.0000000+00:00'
+
+- author: Whiskey Station
+  changes:
+  - type: Remove
+    message: >-
+      O traço aleatório Blackout foi desativado para impedir rodadas iniciadas
+      com a maior parte das lâmpadas destruída.
+  id: 1548
+  time: '2026-08-26T01:10:00.0000000+00:00'
