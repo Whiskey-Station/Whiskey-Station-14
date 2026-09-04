@@ -1,11 +1,4 @@
 [submodule "RobustToolbox"]
 	path = RobustToolbox
-	url = https://github.com/Felipealmeidaz/QuietToolbox.git
-	# <Whiskey> - temporario, ate a PR do CVar entrar no QuietToolbox.
-	# Sem o audio.doppler_factor, todo cliente com o motor oficial e recusado
-	# com "Failed to deserialize packet", porque o CVar e REPLICATED e o
-	# servidor nao conhece o nome. Ver Whiskey-Station/QuietToolbox#1 e
-	# Trauma-Station/QuietToolbox#64. Quando qualquer uma entrar, voltar esta
-	# url para o repositorio de origem e apontar o commit de la.
-	# </Whiskey>
+	url = https://github.com/Trauma-Station/QuietToolbox.git
 	branch = master
