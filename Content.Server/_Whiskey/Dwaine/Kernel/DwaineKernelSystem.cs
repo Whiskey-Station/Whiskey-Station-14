@@ -333,6 +333,20 @@ public sealed partial class DwaineKernelSystem : EntitySystem
                 || !storage.Enabled
                 || storage.SlotCount <= 0))
         {
+            var recovery = new DwaineBootRecoveryRequestedEvent();
+            RaiseLocalEvent(mainframe, ref recovery);
+            if (recovery.Recovered)
+            {
+                EnterTimedState(
+                    mainframe,
+                    runtime,
+                    DwaineSystemState.Bootloader,
+                    transitionAt,
+                    config.BootloaderDurationSeconds,
+                    "bootloader-start",
+                    Loc.GetString("dwaine-kernel-diagnostic-bootloader"));
+                return;
+            }
             FailBoot(
                 mainframe,
                 runtime,

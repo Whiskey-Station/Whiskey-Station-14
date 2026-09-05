@@ -23,6 +23,9 @@
     slotCount: 1
   - type: DwaineNetworkConnector
     networkId: station
+    adapter: Radio
+    tags:
+    - terminal
     linkRange: 16
   - type: DwaineDeviceBusEndpoint
     busId: primary
@@ -101,7 +104,30 @@
   - type: DwaineStorageRuntime
   - type: DwaineNetworkConnector
     networkId: station
+    adapter: Omni
+    tags:
+    - mainframe
+    - dwaine
     linkRange: 16
+  - type: DwaineNetworkEndpoint
+    maxPayloadCharacters: 2048
+    maxPendingRequests: 64
+    maxDiscoveryResults: 64
+    maxCaptureEntries: 128
+    discoveryCooldownSeconds: 1
+    requestTimeoutSeconds: 3
+  - type: DwaineCommunicationService
+    maxMessages: 512
+    maxMessagesPerUser: 64
+    maxMessageCharacters: 1024
+  - type: DwaineCommunicationRuntime
+  - type: DwaineDevice
+    driverId: radio
+    address: network0
+    tag: network
+    displayName: DWAINE network adapter
+    capabilities: Inspect, Message
+    access: Authenticated
   - type: DwaineDeviceBusEndpoint
     busId: primary
     endpointLimit: 64

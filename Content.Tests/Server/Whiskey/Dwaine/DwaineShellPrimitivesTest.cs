@@ -258,7 +258,9 @@ public sealed class DwaineShellPrimitivesTest
             Assert.That(engine.Execute("talk alex hello", session, host).StandardOutput, Does.Contain("sent to alex"));
             Assert.That(engine.Execute("mesg n; mesg", session, host).StandardOutput, Is.EqualTo("is n\n"));
             Assert.That(engine.Execute("mount", session, host).ExitCode, Is.Zero);
-            Assert.That(engine.Execute("scnt", session, host).ExitCode, Is.EqualTo(127));
+            var scan = engine.Execute("scnt", session, host);
+            Assert.That(scan.ExitCode, Is.EqualTo(1));
+            Assert.That(scan.StandardError, Is.EqualTo("scnt: service unavailable\n"));
         });
 
         var logout = engine.Execute("logout", session, host);
