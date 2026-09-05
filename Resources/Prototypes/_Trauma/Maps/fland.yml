@@ -4,6 +4,7 @@
   id: Fland
   mapName: 'Fland Installation'
   mapPath: /Maps/_Trauma/fland.yml
+  weight: 0.0
   minPlayers: 40
   stations:
     Fland:
