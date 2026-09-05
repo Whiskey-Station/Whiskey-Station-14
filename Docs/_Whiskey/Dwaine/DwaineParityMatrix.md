@@ -256,34 +256,34 @@ The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Syscall dispatcher and stable errors | SYSCALL, NS | typed Vodka syscall registry/result codes | PLANNED | 12/15 | Syscall/valid/invalid | No arbitrary reflection dispatch. |
-| `MSG_TERM` | SYSCALL | capability-scoped terminal output/file delivery | PLANNED | 12/15 | Syscall/msg-term | Process cannot select an unrelated terminal. |
-| `ULOGIN` | SYSCALL | kernel authentication request | PLANNED | 12/15 | Syscall/login spoof denial | Identity derived server-side. |
-| `UGROUP` | SYSCALL | privileged group update | PLANNED | 12/15 | Syscall/group authorization | Cannot self-elevate. |
-| `ULIST` | SYSCALL | permission-safe session listing | PLANNED | 12/15 | Syscall/user list | Bounded/redacted. |
-| `UMSG` | SYSCALL | authenticated user message | PLANNED | 12/15 | Syscall/user message | Honors recipient policy. |
-| `UINPUT` | SYSCALL | trusted driver-to-session input bridge | PLANNED | 12/15 | Syscall/input capability | Not exposed as client identity override. |
-| `DMSG` | SYSCALL | message an opaque device handle | PLANNED | 12/15 | Syscall/device message | No raw `EntityUid`. |
-| `DLIST` | SYSCALL | list authorized device capabilities | PLANNED | 12/15 | Syscall/device list | Topology and permissions filter results. |
-| `DGET` | SYSCALL | acquire device capability by discoverable address/type | PLANNED | 12/15 | Syscall/device get | Generation checked. |
-| `DSCAN` | SYSCALL | bounded topology rescan | PLANNED | 12/15 | Syscall/device scan | Rate limited. |
-| `EXIT` | SYSCALL | exit calling process | PLANNED | 12/15 | Syscall/exit | Caller derived from execution context. |
-| `TSPAWN` | SYSCALL | spawn authorized executable | PLANNED | 12/15 | Syscall/spawn limits | Execute and ownership checks. |
-| `TFORK` | SYSCALL | fork current runtime where supported | PLANNED | 12/15 | Syscall/fork depth | Vodka context copied within data limits. |
-| `TKILL` | SYSCALL | ownership-checked child/process kill | PLANNED | 12/15 | Syscall/kill authorization | Stale PID safe. |
-| `TLIST` | SYSCALL | list visible child processes | PLANNED | 12/15 | Syscall/task list | Does not leak other users. |
-| `FGET` | SYSCALL | permission-checked VFS stat/read handle | PLANNED | 12/15 | Syscall/file get | No direct mutable node exposure. |
-| `FKILL` | SYSCALL | permission-checked VFS delete | PLANNED | 12/15 | Syscall/file kill | Root/proc/run protected. |
-| `FMODE` | SYSCALL | mode metadata update | PLANNED | 12/15 | Syscall/file mode | Uses centralized policy. |
-| `FOWNER` | SYSCALL | owner/group metadata update | PLANNED | 12/15 | Syscall/file owner | Uses centralized policy. |
-| `FWRITE` | SYSCALL | create/replace/append through bounded VFS API | PLANNED | 12/15 | Syscall/file write | Atomic and quota-aware. |
-| `CONFGET` | SYSCALL | read authorized configuration document | PLANNED | 12/15 | Syscall/config authorization | No host configuration exposure. |
-| `MOUNT` | SYSCALL | attach mountable device capability | PLANNED | 12/15 | Syscall/mount capability | Consumes the complete server-authoritative media semantics delivered by PR 07. |
-| `TEXIT` message | SYSCALL, SHELL | child-exit notification | PLANNED | 12/15 | Syscall/message child exit | Typed kernel event. |
-| `RECVFILE` message | SYSCALL, SHELL | bounded file-transfer notification | PLANNED | 12/15 | Syscall/message file | Data copied/validated. |
-| `BREAK` message | SYSCALL, SHELL | cancellation/break request | PLANNED | 12/15 | Syscall/message break | Cooperates with process cancellation. |
-| `REPLY` message | SYSCALL, DRV | typed request/reply response | PLANNED | 12/15 | Syscall/message reply correlation | Correlation IDs unguessable/scoped. |
-| 1,000-call stress and malformed handles | SYSCALL | ABI stress/security suite | PLANNED | 12/15 | Syscall/stress | Includes disappearing devices and concurrency. |
+| Syscall dispatcher and stable errors | SYSCALL, NS | typed Vodka syscall registry/result codes | IMPLEMENTED | 12/14 | `AuditedIdsAndMessageIdsRemainStable`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Explicit switch dispatch; no reflection or client-callable boundary. |
+| `MSG_TERM` | SYSCALL | capability-scoped terminal output/file delivery | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Calling process and its current terminal session are rederived server-side. |
+| `ULOGIN` | SYSCALL | kernel authentication request | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Identity is derived server-side and attempts are rate limited. |
+| `UGROUP` | SYSCALL | privileged group update | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Central identity permissions reject self-elevation. |
+| `ULIST` | SYSCALL | permission-safe session listing | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Results are bounded and other sessions require inspect permission. |
+| `UMSG` | SYSCALL | authenticated user message | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Recipient lookup and session policy are server-owned. |
+| `UINPUT` | SYSCALL | trusted driver-to-session input bridge | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Callable dispatch rejects it; only an attached trusted terminal driver can inject bounded input. |
+| `DMSG` | SYSCALL | message an opaque device handle | IMPLEMENTED | 12/14 | `CapabilityHandlesAreProcessPrincipalGenerationAndPermissionScoped`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | No raw `EntityUid`; handle and required capability are revalidated per call. |
+| `DLIST` | SYSCALL | list authorized device capabilities | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Local attachment/session/media indexes and permissions filter sorted bounded results. |
+| `DGET` | SYSCALL | acquire device capability by discoverable address/type | IMPLEMENTED | 12/14 | `CapabilityHandlesAreProcessPrincipalGenerationAndPermissionScoped`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Process, principal, boot generation and capability are encoded in the server table. |
+| `DSCAN` | SYSCALL | bounded topology rescan | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Explicit indexes only; per-process scan rate limiting uses game time. |
+| `EXIT` | SYSCALL | exit calling process | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Caller is derived from execution context and exit code is bounded. |
+| `TSPAWN` | SYSCALL | spawn authorized executable | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | VFS execute/owner checks and scheduler ceilings apply; VM yields cooperatively after spawn. |
+| `TFORK` | SYSCALL | fork current runtime where supported | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Vodka state is copied within argument/data/process/depth limits and then cooperatively scheduled. |
+| `TKILL` | SYSCALL | ownership-checked child/process kill | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Process ownership policy rejects unrelated or stale PIDs. |
+| `TLIST` | SYSCALL | list visible child processes | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Only owned processes are emitted in a bounded result. |
+| `FGET` | SYSCALL | permission-checked VFS stat/read handle | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Text is copied through the authorized VFS façade; no mutable node is exposed. |
+| `FKILL` | SYSCALL | permission-checked VFS delete | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Central VFS/identity policy protects root, proc, run and denied paths. |
+| `FMODE` | SYSCALL | mode metadata update | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Uses centralized owner/operator policy. |
+| `FOWNER` | SYSCALL | owner/group metadata update | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Named identities are resolved and authorized server-side. |
+| `FWRITE` | SYSCALL | create/replace/append through bounded VFS API | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Atomic quota-aware create, replace and append modes. |
+| `CONFGET` | SYSCALL | read authorized configuration document | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Only validated names under the permission-checked virtual `/conf`; no host configuration. |
+| `MOUNT` | SYSCALL | attach mountable device capability | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Requires both write permission and an opaque `Mount` capability over inserted media. |
+| `TEXIT` message | SYSCALL, SHELL | child-exit notification | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Typed bounded FIFO kernel event delivered to the live parent. |
+| `RECVFILE` message | SYSCALL, SHELL | bounded file-transfer notification | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | File data is permission-checked, copied and bounded before mailbox delivery. |
+| `BREAK` message | SYSCALL, SHELL | cancellation/break request | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Only a parent can break its child; cancellation then uses process cleanup. |
+| `REPLY` message | SYSCALL, DRV | typed request/reply response | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Scoped expiring correlations survive forged replies and are consumed by the assigned responder only. |
+| 1,000-call stress and malformed handles | SYSCALL | ABI stress/security suite | IMPLEMENTED | 12/14 | `ThousandHandleChurnNeverRevivesStaleTokens`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Includes stale and cross-process handles, disappearing devices and bounded churn. |
 
 ## Networking
 
@@ -329,8 +329,8 @@ The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Base driver status/message contract | DRV | typed Vodka Device ABI adapter | PLANNED | 12/15 | Driver/base malformed/offline | Explicit capability per command. |
-| User-terminal driver | DRV | terminal session capability | PLANNED | 12/15 | Driver/user terminal | Cannot impersonate another user. |
+| Base driver status/message contract | DRV | typed Vodka Device ABI adapter | IMPLEMENTED | 12/14 | `CapabilityHandlesAreProcessPrincipalGenerationAndPermissionScoped`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Status needs `Inspect`; other commands need `Message`; targets receive a typed server event only after validation. |
+| User-terminal driver | DRV | terminal session capability | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | The endpoint is bound to the authoritative session and cannot impersonate another user or terminal. |
 | Databank driver | DRV, MACHINE | network storage driver | PLANNED | 14/15 | Driver/databank | Mount lifecycle authoritative. |
 | Printer driver | DRV, MACHINE | printer status/spool driver | PLANNED | 14/15 | Driver/printer | Bounded queue. |
 | Logreader driver | LOG | log query/export driver | PLANNED | 14/15 | Driver/logreader | Permission isolated. |

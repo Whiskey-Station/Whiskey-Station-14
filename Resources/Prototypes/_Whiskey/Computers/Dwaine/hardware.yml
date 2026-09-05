@@ -105,6 +105,18 @@
   - type: DwaineDeviceBusEndpoint
     busId: primary
     endpointLimit: 64
+  - type: DwaineDeviceAbi
+    maxAttachedDevices: 128
+    maxHandles: 512
+    maxHandlesPerProcess: 32
+    maxMessageCharacters: 2048
+    scanCooldownSeconds: 1
+  - type: DwaineDeviceAbiRuntime
+  - type: DwaineSyscall
+    maxArguments: 16
+    maxArgumentCharacters: 8192
+    maxResultCharacters: 16384
+  - type: DwaineSyscallRuntime
   - type: PowerSwitch
 
 - type: entity

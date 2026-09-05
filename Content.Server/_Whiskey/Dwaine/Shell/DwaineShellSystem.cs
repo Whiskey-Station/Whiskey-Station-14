@@ -213,6 +213,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
                 Program = new DwaineProgramDescriptor("dwaine.shell", "DWAINE interactive shell"),
                 Implementation = new DwaineShellProcessProgram(engine, shell, host),
                 WorkingDirectory = DwaineFileSystemSystem.ToWorkingDirectory(shell.WorkingDirectory),
+                TerminalSession = new DwaineProcessTerminalSession(transportSession.Value),
                 Environment = shell.Environment,
             },
             out var processId);

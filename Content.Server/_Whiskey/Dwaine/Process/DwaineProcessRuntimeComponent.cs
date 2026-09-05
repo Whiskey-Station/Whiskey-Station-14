@@ -28,6 +28,7 @@ internal sealed class DwaineProcessRecord
     public readonly IDwaineProcessProgram Implementation;
     public readonly TimeSpan StartedAt;
     public readonly DwaineWorkingDirectoryHandle WorkingDirectory;
+    public readonly DwaineProcessTerminalSession? TerminalSession;
     public readonly DwaineProcessEnvironment Environment;
     public readonly DwaineProcessTextStream Stdin;
     public readonly DwaineProcessTextStream Stdout;
@@ -55,6 +56,7 @@ internal sealed class DwaineProcessRecord
         IDwaineProcessProgram implementation,
         TimeSpan startedAt,
         DwaineWorkingDirectoryHandle workingDirectory,
+        DwaineProcessTerminalSession? terminalSession,
         DwaineProcessEnvironment environment,
         DwaineProcessTextStream stdin,
         DwaineProcessTextStream stdout,
@@ -68,6 +70,7 @@ internal sealed class DwaineProcessRecord
         Implementation = implementation;
         StartedAt = startedAt;
         WorkingDirectory = workingDirectory;
+        TerminalSession = terminalSession;
         Environment = environment;
         Stdin = stdin;
         Stdout = stdout;
@@ -88,6 +91,7 @@ internal sealed class DwaineProcessRecord
             ExitReason,
             ErrorCode,
             WorkingDirectory,
+            TerminalSession,
             InstructionsConsumed,
             Children.Count,
             WaitingFor);

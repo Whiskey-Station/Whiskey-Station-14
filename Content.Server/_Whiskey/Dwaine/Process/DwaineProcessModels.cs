@@ -32,6 +32,32 @@ public readonly record struct DwaineWorkingDirectoryHandle(ulong Volume, ulong N
     public bool IsValid => Volume != 0 && Node != 0;
 }
 
+/// <summary>
+/// Opaque terminal-session binding inherited by child processes. The process layer never interprets
+/// the value; syscall and transport layers must revalidate it against the owning mainframe.
+/// </summary>
+public readonly record struct DwaineProcessTerminalSession(ulong Value)
+{
+    public bool IsValid => Value != 0;
+}
+
+/// <summary>
+/// Typed kernel-originated messages delivered through a process mailbox. Values intentionally match
+/// the audited DWAINE message-only syscall IDs without making the process subsystem depend on syscalls.
+/// </summary>
+public enum DwaineKernelMessageType : byte
+{
+    TaskExit = 16,
+    ReceiveFile = 24,
+    Break = 25,
+    Reply = 30,
+}
+
+public readonly record struct DwaineRequestCorrelationId(ulong Value)
+{
+    public bool IsValid => Value != 0;
+}
+
 public readonly record struct DwaineProgramDescriptor(string Id, string DisplayName);
 
 public enum DwaineProcessExitReason : byte
@@ -106,6 +132,7 @@ public readonly record struct DwaineProcessSnapshot(
     DwaineProcessExitReason? ExitReason,
     string ErrorCode,
     DwaineWorkingDirectoryHandle WorkingDirectory,
+    DwaineProcessTerminalSession? TerminalSession,
     long InstructionsConsumed,
     int ChildCount,
     DwaineProcessId? WaitingFor);
@@ -117,6 +144,7 @@ public sealed class DwaineProcessSpawnRequest
     public required IDwaineProcessProgram Implementation { get; init; }
     public DwaineProcessId? ParentId { get; init; }
     public DwaineWorkingDirectoryHandle WorkingDirectory { get; init; }
+    public DwaineProcessTerminalSession? TerminalSession { get; init; }
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
     public bool InheritParentEnvironment { get; init; } = true;
 }
