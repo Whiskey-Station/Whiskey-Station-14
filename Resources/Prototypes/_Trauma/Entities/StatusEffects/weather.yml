@@ -33,15 +33,32 @@
       blacklist:
         components:
         - RadStormImmune
+    # <Whiskey> - iodo no sangue escapa por inteiro, não só reduz.
+    # O PotassiumIodide já aplica o StatusEffectRadiationProtection enquanto
+    # está metabolizando, e o coeficiente dele sozinho deixaria passar 10% do
+    # dano. Com a tempestade curta e forte, esses 10% ainda derrubariam quem se
+    # preparou, e preparo tem que valer.
+    - !type:HasStatusEffectCondition
+      effectProto: StatusEffectRadiationProtection
+      inverted: true
+    # </Whiskey>
     effects:
     - !type:HealthChange
       ignoreResistances: false
       splitDamage: None
       damage:
         types:
-          Radiation: 0.25
-    - !type:RandomNegativeMutation
-      probability: 0.1 # average 10s of exposure per mutation
+          # <Whiskey> - tempestade curta e brutal, decidido pela host.
+          # O clima fica 40s no ar: 10 do estágio mais 15 de entrada e 15 de
+          # saída que o agendador soma para o crossfade. A 2,5 por segundo dá
+          # 100 em exposição completa, que é o limiar do SoftCrit no humanoide.
+          # Quem corre nos primeiros 10 segundos leva 25 e sai andando.
+          Radiation: 2.5
+          # </Whiskey>
+    # <Whiskey> - a mutação saiu a pedido da host: aqui a radiação machuca,
+    # não transforma. O RandomNegativeMutation ficava em 10% por segundo, o que
+    # dava umas 15 mutações negativas numa tempestade inteira.
+    # </Whiskey>
     safeIndoors: false # entire station is indoors...
     safeAreas:
     - AreaAiUpload
@@ -100,11 +117,14 @@
   - type: WeatherScheduler
     temporary: true # it's a station event and has no rest period
     stages:
+    # <Whiskey> - um minuto para correr, dez segundos de inferno.
+    # A janela de aviso subiu de 40s para 60s porque a tempestade agora
+    # machuca de verdade e não dá para pedir reação em 40 segundos.
     - weather: WeatherFallout
       message: radiation-storm-telegraph
       duration:
-        min: 40
-        max: 40
+        min: 60
+        max: 60
     - weather: WeatherRadiationStorm
       message: radiation-storm-alert
       # <Whiskey> - alarme nuclear pedido pela host, global para alcançar quem
@@ -116,19 +136,18 @@
       #
       # O meltdown_siren da mesma pasta serviria pelo som, mas é
       # CC-BY-NC-SA-3.0, e non commercial não combina com o AGPL daqui.
-      # Um toque só, no começo da tempestade, e não em laço. O arquivo tem 4,2
-      # segundos e a tempestade fica 40 no ar: alarme estridente repetindo dez
-      # vezes vira tortura, e no teste em jogo já ficou irritante demais no
-      # volume cheio. O papel dele é fazer a pessoa levantar da cadeira, não
-      # acompanhar o evento inteiro.
+      #
+      # Um toque só, e não em laço. O arquivo tem 4,2 segundos e o clima fica 40
+      # no ar, então repetir seria dez vezes um alarme estridente. No teste em
+      # jogo já ficou irritante demais no volume cheio, daí o -8.
       sound:
         path: /Audio/_FarHorizons/Machines/reactor_alarm_3.ogg
         params:
           volume: -8
-      # </Whiskey>
-      duration: # 1-2.5 mins
-        min: 60
-        max: 150
+      duration:
+        min: 10
+        max: 10
+    # </Whiskey>
     - weather: WeatherFallout
       message: radiation-storm-clearing
       duration:
