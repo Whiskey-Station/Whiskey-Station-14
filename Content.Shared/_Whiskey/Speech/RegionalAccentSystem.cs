@@ -10,19 +10,12 @@ using Robust.Shared.Timing;
 namespace Content.Shared._Whiskey.Speech;
 
 /// <summary>
-/// Aplica sotaque regional: troca as palavras pela gíria, às vezes abre com
-/// bordão e às vezes fecha com outro.
+/// Troca palavra por gíria e às vezes acrescenta bordão. O fecho muda conforme
+/// a pontuação, senão soa robótico.
 /// </summary>
 /// <remarks>
-/// <para>
-/// O fechamento muda conforme a pontuação, e é isso que dá naturalidade.
-/// Pergunta fecha de um jeito, exclamação de outro, e frase comum de um
-/// terceiro. Usar o mesmo bordão nos três casos soa robótico.
-/// </para>
-/// <para>
-/// A ordem importa: trocar palavra primeiro, bordão depois, senão o bordão
-/// vira candidato a ser trocado também.
-/// </para>
+/// Trocar palavra ANTES do bordão: invertido, o bordão vira candidato a ser
+/// trocado também.
 /// </remarks>
 public sealed partial class RegionalAccentSystem : RelayAccentSystem<RegionalAccentComponent>
 {
