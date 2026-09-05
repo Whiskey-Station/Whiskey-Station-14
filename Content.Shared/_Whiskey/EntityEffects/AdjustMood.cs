@@ -9,19 +9,10 @@ using Robust.Shared.Prototypes;
 namespace Content.Shared._Whiskey.EntityEffects;
 
 /// <summary>
-/// Levanta um modificador de humor em quem tiver humor.
+/// Levanta um modificador de humor em quem tiver humor. Não faz nada em quem
+/// não tem <c>MoodComponent</c>, e isso é de propósito: aqui humor é de quem
+/// escolheu o traço, não de todo mundo.
 /// </summary>
-/// <remarks>
-/// Existe porque o porte do sistema de humor chegou sem nenhuma ponte para o
-/// resto do jogo: nada em prototype nenhum levantava modificador. Até agora, as
-/// únicas coisas que mexiam no humor eram o dano, por código, e os traços
-/// periódicos. Isto abre o caminho para química, comida e qualquer outro efeito
-/// de entidade fazerem o mesmo, sem cada um precisar do seu próprio sistema.
-///
-/// Não faz nada em quem não tem <c>MoodComponent</c>, e isso é de propósito.
-/// Neste fork o humor é de quem escolheu um traço que dá humor, e não de todo
-/// mundo, então remédio de humor não tem em que mexer numa pessoa comum.
-/// </remarks>
 /// <inheritdoc cref="EntityEffect"/>
 public sealed partial class AdjustMood : EntityEffectBase<AdjustMood>
 {
