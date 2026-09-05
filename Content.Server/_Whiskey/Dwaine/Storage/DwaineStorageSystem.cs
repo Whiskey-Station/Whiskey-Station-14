@@ -35,6 +35,8 @@ public sealed partial class DwaineStorageSystem : EntitySystem
         base.Initialize();
 
         SubscribeLocalEvent<DwaineStorageDriveComponent, DwaineKernelReadyEvent>(OnKernelReady);
+        SubscribeLocalEvent<DwaineStorageDriveComponent, MapInitEvent>(OnDriveMapInit);
+        SubscribeLocalEvent<DwaineStorageDriveComponent, DwaineBootRecoveryRequestedEvent>(OnBootRecovery);
         SubscribeLocalEvent<DwaineStorageDriveComponent, EntityTerminatingEvent>(OnDriveTerminating);
         SubscribeLocalEvent<DwaineStorageDriveComponent, GetVerbsEvent<AlternativeVerb>>(OnGetEjectVerbs);
         SubscribeLocalEvent<DwaineStorageMediaComponent, AfterInteractEvent>(OnMediaAfterInteract);
@@ -239,6 +241,37 @@ public sealed partial class DwaineStorageSystem : EntitySystem
             .Where(snapshot => snapshot.HasValue)
             .Select(snapshot => snapshot!.Value)
             .ToArray();
+    }
+
+    private void OnDriveMapInit(Entity<DwaineStorageDriveComponent> ent, ref MapInitEvent args)
+    {
+        if (!TryComp<DwaineStorageConnectorComponent>(ent, out var connector))
+            return;
+        var count = Math.Min(
+            Math.Clamp(connector.SlotCount, 0, DwaineStorageConnectorComponent.HardMaxSlotCount),
+            ent.Comp.StartingMedia.Count);
+        for (var slot = 0; slot < count; slot++)
+        {
+            var media = Spawn(ent.Comp.StartingMedia[slot], Transform(ent).Coordinates);
+            if (!TryInsert(ent, media, slot).Succeeded)
+                QueueDel(media);
+        }
+    }
+
+    private void OnBootRecovery(Entity<DwaineStorageDriveComponent> ent, ref DwaineBootRecoveryRequestedEvent args)
+    {
+        if (args.Recovered || string.IsNullOrWhiteSpace(args.Profile))
+            return;
+        foreach (var media in GetInsertedMedia(ent))
+        {
+            if (TryComp<DwaineBootMediaComponent>(media.Media, out var boot)
+                && boot.Enabled
+                && string.Equals(boot.Profile, args.Profile, StringComparison.Ordinal))
+            {
+                args.Recovered = true;
+                return;
+            }
+        }
     }
 
     private void OnKernelReady(Entity<DwaineStorageDriveComponent> ent, ref DwaineKernelReadyEvent args)

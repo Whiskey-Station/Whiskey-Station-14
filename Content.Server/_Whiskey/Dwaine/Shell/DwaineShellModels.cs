@@ -220,6 +220,18 @@ public interface IDwaineNetworkShellHost
     DwaineShellHostResult Scan(DwaineProcessId process);
 }
 
+/// <summary>
+/// Optional server-owned station-service façade. The caller process and authenticated principal
+/// are revalidated by the service subsystem for every operation.
+/// </summary>
+public interface IDwaineServiceShellHost
+{
+    DwaineShellHostResult Service(
+        DwaineProcessId process,
+        DwaineVfsNodeHandle workingDirectory,
+        IReadOnlyList<string> arguments);
+}
+
 public readonly record struct DwaineShellExecutionResult(
     int ExitCode,
     string StandardOutput,

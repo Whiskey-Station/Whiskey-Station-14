@@ -46,6 +46,12 @@ public sealed partial class DwaineKernelComponent : Component
     public bool RequireStorageConnector = true;
 
     [DataField]
+    public bool RequireBootMedia;
+
+    [DataField]
+    public string BootProfile = "whiskey-system-v1";
+
+    [DataField]
     public float PostDurationSeconds = 0.4f;
 
     [DataField]

@@ -105,7 +105,82 @@ public sealed class DwaineStorageTest : GameTest
             maxNodes: 128
             maxDepth: 12
           - type: DwaineStorageMediaRuntime
+
+        - type: entity
+          id: WhiskeyDwaineBootMediaTestMainframe
+          components:
+          - type: Transform
+          - type: DwaineComputerHardware
+            kind: Mainframe
+            requiresExternalPower: false
+          - type: DwaineHardwareRuntime
+          - type: DwaineMainframe
+          - type: DwaineMainframeRuntime
+          - type: DwaineKernel
+            autoBoot: false
+            requireStorageConnector: true
+            requireBootMedia: true
+            bootProfile: test-system-v1
+            postDurationSeconds: 0.01
+            bootloaderDurationSeconds: 0.01
+            kernelInitializationDurationSeconds: 0.01
+          - type: DwaineKernelRuntime
+          - type: DwaineFileSystem
+          - type: DwaineFileSystemRuntime
+          - type: DwaineStorageConnector
+            slotCount: 1
+          - type: DwaineStorageDrive
+            startingMedia: [WhiskeyDwaineBootMediaTestTape]
+          - type: DwaineStorageRuntime
+
+        - type: entity
+          id: WhiskeyDwaineBootMediaTestTape
+          components:
+          - type: Transform
+          - type: DwaineStorageMedia
+            kind: Tape
+            label: recovery
+            readOnly: true
+          - type: DwaineStorageMediaRuntime
+          - type: DwaineBootMedia
+            profile: test-system-v1
         """;
+
+    [Test]
+    public async Task BootRequiresExactInsertedDataOnlyMediaProfile()
+    {
+        EntityUid map = EntityUid.Invalid;
+        MapId mapId = default;
+        EntityUid rejected = EntityUid.Invalid;
+        EntityUid accepted = EntityUid.Invalid;
+        await Server.WaitAssertion(() =>
+        {
+            map = Server.System<SharedMapSystem>().CreateMap(out mapId);
+            var coordinates = new MapCoordinates(Vector2.Zero, mapId);
+            rejected = Server.EntMan.SpawnEntity("WhiskeyDwaineBootMediaTestMainframe", coordinates);
+            var storage = Server.System<DwaineStorageSystem>();
+            var media = storage.GetInsertedMedia(rejected);
+            Assert.That(media, Has.Length.EqualTo(1));
+            Server.EntMan.DeleteEntity(media[0].Media);
+            Assert.That(Server.System<DwaineKernelSystem>().TryBoot(rejected), Is.True);
+        });
+        await Server.WaitRunTicks(4);
+        await Server.WaitAssertion(() =>
+        {
+            Assert.That(Server.System<DwaineKernelSystem>().GetState(rejected), Is.EqualTo(DwaineSystemState.BootFailed));
+            accepted = Server.EntMan.SpawnEntity(
+                "WhiskeyDwaineBootMediaTestMainframe",
+                new MapCoordinates(new Vector2(1, 0), mapId));
+            Assert.That(Server.System<DwaineStorageSystem>().GetInsertedMedia(accepted), Has.Length.EqualTo(1));
+            Assert.That(Server.System<DwaineKernelSystem>().TryBoot(accepted), Is.True);
+        });
+        await Server.WaitRunTicks(6);
+        await Server.WaitAssertion(() =>
+        {
+            Assert.That(Server.System<DwaineKernelSystem>().GetState(accepted), Is.EqualTo(DwaineSystemState.SystemReady));
+            Server.EntMan.DeleteEntity(map);
+        });
+    }
 
     [Test]
     public async Task RemovableDiskPersistsAcrossFlushEjectAndReinsert()

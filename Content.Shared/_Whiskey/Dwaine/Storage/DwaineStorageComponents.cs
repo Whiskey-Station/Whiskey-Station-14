@@ -3,6 +3,8 @@
 
 namespace Content.Shared._Whiskey.Dwaine.Storage;
 
+using Robust.Shared.Prototypes;
+
 public enum DwaineStorageMediaKind : byte
 {
     HardDrive,
@@ -78,4 +80,23 @@ public sealed partial class DwaineStorageDriveComponent : Component
 
     [DataField]
     public bool AcceptTapes = true;
+
+    /// <summary>
+    /// Fixed media created and inserted during map initialization, bounded by the physical slot count.
+    /// </summary>
+    [DataField]
+    public List<EntProtoId> StartingMedia = [];
+}
+
+/// <summary>
+/// Declares a fixed, data-only boot profile. It authorizes a boot source but never carries native code.
+/// </summary>
+[RegisterComponent]
+public sealed partial class DwaineBootMediaComponent : Component
+{
+    [DataField]
+    public bool Enabled = true;
+
+    [DataField(required: true)]
+    public string Profile = string.Empty;
 }

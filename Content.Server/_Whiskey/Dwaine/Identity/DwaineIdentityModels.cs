@@ -321,6 +321,12 @@ public sealed class DwaineIdentityStore
         return false;
     }
 
+    public DwaineAccountSnapshot[] GetAccounts()
+        => _accounts.Values
+            .Select(Snapshot)
+            .OrderBy(account => account.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
     public bool TryGetGroup(string name, out DwaineGroupId group)
     {
         foreach (var (candidate, candidateName) in _groups)

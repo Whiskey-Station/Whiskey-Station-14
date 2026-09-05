@@ -1,0 +1,16 @@
+author: Whiskey Station Contributors
+changes:
+  - type: Add
+    message: >-
+      DWAINE agora possui serviços persistentes e limitados para email,
+      documentos, logs e diagnóstico, além de integrações autorizadas com
+      manifestos, registros, contas bancárias e controle de vagas da estação.
+  - type: Add
+    message: >-
+      Foram adicionados terminal portátil, impressora de rede, APC de rede
+      opt-in, mídias de boot com perfil validado e placas de computador para o
+      mainframe, terminal e impressora DWAINE.
+  - type: Tweak
+    message: >-
+      A descoberta de devices agora respeita a topologia DWAINE real e remove
+      endpoints offline, com novos testes de escala, persistência e cleanup.

@@ -3,7 +3,7 @@
 
 # DWAINE architecture
 
-Status: specification baseline for PR 01/15.
+Status: final architecture through implementation PR 14/14.
 
 This document defines the dependency, authority, timing, and clean-room boundaries for Whiskey Station's DWAINE implementation. `DwaineParityMatrix.md` is the feature ledger and `VodkaCodeSpecification.md` is the language contract.
 
@@ -50,9 +50,9 @@ PR 01 intentionally defines no gameplay component. Empty marker components would
 | Vodka Code runtime | process-owned execution requests | deterministic sandboxed VM and resource accounting | PR 11 |
 | Syscalls/devices | capability-bearing device entities | syscall dispatcher, drivers and opaque handle table | PR 12 |
 | Network | ports, links and topology membership | bounded routing, discovery and request/reply | PR 13 |
-| Services/station integration | service hosts and common station devices | mailbox, log, document and validated device adapters | PR 14 |
-| Advanced automation | specialized device entities and diagnostics | orchestration, remaining drivers and server metrics | PR 15 |
-| Release gate | no new world-facing domain | audit, hardening, fuzz/stress and end-to-end acceptance | After PR 15 |
+| Services/station integration | service hosts and common station devices | mailbox, log, document, diagnostics and validated device adapters | PR 14 |
+| Advanced automation | Vodka Code over bounded services, networking and explicit device capabilities | orchestration without a universal machinery API | PR 14 |
+| Release gate | no new world-facing domain | local audit, hardening, fuzz/stress and end-to-end acceptance | After PR 14 |
 
 ## Authority and trust boundary
 

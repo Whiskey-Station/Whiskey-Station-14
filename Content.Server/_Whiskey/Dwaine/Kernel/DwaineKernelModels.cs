@@ -202,6 +202,7 @@ public readonly record struct DwaineBootDiagnostic(
 [ByRefEvent]
 public record struct DwaineBootRecoveryRequestedEvent
 {
+    public string Profile;
     public bool Recovered;
 }
 

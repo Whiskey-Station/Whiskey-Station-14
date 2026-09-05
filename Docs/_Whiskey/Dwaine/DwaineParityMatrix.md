@@ -16,6 +16,14 @@ PR 11/14 repeated the delta review against Goonstation HEAD
 on 2026-08-31, including every shell script operator and its call sites. No relevant behavior changed
 from the prior delta baseline. The Whiskey VM and standard library below are clean-room behavioral equivalents.
 
+PR 14/14 performed the final repository-wide delta review against Goonstation `origin/master`
+[`55dbe8312f09418bd1b9476dfb9e56fd9f95dd17`](https://github.com/goonstation/goonstation/tree/55dbe8312f09418bd1b9476dfb9e56fd9f95dd17)
+on 2026-09-05. The only new kernel behavior since PR 11 was the internal `PGET` parent-resolution
+syscall used by `tar`; Whiskey's atomic VFS archive API already validates and resolves the deepest
+existing destination parent without exposing mutable folder objects. The `telesci` ping reply now
+also reports device/address metadata already present in Whiskey's bounded discovery results. No other
+delta changed the functional classifications below.
+
 This is a clean-room behavioral inventory, not a porting ledger. Goonstation's repository is licensed [CC BY-NC-SA 3.0 US](https://github.com/goonstation/goonstation/blob/20b3e8f442da6c6992b2ca5ca191029465575465/LICENSE); no source, prose, map, sprite, or sound from it is incorporated here. All Whiskey implementation code and player-facing content will be original and AGPL-3.0-or-later.
 
 ## Audit coverage
@@ -24,13 +32,12 @@ The audit inspected all 143 DM files (32,236 lines) under `_std/namespaces/dwain
 
 The external dependency pass classified packet networks, wired data terminals, guardbot tasks/docks, AI/cosmetic references, books/mail text, adventure-zone mainframe variants, and map/asset placements. Map placements do not add runtime semantics; variant mainframes compose the same audited kernel, utilities, and drivers.
 
-Status values used during delivery:
+Final status values:
 
-- `SPECIFIED`: a PR 01 contract or architectural decision exists and is tested where executable.
-- `IMPLEMENTED`: the assigned runtime behavior exists and is covered by automated tests.
-- `PLANNED`: fully classified behavior assigned to one later PR; not claimed as implemented.
-- `NOT APPLICABLE`: identified reference material with no functional parity obligation; the reason is recorded.
-- The local release gate after PR 14 must replace every `SPECIFIED` or `PLANNED` value with `IMPLEMENTED` or a justified `NOT APPLICABLE`. There is no PR 15: advanced integrations belong to PR 14, while final validation and the showcase report remain local and uncommitted.
+- `IMPLEMENTED`: runtime behavior or an internal functional equivalent exists and is covered by automated tests.
+- `NOT APPLICABLE`: reference-specific material has no safe matching Whiskey subsystem or adds no independent behavior; each reason is recorded.
+
+There is no PR 15. Final validation and the showcase report remain local and uncommitted.
 
 ## Source index
 
@@ -70,9 +77,9 @@ Status values used during delivery:
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Clean-room functional boundary | all sources; repository license | Pinned-source audit and original AGPL implementation rule | SPECIFIED | 01/14 | Architecture docs review | No DM, protected prose, or assets copied. |
-| Shared/server/client dependency boundary | C3, MF, PROG | Shared contracts; authoritative server; presentation-only client | SPECIFIED | 01/14 | `SharedContractsDoNotReferencePresentationOrAuthorityAssemblies` | No Server/Client cycle. |
-| Architecture identity/version | NS, C3 | `DwaineArchitecturePrototype` `WhiskeyDwaine` | SPECIFIED | 01/14 | `ArchitecturePrototypeMatchesCanonicalSpecification` | Couples docs to Vodka Code 0.1 and `.vodka`. |
+| Clean-room functional boundary | all sources; repository license | Pinned-source audit and original AGPL implementation rule | IMPLEMENTED | 01/14 | Architecture/license review | No DM, protected prose, or assets copied. |
+| Shared/server/client dependency boundary | C3, MF, PROG | Shared contracts; authoritative server; presentation-only client | IMPLEMENTED | 01/14 | `SharedContractsDoNotReferencePresentationOrAuthorityAssemblies` | No Server/Client cycle. |
+| Architecture identity/version | NS, C3 | `DwaineArchitecturePrototype` `WhiskeyDwaine` | IMPLEMENTED | 01/14 | `ArchitecturePrototypeMatchesCanonicalSpecification` | Couples docs to Vodka Code 0.1 and `.vodka`. |
 | Computer role | C3 | composed computer hardware entity | IMPLEMENTED | 02/14 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Not a god component. |
 | Mainframe role | MF | mainframe component plus focused server transport system | IMPLEMENTED | 03/14 | `InvalidTargetsRangeAndProductionPrototypeHaveTransportComponents` | Owns runtime association, not kernel or shell logic. |
 | Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | IMPLEMENTED | 02/14 | `PrototypeComposesOnlyPhysicalTerminalLayer`, `BuiReconnectIsIdempotentAndDestructionCleansPresentationState` | Client never authenticates actions. |
@@ -83,9 +90,9 @@ Status values used during delivery:
 | Device bus | PERIPH, DRV | bounded physical bus endpoint | IMPLEMENTED | 02/14 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Capability ABI starts PR 12. |
 | Network interface | PERIPH, DATANET | explicit physical connector, network label and link range | IMPLEMENTED | 02/14 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Session topology lands in PR 03; routed networking in PR 13. |
 | Power state | C3, MF | powered/offline transitions using ECS power events | IMPLEMENTED | 02/14 | `PowerLifecycleAndInvalidEntityAreServerAuthoritative` | Transient hardware presentation state is cleared on deletion. |
-| Computer construction and repair | BUILD | Whiskey construction graph for frame, board, storage and peripherals | PLANNED | 14/14 | Hardware/build/deconstruct | New `_Whiskey` prototypes only. |
-| Modular peripherals | PERIPH | installable explicit device components | PLANNED | 14/14 | Hardware/peripheral constraints | Cards do not execute gameplay logic themselves. |
-| Portable/luggable computer | C3 | portable terminal hardware profile with cell power | PLANNED | 14/14 | Hardware/portable lifecycle | Reuses the same terminal/runtime contracts. |
+| Computer construction and repair | BUILD | standard Whiskey computer frame/deconstruction flow plus terminal, mainframe and printer circuitboards | IMPLEMENTED | 14/14 | `ProductionPrototypesComposeDrivesAndEveryMediaKind`, prototype validation | New `_Whiskey` boards target only validated `_Whiskey` machine prototypes. |
+| Modular peripherals | PERIPH | composed storage, network and Device ABI ECS components with explicit connector limits | IMPLEMENTED | 14/14 | `ProductionPrototypesComposeDrivesAndEveryMediaKind`, `CapabilityTableDeduplicatesAndEnforcesPerProcessCapacity` | Components contain configuration/state; focused systems own behavior. |
+| Portable/luggable computer | C3 | cell-powered `WhiskeyDwainePortableTerminal` using the normal terminal transport | IMPLEMENTED | 14/14 | `PortableTerminalRequiresAChargedCellAndTracksCellLifecycle` | It cannot remain powered after cell removal or depletion. |
 | Terminal connect/disconnect/reconnect | TERM, MF | validated server session state machine | IMPLEMENTED | 03/14 | `ConnectInputOutputDisconnectAndReconnectAreAuthoritative` | Repeated BUI open and connect requests preserve one session. |
 | Multiple terminals per mainframe | MF, KERNEL | indexed bounded server sessions per mainframe | IMPLEMENTED | 03/14 | `MultipleMachinesDeletionAndTopologyChangesCleanSessions` | Mainframe capacity and multi-mainframe isolation are enforced. |
 | Connection heartbeat and timeout | TERM, MF | periodic `IGameTiming` lifecycle validation | IMPLEMENTED | 03/14 | `MultipleMachinesDeletionAndTopologyChangesCleanSessions` | Equivalent lifecycle validation avoids a client-controlled heartbeat. |
@@ -122,6 +129,7 @@ Status values used during delivery:
 | Filename validation | PROG, OS | length-bounded names with control, separator and reserved-name rejection; case-insensitive lookup | IMPLEMENTED | 06/14 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove` | Comparison is ordinal and locale-independent; case-only rename preserves identity. |
 | Create/read/write/append/delete | SYSCALL, VFS | typed bounded node operations with explicit result codes | IMPLEMENTED | 06/14 | `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove`, `DirectoryDeletionRequiresExplicitRecursiveCleanup`, `RecordAndTextMutationsAreBoundedAndAtomic` | Failed writes and record mutations preserve the previous value; root and non-empty directories are protected. |
 | Rename/copy/move | UTIL, VFS | VFS-native operations with stable source handles and independent deep copies | IMPLEMENTED | 06/14 | `RelativePathsCrudAndStableHandlesWorkAcrossRenameAndMove`, `CopyIsIndependentAndMoveRejectsDescendantDestinations` | Descendant destinations are rejected; cross-volume moves return an explicit result used by PR 07. |
+| Deepest existing parent resolution (`PGET`) | SYSCALL, VFS, UTIL | internal canonical VFS destination resolution inside atomic create/copy/archive operations | IMPLEMENTED | 06/14 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Functional equivalent of the new Goon internal syscall; Whiskey never exposes a mutable raw folder object to scripts. |
 | List/mkdir | UTIL, VFS | sorted bounded enumeration and optional parent creation | IMPLEMENTED | 06/14 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `DirectoryDeletionRequiresExplicitRecursiveCleanup` | Permission decisions consume the metadata hooks in PR 08. |
 | Symbolic directory links | VFS | stable-handle symbolic links with no-follow-final operations | IMPLEMENTED | 06/14 | `LinksDetectCyclesDepthAndBrokenTargetsWithoutFollowingFinalWhenRequested` | Broken targets, cycles and maximum traversal depth produce distinct controlled errors. |
 | Mount points and unmount | VFS, DRV, SYSCALL | volume/device mounts with explicit detach | IMPLEMENTED | 07/14 | `MountedVolumesSupportRelativePathsCrossVolumeCopiesAndStableHandles`, `ShutdownUnmountsButKeepsInsertedPersistentMedia` | Mountpoints cannot hide non-empty trees; normal unmount is denied while a live process uses the volume as cwd. |
@@ -131,21 +139,21 @@ Status values used during delivery:
 | Text file | VFS | bounded text node with overwrite and append | IMPLEMENTED | 06/14 | `RecordAndTextMutationsAreBoundedAndAtomic` | Overflow is rejected without truncating or replacing existing content. |
 | Record file | VFS | bounded ordinal key/value record node copied at API boundaries | IMPLEMENTED | 06/14 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs`, `RecordAndTextMutationsAreBoundedAndAtomic` | Safe nullable string values only; rejected mutations are atomic. |
 | User-data file | VFS | typed name/assignment/access-tag payload copied at API boundaries | IMPLEMENTED | 06/14 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Credentials are not part of this file payload; protected account storage and verification remain PR 08. |
-| Clone/genome record | VFS | typed opaque station record payload | PLANNED | 14/14 | Driver/medical record capability | Only if a Whiskey cloning integration exists. |
+| Clone/genome record | VFS | none | NOT APPLICABLE | 14/14 | Final repository integration review | Whiskey cloning has no Computer3-style genome file interchange contract; inventing one would expose sensitive biological state without an owning safe API. Medical record summaries are provided separately. |
 | Image-like metadata file | VFS | bounded display/description/text-preview metadata, not imported imagery | IMPLEMENTED | 06/14 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | No Goon asset copied and no arbitrary binary decoder is exposed. |
-| Galactic-position record | VFS, TELE | typed coordinate document | PLANNED | 14/14 | Driver/telesci coordinates | Validated by driver capability. |
+| Galactic-position record | VFS, TELE | none | NOT APPLICABLE | 14/14 | Final repository integration review | Whiskey's `_ES/Telesci` is a research-stage progression system, not a Computer3 coordinate/portal API, and exposes no authoritative coordinate document contract. |
 | Signal file | VFS, PACKET | bounded structured message metadata document | IMPLEMENTED | 06/14 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | VFS payload has no privileged runtime fields; network serialization and delivery remain PR 13. |
 | Archive file | VFS, UTIL | bounded recursively copied archive metadata with controlled extraction | IMPLEMENTED | 06/14 | `ArchivesRoundTripAndCannotContainTheirOwnDestination` | Entry/depth/node quotas apply; an archive cannot be written into the source subtree. Media persistence lands in PR 07. |
 | Program/script file | PROG, SHELL | bounded executable descriptor and source node prepared for `.vodka` | IMPLEMENTED | 06/14 | `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Native descriptors are immutable through text writes; the Vodka lexer/runtime remain PRs 10/11. |
 | System/virtual file | NS, KERNEL | flagged system node and read-only virtual record representation | IMPLEMENTED | 06/14 | `MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation`, `ProcessWorkingDirectoriesAndProcViewsUseValidatedServerHandles` | Virtual process records are generated server-side and are never client-authored. |
 | Mountpoint file proxy | DRV, VFS | server-owned mounted-volume adapter with opaque volume/node handles | IMPLEMENTED | 07/14 | `DetachInvalidatesHandlesAndReattachPreservesMediaState`, `MediaAndMainframeDestructionCleanBothSidesOfTheRelationship`, `ExternalContainerRemovalInvalidatesMountAndBothRelationshipIndexes` | Device loss or removal outside the normal ejection API detaches the volume, clears both relationship indexes and immediately invalidates handles in that mainframe VFS. |
-| Guardbot task payload | GUARDBOT, VFS | typed device document through guardbot driver | PLANNED | 14/14 | Driver/guardbot task | Never exposes bot entity IDs to scripts. |
+| Guardbot task payload | GUARDBOT, VFS | none | NOT APPLICABLE | 14/14 | Final repository integration review | Current Whiskey has no matching Goon guardbot task/dock subsystem; unrelated hostile-bot content is not a compatible control protocol. |
 | Canonical system layout | NS, MEDIA | `/sys`, `/sys/drvr`, `/sys/srv`, `/bin`, `/conf`, `/usr`, `/home`, `/dev`, `/mnt`, `/proc`, `/tmp`, `/var`, `/etc`, `/etc/mail` | IMPLEMENTED | 06/14 | `BootstrapAndCanonicalizationAreDeterministicAndRootConfined`, `StructuralLimitClampsAlwaysPreserveTheCanonicalSystemTree` | Structural minimum clamps guarantee the complete layout even under undersized prototype configuration. |
 | Temporary and full users | KERNEL | unauthenticated terminal session and authenticated account | IMPLEMENTED | 08/14 | `TemporarySessionsAreRevokedOnDisconnectAndElevation`, `TransportLifecycleOwnsLoginLogoutReconnectAndRebootSessions` | Temporary identity has minimal authority and is deleted with its session. |
 | UID and username | KERNEL, VFS | server-assigned UID plus validated display/login name | IMPLEMENTED | 08/14 | `CredentialsSessionsAndExpiryAreServerAuthoritative` | Client username is input, not identity proof. |
 | Groups and sysop/root-like account | NS, KERNEL | typed groups and privileged system principal | IMPLEMENTED | 08/14 | `OperatorsManageGroupsAndDisabledUsersLoseSessions` | Least privilege; no magic client flag. |
 | Login credential authentication | OS, TERM | server-owned account credential verifier | IMPLEMENTED | 08/14 | `CredentialsSessionsAndExpiryAreServerAuthoritative` | Passwords use salted PBKDF2-SHA256 verifiers and fixed-time comparison. |
-| Station card authentication adapter | OS, TERM | station identity credential adapter resolving to a server principal | PLANNED | 14/14 | Station integration/auth adapter | Card identity remains untrusted input until validated against the station identity service. |
+| Station card authentication adapter | OS, TERM | separate DWAINE username/password identity service | NOT APPLICABLE | 14/14 | `CredentialsSessionsAndExpiryAreServerAuthoritative` | Whiskey station ID cards are possession/access tokens, not durable DWAINE account credentials. Conflating them would weaken the existing server-owned principal boundary. |
 | Login/logout/session expiry | KERNEL, TERM | authoritative session lifecycle | IMPLEMENTED | 08/14 | `CredentialsSessionsAndExpiryAreServerAuthoritative`, `TransportLifecycleOwnsLoginLogoutReconnectAndRebootSessions` | Disconnect, expiry, kernel shutdown and account disablement clean sessions. |
 | File owner/group/mode enforcement | NS, PROG | centralized VFS authorization service | IMPLEMENTED | 08/14 | `AuthorizedVfsEnforcesReadWriteChmodAndChown` | Read, write, execute and metadata checks are separate. |
 | Process ownership enforcement | KERNEL, SYSCALL | kernel authorization policy | IMPLEMENTED | 08/14 | `FaultStopContinueInstructionBudgetAndIpcAreContained`, `OperatorsManageGroupsAndDisabledUsersLoseSessions` | Authenticated principal IDs map directly to opaque process owners; parenthood alone does not elevate authority. |
@@ -252,7 +260,8 @@ All rows below describe functional equivalents. Vodka Code uses the grammar in `
 
 ## Syscalls and device ABI
 
-The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls; `TEXIT`, `RECVFILE`, `BREAK`, and `REPLY` are typed inter-process messages rather than callable handlers.
+The current reference declares IDs 1-26 and 30. `PGET` is an internal path-parent helper used by
+`tar`; `TEXIT`, `RECVFILE`, `BREAK`, and `REPLY` are typed inter-process messages rather than callable handlers.
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -312,18 +321,18 @@ The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls
 | Fixed disks and memory cores | MEDIA, MF | persistent fixed-media entity and bounded volume | IMPLEMENTED | 07/14 | `SlotsKindsAndReadOnlyMediaAreValidatedServerSide`, `ProductionPrototypesComposeDrivesAndEveryMediaKind` | Fixed media cannot be normally ejected; destruction cleans both sides without leaving a mounted volume. Bootstrap program content remains owned by its program/service PR. |
 | Floppy/removable disks | MEDIA, PERIPH | removable bounded volume media held in physical ECS container slots | IMPLEMENTED | 07/14 | `RemovableDiskPersistsAcrossFlushEjectAndReinsert`, `SlotsKindsAndReadOnlyMediaAreValidatedServerSide` | Read-only media, slot collisions, dirty eject denial and reinsertion persistence are enforced server-side. |
 | Tapes and tape drive | MEDIA, PERIPH, MACHINE | removable tape-profile media volume | IMPLEMENTED | 07/14 | `SlotsKindsAndReadOnlyMediaAreValidatedServerSide` | The audited tape is a data-volume/profile carrier rather than a separate sequential-access protocol; specialized boot/research contents land with their owning subsystems. |
-| Boot/recovery tape | MEDIA, OS | authorized recovery-media profile over the PR 07 tape volume | PLANNED | 14/14 | Storage/recovery boot | Untrusted media cannot inject host code; this waits for the real shell/program registry. |
-| Databank remote storage | MACHINE, DRV | network storage service and mounted volume | PLANNED | 14/14 | Storage/databank sync/removal | Builds on PR 07 mounts and PR 13 networking; persistence and disconnect semantics are tested. |
+| Boot/recovery tape | MEDIA, OS | exact-profile authorized recovery media over the tape volume | IMPLEMENTED | 14/14 | `BootRequiresTheExactInsertedMediaProfileAndRejectsDataOnlyMedia` | Only `whiskey-system-v1` media satisfies production boot; media carries data, never host/native code. |
+| Databank remote storage | MACHINE, DRV | none | NOT APPLICABLE | 14/14 | Final repository integration review | Current Whiskey has no Computer3-style network databank machine/API. Supported storage remains explicit physical volumes; network file transfer is confined to authenticated inboxes. |
 | Archive persistence | VFS, UTIL, MEDIA | archives stored across removal, flush, reinsertion and reboot | IMPLEMENTED | 07/14 | `ArchivesNestedInsideArchivesPreserveEmbeddedPayload`, `RemovableDiskPersistsAcrossFlushEjectAndReinsert` | Nested archive payload, quota/depth and deep-copy boundaries are preserved. |
-| Email backend | EMAIL | mailbox service over VFS records | PLANNED | 14/14 | Service/email send/receive/delete | Users, groups and destinations validated. |
-| Email client protocol | EMAIL, DRV | terminal/service API for index/get/send/delete | PLANNED | 14/14 | Service/email protocol | Original UI text/localization. |
-| Group and broadcast mail | EMAIL | authorized distribution groups | PLANNED | 14/14 | Service/email groups/isolation | Prevents unauthorized broadcast. |
-| Document store and help records | DOC, VFS | localized generated manuals and user documents | PLANNED | 14/14 | Service/documents persistence | No reference prose copied. |
-| Access/system logging service | LOG | bounded append-only structured logs | PLANNED | 14/14 | Service/log write/query/rotation | Permissions and retention enforced. |
-| Log reader/mount/archive exchange | LOG, DRV | capability-backed log query and export | PLANNED | 14/14 | Service/log reader malformed query | No arbitrary entity lookup. |
-| Printer service and spool | DRV, MACHINE | bounded print queue and printer driver | PLANNED | 14/14 | Service/printer status/queue/device loss | Queue cannot grow without bound. |
-| Service terminals | DRV | noninteractive least-privilege service sessions | PLANNED | 14/14 | Service/terminal identity/cleanup | No implicit sysop login. |
-| System records and MOTD/help | MEDIA, DOC | original localized system documents | PLANNED | 14/14 | Service/bootstrap documents | Reflects implemented behavior only. |
+| Email backend | EMAIL | persistent bounded per-mainframe mailbox store | IMPLEMENTED | 14/14 | `EmailDeliveryIsAtomicOwnerScopedAndBounded`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Users, groups, destinations and all-or-nothing capacity are validated. |
+| Email client protocol | EMAIL, DRV | `service email send/list/read/delete` and `sys.service.call` | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Text is original, bounded and available through the same authenticated service façade. |
+| Group and broadcast mail | EMAIL | operator-only `group:GROUP` expansion over enabled non-temporary accounts | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Non-operators cannot broadcast and delivery is atomic. |
+| Document store and help records | DOC, VFS | permission-checked `documents` service plus implemented shell manuals | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot`, `CredentialsManualsAndPrivilegeBoundariesDoNotLeak` | User documents persist in VFS; no reference prose is copied. |
+| Access/system logging service | LOG | bounded rotating structured service log | IMPLEMENTED | 14/14 | `LogsRotateAndMetricsSaturateWithinConfiguredBounds`, `InvalidOrOversizedMessagesNeverMutateStore` | Actor, service, operation and result are server-derived; retention is hard-bounded. |
+| Log reader/mount/archive exchange | LOG, DRV | operator-only log query whose bounded text can use shell redirection/archive tools | IMPLEMENTED | 14/14 | `LogsRotateAndMetricsSaturateWithinConfiguredBounds`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | No entity lookup or mutable internal log object is exposed. |
+| Printer service and spool | DRV, MACHINE | synchronous bounded paper printer reached through Device ABI | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | A synchronous driver deliberately retains no spool, so queued jobs cannot grow or survive a destroyed/offline target. |
+| Service terminals | DRV | authenticated `service` command and Vodka service host calls | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Every call is bound to a live process/principal; there is no implicit sysop session. |
+| System records and MOTD/help | MEDIA, DOC | original localized boot/login prompts and exact registered shell/Vodka manuals | IMPLEMENTED | 14/14 | `CredentialsManualsAndPrivilegeBoundariesDoNotLeak`, `EmbeddedVodkaFixturesAndCanonicalExtensionMatchTheSpecification` | Documentation reflects only implemented commands and `.vodka`. |
 
 ## Station devices, drivers, and Computer3 applications
 
@@ -331,63 +340,63 @@ The reference declares IDs 1-25 and 30. Twenty-three are kernel-dispatched calls
 | --- | --- | --- | --- | --- | --- | --- |
 | Base driver status/message contract | DRV | typed Vodka Device ABI adapter | IMPLEMENTED | 12/14 | `CapabilityHandlesAreProcessPrincipalGenerationAndPermissionScoped`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Status needs `Inspect`; other commands need `Message`; targets receive a typed server event only after validation. |
 | User-terminal driver | DRV | terminal session capability | IMPLEMENTED | 12/14 | `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | The endpoint is bound to the authoritative session and cannot impersonate another user or terminal. |
-| Databank driver | DRV, MACHINE | network storage driver | PLANNED | 14/14 | Driver/databank | Mount lifecycle authoritative. |
-| Printer driver | DRV, MACHINE | printer status/spool driver | PLANNED | 14/14 | Driver/printer | Bounded queue. |
-| Logreader driver | LOG | log query/export driver | PLANNED | 14/14 | Driver/logreader | Permission isolated. |
+| Databank driver | DRV, MACHINE | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching Whiskey network databank endpoint exists; physical storage and bounded inbox transfers remain explicit rather than fabricating a remote mount target. |
+| Printer driver | DRV, MACHINE | `printer` Device ABI driver with `status` and `print` | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Synchronous bounded print avoids an unbounded queue; destroyed targets revoke handles. |
+| Logreader driver | LOG | operator-only `logs list` service and VFS/shell export | IMPLEMENTED | 14/14 | `LogsRotateAndMetricsSaturateWithinConfiguredBounds`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Permission-isolated functional equivalent; no separate redundant hardware driver is required. |
 | Radio driver | DRV, PACKET | capability-gated address/discover/ping/send/receive driver | IMPLEMENTED | 13/14 | `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | Topology is revalidated by the router; inspect and message operations require distinct capability permissions. |
-| Service-terminal driver | DRV | least-privilege service invocation driver | PLANNED | 14/14 | Driver/service terminal | No blanket root account. |
-| Communication-dish driver | DRV, APPS | communications report capability | PLANNED | 14/14 | Driver/communications dish | Uses existing Whiskey communications where appropriate. |
-| Telepad driver and `teleman` interface | DRV, TELE | coordinate/send/receive/portal/scan capability | PLANNED | 14/14 | Driver/telesci commands/offline/access | Strong access and safety policy. |
-| Long-range destination records | TELE, VFS | validated named coordinate documents | PLANNED | 14/14 | Driver/telesci record | No raw world coordinates from client. |
-| Nuclear-charge driver and manager | DRV, MACHINE | multi-authorization audited device capability | PLANNED | 14/14 | Driver/nuke auth/timer/abort | Uses existing nuke safety/access rules. |
-| Guardbot dock driver and `prman` | DRV, GUARDBOT | explicit bot task/status/recall capability | PLANNED | 14/14 | Driver/guardbot upload/wake/wipe/recall | No arbitrary bot entity access. |
-| Guardbot task documents | GUARDBOT, DOC | typed task/config documents | PLANNED | 14/14 | Driver/guardbot task validation | Original examples only. |
-| IR security detector driver | DRV, MACHINE | sensor status capability | PLANNED | 14/14 | Driver/IR detector | Reference activate/deactivate stubs are not claimed. |
-| APC remote-power driver | DRV, EXTERNAL | scoped equipment/light/environment control capability | PLANNED | 14/14 | Driver/APC access/offline | Uses explicit APC network membership. |
-| HEPT emitter driver and manager | DRV, MACHINE | explicit emitter capability if Whiskey has a matching machine | PLANNED | 14/14 | Driver/HEPT | PR 14 may mark N/A only with repository evidence. |
-| H7 automated security init | DRV, EXTERNAL | bounded event-driven sensor/APC/guardbot automation | PLANNED | 14/14 | Driver/H7 multi-device automation | Demonstrates emergent Vodka automation safely. |
-| Generic test apparatus driver | DRV, MACHINE | typed sensor/enactor ABI: info/status/peek/poke/read/pulse | PLANNED | 14/14 | Driver/test apparatus matrix | Field schema is per device capability. |
-| Pitching machine | MACHINE, ART | enactor driver profile | PLANNED | 14/14 | Driver/pitcher | Bounded actuation. |
-| Impact pad | MACHINE, ART | sensor driver profile | PLANNED | 14/14 | Driver/impact sensor | Bounded readings. |
-| Electrical apparatus | MACHINE, ART | sensor/enactor profile | PLANNED | 14/14 | Driver/electrical apparatus | Validated fields. |
-| X-ray scanner | MACHINE, ART | research sensor profile | PLANNED | 14/14 | Driver/xray | Privacy/access enforced. |
-| Heater plate | MACHINE, ART | bounded heater enactor profile | PLANNED | 14/14 | Driver/heater safety | Server clamps safe range. |
-| Laser emitter/receiver | MACHINE, ART | explicit paired sensor/enactor profiles | PLANNED | 14/14 | Driver/laser pair | Topology and safety checked. |
-| Gas sensor | MACHINE, ART | atmosphere-reading profile | PLANNED | 14/14 | Driver/gas sensor | Safe bounded data. |
-| Mechanics I/O block | MACHINE, ART | explicit logic I/O capability | PLANNED | 14/14 | Driver/mechanics I/O | No universal arbitrary event API. |
-| Artifact console and `gptio` | ART | artifact research coordinator and apparatus capabilities | PLANNED | 14/14 | Driver/artifact workflow | Integrates only supported Whiskey artifact mechanics. |
-| Medical records application | APPS | permission-scoped medical record service/driver | PLANNED | 14/14 | Driver/medical records | Uses Whiskey data models, not copied UI. |
-| Security records application | APPS | permission-scoped security record service/driver | PLANNED | 14/14 | Driver/security records | Audit trail required. |
-| Bank/account records application | APPS | permission-scoped economy account service/driver | PLANNED | 14/14 | Driver/bank transfers/logs | Monetary mutations transactional. |
-| Job-control application | APPS | command/job-management capability | PLANNED | 14/14 | Driver/job control access | Uses current Whiskey job systems. |
-| Communications application | APPS | announcements/report communication service | PLANNED | 14/14 | Driver/communications authorization | Existing station policy preserved. |
-| Engine-control application | APPS | explicit engine telemetry/control drivers | PLANNED | 14/14 | Driver/engine controls | No universal machinery API. |
-| Writer/editor application | APPS | terminal document create/edit workflow | PLANNED | 14/14 | Service/document editor | Bounded and VFS-backed. |
-| Signal catcher | APPS, PACKET | permission-gated bounded receive queue | PLANNED | 14/14 | Driver/signal catcher | No unrestricted eavesdropping. |
+| Service-terminal driver | DRV | live-process-scoped `service` façade | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | No blanket root account, client-supplied principal or raw station handle. |
+| Communication-dish driver | DRV, APPS | bounded addressed DWAINE communication service and radio adapter | IMPLEMENTED | 13/14 | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel` | Provides the reference messaging/report function through real topology without bypassing station announcement policy. |
+| Telepad driver and `teleman` interface | DRV, TELE | none | NOT APPLICABLE | 14/14 | Final repository integration review | Whiskey `_ES/Telesci` is research progression, not a coordinate/send/portal machine contract; exposing raw coordinates would invent an unsafe API. |
+| Long-range destination records | TELE, VFS | none | NOT APPLICABLE | 14/14 | Final repository integration review | There is no compatible Whiskey long-range destination model to validate or persist. |
+| Nuclear-charge driver and manager | DRV, MACHINE | none | NOT APPLICABLE | 14/14 | Final repository security review | Whiskey has no remote nuke protocol that preserves its physical authorization workflow. A generic DWAINE actuator would bypass existing safety and is deliberately not fabricated. |
+| Guardbot dock driver and `prman` | DRV, GUARDBOT | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching guardbot dock/task subsystem exists in current Whiskey. |
+| Guardbot task documents | GUARDBOT, DOC | none | NOT APPLICABLE | 14/14 | Final repository integration review | Without a matching guardbot task consumer these payloads have no functional behavior. |
+| IR security detector driver | DRV, MACHINE | none | NOT APPLICABLE | 14/14 | Final Goon source review | The reference activate/deactivate operations remain stubs and Whiskey has no matching Computer3 sensor protocol. |
+| APC remote-power driver | DRV, EXTERNAL | opt-in `WhiskeyDwaineNetworkApc` with inspect and breaker operations | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot`, prototype validation | Only the explicit prototype is discoverable; access is operator-only and all actions pass through Device ABI. |
+| HEPT emitter driver and manager | DRV, MACHINE | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching HEPT emitter/controller exists in current Whiskey. |
+| H7 automated security init | DRV, EXTERNAL | none | NOT APPLICABLE | 14/14 | Final repository integration review | H7 specifically composes Goon guardbot/IR protocols that have no current Whiskey counterparts; generic multi-device Vodka automation is implemented independently. |
+| Generic test apparatus driver | DRV, MACHINE | narrow per-device Device ABI only | NOT APPLICABLE | 14/14 | Final architecture/security review | Whiskey deliberately rejects a universal peek/poke API because it would expose arbitrary component/internal state. |
+| Pitching machine | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching DWAINE-safe Whiskey apparatus contract. |
+| Impact pad | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching DWAINE-safe Whiskey apparatus contract. |
+| Electrical apparatus | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching DWAINE-safe Whiskey apparatus contract. |
+| X-ray scanner | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | Current scanners expose gameplay/medical state through their own authority model, not a Computer3 research sensor contract. |
+| Heater plate | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching DWAINE-safe Whiskey heater apparatus contract. |
+| Laser emitter/receiver | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | No matching paired Computer3 laser apparatus protocol. |
+| Gas sensor | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | Atmos devices have no explicit DWAINE sensor schema; a generic component reader is forbidden. |
+| Mechanics I/O block | MACHINE, ART | none | NOT APPLICABLE | 14/14 | Final architecture/security review | Whiskey has no safe universal logic-I/O contract and Device ABI intentionally cannot raise arbitrary events. |
+| Artifact console and `gptio` | ART | none | NOT APPLICABLE | 14/14 | Final repository integration review | Whiskey xenoarchaeology is structurally different and exposes no Computer3 apparatus coordinator API. |
+| Medical records application | APPS | operator-only read-only current `GeneralStationRecord` summary service | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Uses Whiskey data models; DNA/fingerprints and mutable record objects are not exposed. |
+| Security records application | APPS | operator-only read-only current `CriminalRecord` summary service | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Requests are logged and bounded; protected fields remain server-side. |
+| Bank/account records application | APPS | operator-only station account balance/transaction service | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Transfers validate both existing accounts, sufficient funds and rollback on destination failure. |
+| Job-control application | APPS | operator-only existing-job list/set service with 0..256 hard slot bound | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Uses `StationJobsSystem`; cannot create an arbitrary job or select another station. |
+| Communications application | APPS | addressed messages, inboxes, discovery and bounded network capture | IMPLEMENTED | 13/14 | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel`, `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded` | Sender identity and routing are server-derived; station-wide announcements remain under the existing console policy. |
+| Engine-control application | APPS | none | NOT APPLICABLE | 14/14 | Final repository integration review | Whiskey engines expose no common authenticated remote-control protocol; inventing a universal machinery actuator would violate least privilege. |
+| Writer/editor application | APPS | shell redirection plus `documents write/append/read/delete` | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot`, `UtilitiesOperateOnAuthorizedVfsAndInteractiveRemovalIsStable` | Bounded, permission-checked and VFS-backed. |
+| Signal catcher | APPS, PACKET | permission-gated bounded inbox/receive plus operator metadata capture | IMPLEMENTED | 13/14 | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel`, `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded` | No unrestricted payload eavesdropping. |
 | Ping utility application | APPS, PACKET | `net ping ADDRESS` request/reply tool | IMPLEMENTED | 13/14 | `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded` | Exact routing and topology failures are reported without implicit retry. |
 | File-transfer application | APPS, TERM | `net sendfile ADDRESS USER FILE` VFS/network transfer | IMPLEMENTED | 13/14 | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel` | Source read access, size/type, destination identity and confined inbox path are server-validated. |
-| SigPal signal viewer | APPS, PACKET | structured signal inspection tool | PLANNED | 14/14 | Driver/signal viewer redaction | Secrets redacted. |
-| SigCraft signal authoring | APPS, PACKET | schema-validated signal construction tool | PLANNED | 14/14 | Driver/signal craft authorization | Cannot fabricate privileged capabilities. |
-| Disease research compatibility entry | APPS | supported research service alias or justified N/A | PLANNED | 14/14 | Driver/research alias | Reference type has no independent implementation. |
-| Artifact research compatibility entry | APPS, ART | artifact service launcher | PLANNED | 14/14 | Driver/artifact launcher | Uses actual Whiskey driver. |
-| Manifest application | APPS | read-only crew manifest service | PLANNED | 14/14 | Driver/manifest privacy | Redacts protected data. |
-| Robotics research compatibility entry | APPS, GUARDBOT | robotics/guardbot service launcher | PLANNED | 14/14 | Driver/robotics launcher | Reference type has minimal independent behavior. |
-| Code reader/authentication disks | APPS, MEDIA | validated code-document reader if supported | PLANNED | 14/14 | Driver/code reader | Never imports reference codes/content. |
+| SigPal signal viewer | APPS, PACKET | bounded `net receive`/capture output and typed signal records | IMPLEMENTED | 13/14 | `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded`, `StructuredFileTypesRoundTripWithoutLeakingMutableInputs` | Capture redacts payloads, credentials, entity IDs and correlations. |
+| SigCraft signal authoring | APPS, PACKET | validated `net send`/`sys.net.send` text schema | IMPLEMENTED | 13/14 | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel` | Cannot author capabilities, source identities, sessions or privileged object graphs. |
+| Disease research compatibility entry | APPS | none | NOT APPLICABLE | 14/14 | Final Goon source review | The reference entry is only a launcher alias and has no independent DWAINE behavior. |
+| Artifact research compatibility entry | APPS, ART | none | NOT APPLICABLE | 14/14 | Final Goon/Whiskey integration review | The reference entry is a launcher alias, while Whiskey has no compatible artifact Computer3 service to launch. |
+| Manifest application | APPS | read-only current Whiskey crew manifest service | IMPLEMENTED | 14/14 | `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Outputs only bounded name/job columns from the owning station. |
+| Robotics research compatibility entry | APPS, GUARDBOT | none | NOT APPLICABLE | 14/14 | Final Goon/Whiskey integration review | The alias has no independent behavior and its guardbot target has no Whiskey counterpart. |
+| Code reader/authentication disks | APPS, MEDIA | none | NOT APPLICABLE | 14/14 | Final license/integration review | Reference creative access codes are not imported and current Whiskey has no Computer3 authentication-disk consumer. |
 
 ## Hardening, acceptance, and classified non-functional material
 
 | GOON FEATURE | GOON SOURCE | WHISKEY EQUIVALENT | STATUS | TARGET PR | TEST | NOTES |
 | --- | --- | --- | --- | --- | --- | --- |
-| Parser and path fuzzing | SHELL, VFS | malformed-input corpora and property tests | PLANNED | RELEASE GATE | Hardening/fuzz | Includes Unicode, depth and cycle cases. |
-| Network message fuzzing | PACKET, DRV | bounded DTO fuzz corpus | PLANNED | RELEASE GATE | Hardening/network fuzz | No privileged deserialization. |
-| Process and VM stress | MF, KERNEL, SHELL | 512-process and hostile-script scenarios | PLANNED | RELEASE GATE | Hardening/process stress | Scheduler remains bounded. |
-| Four mainframes / 32 terminals / 128 sessions | MF, TERM | scale integration scenario | PLANNED | RELEASE GATE | Hardening/many terminals | Includes partitions and reconnects. |
-| Thousands of files and concurrent devices | VFS, DRV | quota/performance scenario | PLANNED | RELEASE GATE | Hardening/VFS/device stress | Allocation and asymptotic review. |
-| Repeated boot/shutdown/round restart | MF, KERNEL | lifecycle soak test | PLANNED | RELEASE GATE | Hardening/cleanup soak | No subscriptions or sessions leak. |
-| Runtime diagnostics | PACKET, KERNEL | network metrics now; consolidated process/VM/VFS diagnostic snapshot in PR 14 | PLANNED | 14/14 | Hardening/metrics | Network counters and redacted capture are operator-only; remaining bounded runtime counters are part of the final implementation PR. |
-| End-to-end player smoke route | all functional sources | power → connect → boot → login → shell → VFS → Vodka → device → service → reconnect | PLANNED | RELEASE GATE | DWAINE/E2E smoke | Persistent consistency verified. |
-| Final HEAD re-audit | all sources | rerun pinned methodology against then-current Goon HEAD | PLANNED | RELEASE GATE | Parity ledger audit | New findings must be implemented/classified in the owning layer. |
-| Local teaching guide | DOC and implemented Whiskey code | `Docs/DWAINE_VODKA_CODE_TEACHING_LOCAL.txt` generated from exact registered commands/contracts | PLANNED | RELEASE GATE | Teaching command validation | No fictional commands, paths, drivers, syscalls or devices. |
+| Parser and path fuzzing | SHELL, VFS | malformed-input corpus, deterministic lexer/parser fuzz seeds and bounded path edge cases | IMPLEMENTED | RELEASE GATE | `MalformedCorpusProducesPlayerSafeDiagnostics`, `ParserFuzzSeedsAreDeterministicBoundedAndNeverThrow`, `BootstrapAndCanonicalizationAreDeterministicAndRootConfined` | Includes Unicode, depth, escape and cycle cases. |
+| Network message fuzzing | PACKET, DRV | typed bounded messages plus malformed/oversize/cross-authority negative corpus | IMPLEMENTED | RELEASE GATE | `CommunicationsDeriveIdentityEnforceMailboxesAndStopWithKernel`, `SyscallsCapabilitiesVodkaForkAndTypedMessagesAreAuthoritative` | No privileged deserialization or client-supplied object graphs. |
+| Process and VM stress | MF, KERNEL, SHELL | 512 processes plus 128 concurrent bounded Vodka scripts | IMPLEMENTED | RELEASE GATE | `FourMainframesScaleSessionsProcessesFilesScriptsAndDevicesWithinBounds`, `InstructionBudgetTerminatesInfiniteLoopAcrossSlices` | Scheduler and every hostile-script resource remain bounded. |
+| Four mainframes / 32 terminals / 128 sessions | MF, TERM | four-mainframe scenario verifies 32 sessions, then expands to 128 terminals/sessions | IMPLEMENTED | RELEASE GATE | `FourMainframesScaleSessionsProcessesFilesScriptsAndDevicesWithinBounds` | One authoritative terminal owns at most one simultaneous session, so 128 simultaneous sessions necessarily use 128 terminals. |
+| Thousands of files and concurrent devices | VFS, DRV | 4,000 files and 64 real network device entities across four mainframes | IMPLEMENTED | RELEASE GATE | `FourMainframesScaleSessionsProcessesFilesScriptsAndDevicesWithinBounds` | Quotas, indexed discovery and teardown are asserted. |
+| Repeated boot/shutdown/round restart | MF, KERNEL | deterministic reboot, deletion and map teardown cleanup scenarios | IMPLEMENTED | RELEASE GATE | `BootShutdownAndRepeatedRebootAreDeterministic`, `RebootAndDestructionCancelAllProcessesWithoutPidReuse`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Runtime leases, processes, sessions and handles are generation-scoped and cleaned. |
+| Runtime diagnostics | PACKET, KERNEL | operator-only network metrics and consolidated process/instruction/VFS/service snapshot | IMPLEMENTED | 14/14 | `TopologyDiscoveryRoutingTimeoutsAndCleanupAreBounded`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Outputs are bounded and redacted; counters saturate rather than wrap. |
+| End-to-end player smoke route | all functional sources | power → connect → boot → login → shell → VFS → Vodka → device → service → reconnect | IMPLEMENTED | RELEASE GATE | `ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect`, `ServicesRevalidateCallersEnforceBoundsAndPersistAcrossReboot` | Automated integration exercises the full authoritative chain and persistent consistency. |
+| Final HEAD re-audit | all sources | repository-wide delta audit against Goon `55dbe8312f09418bd1b9476dfb9e56fd9f95dd17` | IMPLEMENTED | RELEASE GATE | Matrix/source review | The new `PGET` behavior and telesci metadata delta are explicitly classified above. |
+| Local final audit/showcase guide | DOC and implemented Whiskey code | `DWAINE_VODKA_CODE_FINAL_AUDIT.txt` generated after PR 14 | NOT APPLICABLE | RELEASE GATE | Local artifact verification | It is intentionally not a repository implementation feature and must remain untracked, uncommitted and unpushed. |
 | Legacy ThinkDOS as a separate operating system | C3 and `base_os.dm` | DWAINE hardware/VFS/shell absorbs relevant behavior | NOT APPLICABLE | 01/14 | Matrix review | Goal is DWAINE; recreating a second obsolete OS adds no DWAINE capability. |
 | Reference `file_run` command | TERM | none | NOT APPLICABLE | 01/14 | Matrix review | The audited command is explicitly inoperative, so there is no functional behavior to reproduce. |
 | Adventure-zone lore records and random mail prose | EXTERNAL, DOC | original Whiskey documents where gameplay needs fixtures | NOT APPLICABLE | 01/14 | License review | Creative text is not a subsystem and is not copied. |

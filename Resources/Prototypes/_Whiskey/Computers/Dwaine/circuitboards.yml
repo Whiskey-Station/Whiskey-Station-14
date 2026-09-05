@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: entity
+  parent: BaseComputerCircuitboard
+  id: WhiskeyDwaineTerminalCircuitboard
+  name: DWAINE terminal computer board
+  description: A computer board for a DWAINE terminal.
+  components:
+  - type: Sprite
+    state: cpu_service
+  - type: ComputerBoard
+    prototype: WhiskeyDwaineTerminal
+
+- type: entity
+  parent: BaseComputerCircuitboard
+  id: WhiskeyDwaineMainframeCircuitboard
+  name: DWAINE mainframe computer board
+  description: A computer board for a DWAINE mainframe.
+  components:
+  - type: Sprite
+    state: cpu_service
+  - type: ComputerBoard
+    prototype: WhiskeyDwaineMainframe
+
+- type: entity
+  parent: BaseComputerCircuitboard
+  id: WhiskeyDwaineNetworkPrinterCircuitboard
+  name: DWAINE network printer computer board
+  description: A computer board for a DWAINE network printer.
+  components:
+  - type: Sprite
+    state: cpu_service
+  - type: ComputerBoard
+    prototype: WhiskeyDwaineNetworkPrinter

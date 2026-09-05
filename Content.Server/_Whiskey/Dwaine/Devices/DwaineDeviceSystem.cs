@@ -8,6 +8,8 @@ using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
 using Content.Server._Whiskey.Dwaine.Storage;
 using Content.Server._Whiskey.Dwaine.Transport;
+using Content.Server.Power.Components;
+using Content.Shared._Whiskey.Dwaine;
 using Content.Shared._Whiskey.Dwaine.Devices;
 using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Kernel;
@@ -18,11 +20,12 @@ using System.Linq;
 namespace Content.Server._Whiskey.Dwaine.Devices;
 
 /// <summary>
-/// Owns the local device bus and opaque capability handles. Network discovery is deliberately absent:
-/// endpoints enter through an explicit local attachment, a validated transport session or inserted media.
+/// Owns the device bus and opaque capability handles. Endpoints enter through an explicit local
+/// attachment, validated transport session, inserted media, or the indexed network topology.
 /// </summary>
 public sealed partial class DwaineDeviceSystem : EntitySystem
 {
+    [Dependency] private DwaineHardwareSystem _hardware = default!;
     [Dependency] private DwaineIdentitySystem _identities = default!;
     [Dependency] private DwaineKernelSystem _kernel = default!;
     [Dependency] private DwaineNetworkSystem _network = default!;
@@ -64,7 +67,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
             return DwaineDeviceResult.InvalidDevice;
         }
 
-        return Attach(mainframe, device, deviceConfig, config, runtime, null);
+        return Attach(mainframe, device, deviceConfig, config, runtime, null, false);
     }
 
     public DwaineDeviceResult TryScan(
@@ -85,6 +88,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
         runtime.NextScanAt[process] = _timing.CurTime + limits.ScanCooldown;
 
         Reconcile(mainframe, config, runtime);
+        ReconcileNetwork(mainframe, config, runtime);
         visibleCount = runtime.Endpoints.Values.Count(endpoint => CanAccess(mainframe, process, principal, endpoint));
         return DwaineDeviceResult.Success;
     }
@@ -329,7 +333,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
         if (TryComp<DwaineDeviceComponent>(mainframe, out var localDevice)
             && !runtime.ByEntity.ContainsKey(mainframe))
         {
-            Attach(mainframe, mainframe, localDevice, config, runtime, null);
+            Attach(mainframe, mainframe, localDevice, config, runtime, null, false);
         }
 
         if (TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var transport))
@@ -348,7 +352,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
             if (TryComp<DwaineDeviceComponent>(media.Media, out var deviceConfig)
                 && !runtime.ByEntity.ContainsKey(media.Media))
             {
-                Attach(mainframe, media.Media, deviceConfig, config, runtime, null);
+                Attach(mainframe, media.Media, deviceConfig, config, runtime, null, false);
             }
         }
 
@@ -360,13 +364,45 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
         }
     }
 
+    private void ReconcileNetwork(
+        EntityUid mainframe,
+        DwaineDeviceAbiComponent config,
+        DwaineDeviceAbiRuntimeComponent runtime)
+    {
+        var limits = DwaineDeviceAbiLimits.FromComponent(config);
+        if (_network.FindReachableEntities(mainframe, "device", limits.MaxAttachedDevices, out var devices)
+            != DwaineNetworkResult.Success)
+        {
+            return;
+        }
+        var reachable = devices.ToHashSet();
+        foreach (var endpoint in runtime.Endpoints.Values
+                     .Where(endpoint => endpoint.NetworkAttached && !reachable.Contains(endpoint.Entity))
+                     .Select(endpoint => endpoint.Id)
+                     .ToArray())
+        {
+            Detach(mainframe, runtime, endpoint);
+        }
+        foreach (var device in devices)
+        {
+            if (runtime.ByEntity.ContainsKey(device)
+                || !TryComp<DwaineDeviceComponent>(device, out var deviceConfig)
+                || !IsValidDevice(deviceConfig))
+            {
+                continue;
+            }
+            Attach(mainframe, device, deviceConfig, config, runtime, null, true);
+        }
+    }
+
     private DwaineDeviceResult Attach(
         EntityUid mainframe,
         EntityUid device,
         DwaineDeviceComponent deviceConfig,
         DwaineDeviceAbiComponent abiConfig,
         DwaineDeviceAbiRuntimeComponent runtime,
-        DwaineSessionId? terminalSession)
+        DwaineSessionId? terminalSession,
+        bool networkAttached)
     {
         if (runtime.ByEntity.ContainsKey(device))
             return DwaineDeviceResult.Success;
@@ -395,6 +431,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
             Access = deviceConfig.Access,
             Entity = device,
             TerminalSession = terminalSession,
+            NetworkAttached = networkAttached,
             Status = deviceConfig.Enabled ? DwaineDeviceStatus.Ready : DwaineDeviceStatus.Offline,
         };
         runtime.Endpoints.Add(endpointId, endpoint);
@@ -431,7 +468,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
                            | DwaineDeviceCapability.TerminalInput,
             Access = DwaineDeviceAccess.Public,
         };
-        Attach(mainframe, terminal, terminalConfig, config, runtime, session);
+        Attach(mainframe, terminal, terminalConfig, config, runtime, session, false);
     }
 
     private void Detach(EntityUid mainframe, DwaineDeviceAbiRuntimeComponent runtime, DwaineDeviceEndpointId endpointId)
@@ -505,6 +542,18 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
             return _transport.HasSession(mainframe, session) ? DwaineDeviceStatus.Ready : DwaineDeviceStatus.Offline;
         if (TryComp<DwaineDeviceComponent>(endpoint.Entity, out var config) && !config.Enabled)
             return DwaineDeviceStatus.Offline;
+        if (TryComp<ApcPowerReceiverComponent>(endpoint.Entity, out var receiver) && !receiver.Powered)
+            return DwaineDeviceStatus.Offline;
+        if (_hardware.GetStatus(endpoint.Entity) is { } hardwareStatus
+            && hardwareStatus != DwaineHardwareStatus.HardwareReady)
+        {
+            return DwaineDeviceStatus.Offline;
+        }
+        if (endpoint.NetworkAttached
+            && _network.CanReach(mainframe, endpoint.Entity) != DwaineNetworkResult.Success)
+        {
+            return DwaineDeviceStatus.Offline;
+        }
         if (string.Equals(endpoint.DriverId, "radio", StringComparison.Ordinal)
             && _network.GetNode(endpoint.Entity, out _) != DwaineNetworkResult.Success)
         {

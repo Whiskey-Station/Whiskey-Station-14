@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Content.IntegrationTests.Fixtures;
 using Content.Server._Whiskey.Dwaine.Hardware;
+using Content.Server.Power.EntitySystems;
 using Content.Shared._Whiskey.Dwaine;
 using Content.Shared._Whiskey.Dwaine.Hardware;
+using Content.Shared.PowerCell;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 
@@ -136,6 +138,26 @@ public sealed class DwaineHardwareTest : GameTest
             });
 
             Server.EntMan.DeleteEntity(actor);
+        });
+    }
+
+    [Test]
+    public async Task PortableTerminalTracksItsPhysicalPowerCell()
+    {
+        await Server.WaitAssertion(() =>
+        {
+            var hardware = Server.System<DwaineHardwareSystem>();
+            var cells = Server.System<PowerCellSystem>();
+            var batteries = Server.System<BatterySystem>();
+            var portable = Server.EntMan.SpawnEntity("WhiskeyDwainePortableTerminal", MapCoordinates.Nullspace);
+
+            Assert.That(hardware.GetStatus(portable), Is.EqualTo(DwaineHardwareStatus.HardwareReady));
+            Assert.That(cells.TryGetBatteryFromSlot(portable, out var battery), Is.True);
+            batteries.SetCharge(battery!.Value, 0);
+            Assert.That(hardware.GetStatus(portable), Is.EqualTo(DwaineHardwareStatus.PowerUnavailable));
+            batteries.SetCharge(battery.Value, 10);
+            Assert.That(hardware.GetStatus(portable), Is.EqualTo(DwaineHardwareStatus.HardwareReady));
+            Server.EntMan.DeleteEntity(portable);
         });
     }
 }

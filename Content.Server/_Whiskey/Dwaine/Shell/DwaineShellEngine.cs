@@ -500,6 +500,7 @@ public sealed class DwaineShellEngine
         Register("who", "who — list public active users without privileged session details", Who);
         Register("net", "net address|status|discover [TAG]|ping ADDRESS|send ADDRESS USER MESSAGE...|sendfile ADDRESS USER FILE|inbox|metrics|capture", Net);
         Register("scnt", "scnt — bounded network discovery and local Device ABI rescan", Scan);
+        Register("service", "service list|SERVICE OPERATION [argument...] — call a bounded server-authoritative DWAINE service", Service);
         Register("sleep", "sleep SECONDS — wait on bounded logical game time", Sleep);
         Register("eval", "eval shell-text... — evaluate only this bounded shell grammar", Eval);
         Register("if", "if LEFT OP RIGHT — comparison status; OP is =, !=, -eq, -ne, -lt, -le, -gt or -ge", If);
@@ -1116,6 +1117,18 @@ public sealed class DwaineShellEngine
         if (host is not IDwaineNetworkShellHost network || session.ProcessId is not { } process)
             return new CommandResult(1, Error: "scnt: service unavailable\n");
         var result = network.Scan(process);
+        return result.ExitCode == 0
+            ? new CommandResult(0, result.Output)
+            : new CommandResult(result.ExitCode, Error: result.Output);
+    }
+
+    private static CommandResult Service(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
+    {
+        if (args.Count == 0)
+            return Usage("service list|SERVICE OPERATION [argument...]");
+        if (host is not IDwaineServiceShellHost services || session.ProcessId is not { } process)
+            return new CommandResult(1, Error: "service: unavailable\n");
+        var result = services.Service(process, session.WorkingDirectory, args);
         return result.ExitCode == 0
             ? new CommandResult(0, result.Output)
             : new CommandResult(result.ExitCode, Error: result.Output);

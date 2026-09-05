@@ -7,6 +7,7 @@ using Content.Server._Whiskey.Dwaine.Identity;
 using Content.Server._Whiskey.Dwaine.Kernel;
 using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
+using Content.Server._Whiskey.Dwaine.Services;
 using Content.Server._Whiskey.Dwaine.Storage;
 using Content.Server._Whiskey.Dwaine.Transport;
 using Content.Shared._Whiskey.Dwaine.FileSystem;
@@ -35,6 +36,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
     [Dependency] private DwaineCommunicationSystem _communications = default!;
     [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private DwaineProcessSystem _processes = default!;
+    [Dependency] private DwaineServiceSystem _services = default!;
     [Dependency] private DwaineStorageSystem _storage = default!;
     [Dependency] private DwaineTerminalTransportSystem _transport = default!;
     [Dependency] private VodkaRuntimeSystem _vodka = default!;
@@ -396,7 +398,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
         EntityUid mainframe,
         DwaineSessionId transportSession,
         DwaineIdentityStore identities,
-        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost, IDwaineVodkaShellHost, IDwaineNetworkShellHost
+        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost, IDwaineVodkaShellHost, IDwaineNetworkShellHost, IDwaineServiceShellHost
     {
         public TimeSpan Now => system._timing.CurTime;
         public DwaineIdentitySessionSnapshot Identity =>
@@ -682,6 +684,30 @@ public sealed partial class DwaineShellSystem : EntitySystem
                 output.Append("device ").Append(device.Address).Append(' ').Append(device.DriverId).Append(' ')
                     .AppendLine(device.Status.ToString().ToLowerInvariant());
             return DwaineShellHostResult.Success(output.ToString());
+        }
+
+        public DwaineShellHostResult Service(
+            DwaineProcessId process,
+            DwaineVfsNodeHandle workingDirectory,
+            IReadOnlyList<string> arguments)
+        {
+            var response = arguments.Count == 1 && arguments[0] == "list"
+                ? system._services.ListServices(mainframe, process, Identity.Principal)
+                : arguments.Count >= 2
+                    ? system._services.Call(
+                        mainframe,
+                        process,
+                        Identity.Principal,
+                        arguments[0],
+                        arguments[1],
+                        arguments.Skip(2).ToArray(),
+                        workingDirectory)
+                    : DwaineServiceResponse.Failure(
+                        DwaineServiceStatus.InvalidArguments,
+                        "usage: service list|SERVICE OPERATION [argument...]\n");
+            return response.Succeeded
+                ? DwaineShellHostResult.Success(response.Output)
+                : DwaineShellHostResult.Failure(response.Output);
         }
 
         private DwaineStorageMediaSnapshot? FindMedia(string label)
