@@ -175,6 +175,8 @@ public interface IDwaineShellHost
 
     DwaineVfsResult TryGetPath(DwaineVfsNodeHandle handle, out string path);
     DwaineVfsResult TryCanonicalize(string path, DwaineVfsNodeHandle workingDirectory, out string canonical);
+    DwaineIdentityResult TryBootstrap(string name, string password, out DwaineIdentitySessionSnapshot session);
+    DwaineIdentityResult TryCreateAccount(string name, string password, out DwaineAccountSnapshot account);
     DwaineIdentityResult TryElevate(string name, string password, out DwaineIdentitySessionSnapshot session);
     DwaineIdentityResult TryLogout(out DwaineIdentitySessionSnapshot session);
     IReadOnlyList<DwaineShellUserEntry> GetUsers();

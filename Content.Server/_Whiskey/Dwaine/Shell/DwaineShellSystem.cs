@@ -430,6 +430,22 @@ public sealed partial class DwaineShellSystem : EntitySystem
             return identities.TryElevate(Identity.Session, name, password, Now, out session);
         }
 
+        public DwaineIdentityResult TryBootstrap(
+            string name,
+            string password,
+            out DwaineIdentitySessionSnapshot session)
+        {
+            return identities.TryBootstrapOperator(Identity.Session, name, password, Now, out session);
+        }
+
+        public DwaineIdentityResult TryCreateAccount(
+            string name,
+            string password,
+            out DwaineAccountSnapshot account)
+        {
+            return identities.TryCreateManagedAccount(Identity.Principal, name, password, out account);
+        }
+
         public DwaineIdentityResult TryLogout(out DwaineIdentitySessionSnapshot session)
         {
             var result = system._identities.TryLogout(mainframe, transportSession);

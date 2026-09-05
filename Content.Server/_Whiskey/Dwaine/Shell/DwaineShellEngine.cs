@@ -133,8 +133,7 @@ public sealed class DwaineShellEngine
                     break;
                 }
                 if (words.Count > 0
-                    && (string.Equals(words[0], "su", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(words[0], "eval", StringComparison.OrdinalIgnoreCase)))
+                    && IsCredentialCommand(words[0]))
                 {
                     _credentialCommandObserved = true;
                 }
@@ -476,6 +475,8 @@ public sealed class DwaineShellEngine
         Alias("man", "help");
         Register("logout", "logout — replace this login with a temporary session", Logout);
         Alias("logoff", "logout");
+        Register("bootstrap", "bootstrap USER PASSWORD — initialize the first persistent operator once; history redacts the password", Bootstrap);
+        Register("useradd", "useradd USER PASSWORD — operator-only persistent account creation; history redacts the password", UserAdd);
         Register("pwd", "pwd — print the canonical working directory", Pwd);
         Register("cd", "cd [path] — change to an executable directory", Cd);
         Register("cat", "cat [file...] — concatenate readable files or stdin", Cat);
@@ -1045,6 +1046,26 @@ public sealed class DwaineShellEngine
         return new CommandResult(1, Error: $"su: {IdentityError(result)}\n");
     }
 
+    private static CommandResult Bootstrap(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
+    {
+        if (args.Count != 2)
+            return Usage("bootstrap USER PASSWORD");
+        var result = host.TryBootstrap(args[0], args[1], out _);
+        return result == DwaineIdentityResult.Success
+            ? new CommandResult(0, $"initialized operator {args[0]}\n", TerminateProcess: true)
+            : new CommandResult(1, Error: $"bootstrap: {IdentityError(result)}\n");
+    }
+
+    private static CommandResult UserAdd(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
+    {
+        if (args.Count != 2)
+            return Usage("useradd USER PASSWORD");
+        var result = host.TryCreateAccount(args[0], args[1], out _);
+        return result == DwaineIdentityResult.Success
+            ? new CommandResult(0, $"created {args[0]}\n")
+            : new CommandResult(1, Error: $"useradd: {IdentityError(result)}\n");
+    }
+
     private static CommandResult Set(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
     {
         if (args.Count == 0)
@@ -1330,8 +1351,12 @@ public sealed class DwaineShellEngine
     {
         return result switch
         {
+            DwaineIdentityResult.InvalidName => "invalid account name",
             DwaineIdentityResult.InvalidCredential => "authentication failed",
+            DwaineIdentityResult.AlreadyExists => "account already exists",
+            DwaineIdentityResult.AccountLimit => "account limit reached",
             DwaineIdentityResult.Disabled => "account disabled",
+            DwaineIdentityResult.SessionNotFound => "session not found",
             DwaineIdentityResult.SessionExpired => "session expired",
             DwaineIdentityResult.Throttled => "authentication temporarily throttled",
             DwaineIdentityResult.AccessDenied => "permission denied",
@@ -1352,9 +1377,17 @@ public sealed class DwaineShellEngine
         return credentialCommandObserved || line.Pipelines
             .SelectMany(pipeline => pipeline.Commands)
             .Any(command => command.Words.Count > 0
-                            && string.Equals(command.Words[0].Text, "su", StringComparison.OrdinalIgnoreCase))
+                            && IsCredentialCommand(command.Words[0].Text))
                 ? "<redacted credential command>"
                 : source;
+    }
+
+    private static bool IsCredentialCommand(string name)
+    {
+        return string.Equals(name, "su", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(name, "bootstrap", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(name, "useradd", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(name, "eval", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool TryChargeInstructions(int instructions)

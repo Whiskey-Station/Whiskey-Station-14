@@ -201,6 +201,36 @@ public sealed class DwaineShellPrimitivesTest
     }
 
     [Test]
+    public void BootstrapAndUserAddProvisionAccountsWithoutCredentialHistory()
+    {
+        var host = new TestHost(false);
+        var session = host.CreateShellSession(Limits);
+        var engine = new DwaineShellEngine(Limits);
+
+        AssertSuccess(engine.Execute("set INIT=bootstrap", session, host));
+        var bootstrapped = engine.Execute("$INIT operator safe-password", session, host);
+        Assert.Multiple(() =>
+        {
+            Assert.That(bootstrapped.TerminateProcess, Is.True);
+            Assert.That(host.Identity.Temporary, Is.False);
+            Assert.That(host.Identities.PersistentAccountCount, Is.EqualTo(1));
+            Assert.That(host.Identities.HasPermission(host.Identity.Principal, DwaineIdentityPermission.ManageUsers),
+                Is.True);
+        });
+
+        AssertSuccess(engine.Execute("useradd alex alex-password", session, host));
+        Assert.That(host.Identities.TryGetAccount("alex", out var alex), Is.True);
+        Assert.That(alex.Groups, Does.Not.Contain(DwaineGroupId.Operators));
+        var history = engine.Execute("history", session, host).StandardOutput;
+        Assert.Multiple(() =>
+        {
+            Assert.That(history, Does.Contain("<redacted credential command>"));
+            Assert.That(history, Does.Not.Contain("safe-password"));
+            Assert.That(history, Does.Not.Contain("alex-password"));
+        });
+    }
+
+    [Test]
     public void NestedEvaluationOutputRegexAndLogicalWaitRemainBounded()
     {
         var host = new TestHost();
@@ -319,44 +349,53 @@ public sealed class DwaineShellPrimitivesTest
         public DwaineIdentityStore Identities { get; } = new();
         public DwaineVirtualFileSystem FileSystem { get; }
         public DwaineAuthorizedFileSystem Files { get; }
-        public DwaineAccountSnapshot Alex { get; }
-        public DwaineAccountSnapshot Bob { get; }
-        public DwaineAccountSnapshot Operator { get; }
+        public DwaineAccountSnapshot Alex { get; private set; }
+        public DwaineAccountSnapshot Bob { get; private set; }
+        public DwaineAccountSnapshot Operator { get; private set; }
         public int ClearCount { get; private set; }
         public int ElevateCalls { get; private set; }
 
-        public TestHost()
+        public TestHost(bool initializeAccounts = true)
         {
-            Identities.TryCreateAccount("alex", "alex-password", false, out var alex);
-            Identities.TryCreateAccount("bob", "bob-password", false, out var bob);
-            Identities.TryCreateAccount("operator", "operator-password", true, out var systemOperator);
-            Alex = alex;
-            Bob = bob;
-            Operator = systemOperator;
-            Assert.That(Identities.TryLogin("alex", "alex-password", 1, Now, TimeSpan.FromHours(1), out _identity),
-                Is.EqualTo(DwaineIdentityResult.Success));
-
             FileSystem = new DwaineVirtualFileSystem(new DwaineFileSystemComponent(), Now);
-            Assert.That(FileSystem.TryCreate(
-                "/home/alex",
-                FileSystem.Root,
-                new DwaineVfsCreateRequest
-                {
-                    Kind = DwaineVfsNodeKind.Directory,
-                    Owner = Alex.Principal.Value,
-                    Group = DwaineGroupId.Users.Value,
-                    Mode = DwaineVfsMode.OwnerAll | DwaineVfsMode.GroupReadExecute,
-                },
-                Now,
-                out _), Is.EqualTo(DwaineVfsResult.Success));
+            if (initializeAccounts)
+            {
+                Identities.TryCreateAccount("alex", "alex-password", false, out var alex);
+                Identities.TryCreateAccount("bob", "bob-password", false, out var bob);
+                Identities.TryCreateAccount("operator", "operator-password", true, out var systemOperator);
+                Alex = alex;
+                Bob = bob;
+                Operator = systemOperator;
+                Assert.That(Identities.TryLogin("alex", "alex-password", 1, Now, TimeSpan.FromHours(1), out _identity),
+                    Is.EqualTo(DwaineIdentityResult.Success));
+                Assert.That(FileSystem.TryCreate(
+                    "/home/alex",
+                    FileSystem.Root,
+                    new DwaineVfsCreateRequest
+                    {
+                        Kind = DwaineVfsNodeKind.Directory,
+                        Owner = Alex.Principal.Value,
+                        Group = DwaineGroupId.Users.Value,
+                        Mode = DwaineVfsMode.OwnerAll | DwaineVfsMode.GroupReadExecute,
+                    },
+                    Now,
+                    out _), Is.EqualTo(DwaineVfsResult.Success));
+            }
+            else
+            {
+                Assert.That(Identities.TryCreateTemporarySession(1, Now, TimeSpan.FromHours(1), out _identity),
+                    Is.EqualTo(DwaineIdentityResult.Success));
+            }
             Files = new DwaineAuthorizedFileSystem(FileSystem, Identities);
         }
 
         public DwaineShellSession CreateShellSession(DwaineShellLimits limits)
         {
             var shell = new DwaineShellSession(limits);
-            shell.InitializeEnvironment("alex", "/home/alex");
-            Assert.That(FileSystem.TryResolve("/home/alex", FileSystem.Root, out shell.WorkingDirectory),
+            Assert.That(Identities.TryGetAccount(_identity.Principal, out var account), Is.True);
+            var home = account.Temporary ? "/home" : $"/home/{account.Name}";
+            shell.InitializeEnvironment(account.Name, home);
+            Assert.That(FileSystem.TryResolve(home, FileSystem.Root, out shell.WorkingDirectory),
                 Is.EqualTo(DwaineVfsResult.Success));
             return shell;
         }
@@ -383,6 +422,19 @@ public sealed class DwaineShellPrimitivesTest
             if (result == DwaineIdentityResult.Success)
                 _identity = session;
             return result;
+        }
+
+        public DwaineIdentityResult TryBootstrap(string name, string password, out DwaineIdentitySessionSnapshot session)
+        {
+            var result = Identities.TryBootstrapOperator(_identity.Session, name, password, Now, out session);
+            if (result == DwaineIdentityResult.Success)
+                _identity = session;
+            return result;
+        }
+
+        public DwaineIdentityResult TryCreateAccount(string name, string password, out DwaineAccountSnapshot account)
+        {
+            return Identities.TryCreateManagedAccount(_identity.Principal, name, password, out account);
         }
 
         public DwaineIdentityResult TryLogout(out DwaineIdentitySessionSnapshot session)

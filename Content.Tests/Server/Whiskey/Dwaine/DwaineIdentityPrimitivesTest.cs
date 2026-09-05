@@ -48,6 +48,41 @@ public sealed class DwaineIdentityPrimitivesTest
     }
 
     [Test]
+    public void FirstTemporarySessionBootstrapsOneOperatorAndOnlyOperatorsCreateUsers()
+    {
+        var identities = new DwaineIdentityStore(3, 3, 2);
+        Assert.That(identities.TryCreateTemporarySession(21, TimeSpan.Zero, TimeSpan.FromHours(1), out var guest),
+            Is.EqualTo(DwaineIdentityResult.Success));
+        Assert.That(identities.TryBootstrapOperator(guest.Session, "bad name", "safe-password", TimeSpan.Zero, out _),
+            Is.EqualTo(DwaineIdentityResult.InvalidName));
+        Assert.That(identities.PersistentAccountCount, Is.Zero);
+
+        Assert.That(identities.TryBootstrapOperator(guest.Session, "operator", "safe-password", TimeSpan.Zero, out var bootstrapped),
+            Is.EqualTo(DwaineIdentityResult.Success));
+        Assert.Multiple(() =>
+        {
+            Assert.That(bootstrapped.Session, Is.EqualTo(guest.Session));
+            Assert.That(bootstrapped.Principal, Is.EqualTo(guest.Principal));
+            Assert.That(bootstrapped.Temporary, Is.False);
+            Assert.That(identities.PersistentAccountCount, Is.EqualTo(1));
+            Assert.That(identities.TryGetAccount("operator", out var account), Is.True);
+            Assert.That(account.Principal, Is.EqualTo(guest.Principal));
+            Assert.That(account.Groups, Does.Contain(DwaineGroupId.Operators));
+            Assert.That(identities.TryGetAccount($"guest-{guest.Principal.Value}", out _), Is.False);
+        });
+
+        Assert.That(identities.TryBootstrapOperator(guest.Session, "other", "other-password", TimeSpan.Zero, out _),
+            Is.EqualTo(DwaineIdentityResult.AccessDenied));
+        Assert.That(identities.TryCreateManagedAccount(bootstrapped.Principal, "alex", "alex-password", out var alex),
+            Is.EqualTo(DwaineIdentityResult.Success));
+        Assert.That(identities.TryCreateManagedAccount(alex.Principal, "denied", "denied-password", out _),
+            Is.EqualTo(DwaineIdentityResult.AccessDenied));
+        Assert.That(identities.TryLogin("operator", "safe-password", 22, TimeSpan.Zero, TimeSpan.FromHours(1), out var login),
+            Is.EqualTo(DwaineIdentityResult.Success));
+        Assert.That(login.Principal, Is.EqualTo(guest.Principal));
+    }
+
+    [Test]
     public void OperatorsManageGroupsAndDisabledUsersLoseSessions()
     {
         var identities = new DwaineIdentityStore();

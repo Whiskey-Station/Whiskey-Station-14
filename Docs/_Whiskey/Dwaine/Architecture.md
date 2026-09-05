@@ -69,6 +69,13 @@ Every privileged operation is checked at the narrowest server boundary:
 7. network topology and message bounds;
 8. target driver authorization and current entity state.
 
+The sole first-run exception is account bootstrap: while a mainframe has zero persistent
+accounts, one live temporary terminal session may atomically convert its own principal into
+the initial operator with a caller-supplied password. That path closes permanently after the
+first success. Further persistent accounts require the operator-only `useradd` command, and
+all three credential-bearing commands (`bootstrap`, `useradd`, and `su`) are redacted from
+shell history even when their names are produced by expansion.
+
 Opaque, generation-checked handles replace arbitrary `EntityUid` exposure. Handles are scoped to a process/session and revoked when the device, process, session, mainframe, network link, or round ends.
 
 ## Lifecycle and timing

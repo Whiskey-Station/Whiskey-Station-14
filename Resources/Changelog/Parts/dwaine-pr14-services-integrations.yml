@@ -14,3 +14,8 @@ changes:
     message: >-
       A descoberta de devices agora respeita a topologia DWAINE real e remove
       endpoints offline, com novos testes de escala, persistência e cleanup.
+  - type: Tweak
+    message: >-
+      Um DWAINE novo agora pode criar seu primeiro operador uma única vez com
+      bootstrap; contas posteriores exigem o comando useradd de um operador, e
+      as credenciais desses comandos nunca aparecem no histórico do terminal.
