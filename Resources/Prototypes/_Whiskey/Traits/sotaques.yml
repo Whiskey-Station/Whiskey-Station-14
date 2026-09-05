@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: trait
+  id: CariocaAccent
+  name: trait-carioca-name
+  description: trait-carioca-desc
+  category: SpeechTraits
+  cost: 1
+  components:
+  - type: RegionalAccent
+    accent: Carioca
+    prefixCount: 6
+    suffixCount: 5
+    questionCount: 3
+    exclamationCount: 3
+
+- type: trait
+  id: MoocaAccent
+  name: trait-mooca-name
+  description: trait-mooca-desc
+  category: SpeechTraits
+  cost: 1
+  components:
+  - type: RegionalAccent
+    accent: Mooca
+    prefixCount: 5
+    suffixCount: 5
+    questionCount: 3
+    exclamationCount: 3
