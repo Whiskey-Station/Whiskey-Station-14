@@ -1,6 +1,9 @@
 - type: vendingMachineInventory
   id: GoodCleanFunInventory
   startingInventory:
+    # <Whiskey>
+    RMCPlayingCardDeck: 4
+    # </Whiskey>
     DiceBag: 6
     Paper: 8
     d6Dice: 8
