@@ -1,0 +1,15 @@
+name: Check Travessão
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  check-travessao:
+    name: Check Travessão
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Procura travessão no que a Whiskey escreve
+      run: Tools/check_travessao.py
