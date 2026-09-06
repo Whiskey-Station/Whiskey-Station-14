@@ -51,6 +51,7 @@
     back:
     - Flash
     - ClothingMaskGasSecurity # Goobstation
+    - BookArteDaRobustez # Whiskey - o livro do Cleitosvaldo
 
 - type: chameleonOutfit
   id: WardenChameleonOutfit

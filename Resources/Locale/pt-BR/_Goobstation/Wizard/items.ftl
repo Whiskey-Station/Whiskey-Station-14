@@ -8,6 +8,7 @@ ensouled-item-name = encantado {$item}
 ensouled-item-desc = [color=darkred]Uma aura terrível o cerca, sua própria existência é ofensiva à própria vida...[/color]
 
 delete-on-drop-attempt-comp-examine = Jogue esse item para se livrar dele.
+delete-on-drop-attempt-comp-examine-bound = Esta invocação está vinculada à sua mão e não pode ser largada.
 
 enchanted-rifle-guns-left = Armas restantes: [color=yellow]{$guns}[/color].
 

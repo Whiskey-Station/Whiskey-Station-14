@@ -8,4 +8,6 @@ namespace Content.Trauma.Common.Wizard;
 [RegisterComponent]
 public sealed partial class DeleteOnDropAttemptComponent : Component
 {
+    [DataField]
+    public bool DeleteOnAttempt = true; // Whiskey - some temporary rites must refuse an accidental drop instead.
 }

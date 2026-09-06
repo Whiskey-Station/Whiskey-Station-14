@@ -3,16 +3,26 @@
 // The default category, and a map of category cl name to filename in Resources/Changelog
 const ChangelogsDir = "../../Resources/Changelog/"; // must have trailing /
 // IF YOU ARE A FORK, CHANGE THESE!!!!!!!!!!!!
-const MainCategory = "TRAUMA";
-const MainCategoryPath = "TraumaChangelog.yml";
+// <Whiskey> - o aviso acima é do upstream e a Whiskey nunca o tinha atendido.
+//
+// Enquanto isto apontava para o Trauma, toda PR nossa com :cl: escrevia no
+// changelog do fork pai, e as mudanças da Whiskey apareciam na aba dele. Era
+// por isso que não existia aba nossa, e não por falta de arquivo.
+//
+// A categoria TRAUMA continua aceita e apontando para o arquivo do Trauma, para
+// changelog de coisa que a gente traz de lá continuar caindo no lugar certo.
+const MainCategory = "WHISKEY";
+const MainCategoryPath = "WhiskeyChangelog.yml";
 const CategoryPaths = {
 	[MainCategory]: MainCategoryPath,
+	TRAUMA: "TraumaChangelog.yml",
 	WIZDEN: "Changelog.yml",
     WIZDENADMIN: "Admin.yml",
     MAPS: "Maps.yml",
     ADMIN: "TraumaAdmin.yml",
     RULES: "Rules.yml",
 };
+// </Whiskey>
 
 // All allowed entry types and the final string to use in the changelog yml
 const AllowedEntries = {

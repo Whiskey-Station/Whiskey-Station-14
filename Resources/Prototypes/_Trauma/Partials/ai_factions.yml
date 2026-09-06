@@ -1,0 +1,199 @@
+# <Whiskey> - as entradas "- Insurgent" deste arquivo estão comentadas.
+#
+# A Whiskey tirou a hostilidade automática contra insurgentes no commit
+# f7a66cb2fb, porque insurgente ser atacado por todo bicho, robô e tripulante
+# assim que pisa na estação acaba com o disfarce antes de qualquer jogador
+# perceber quem ele é. Quem reage sozinho é a torreta anti-insurgente.
+#
+# O upstream trouxe isso de volta por um caminho novo: as facções migraram para
+# Partials, e as entradas vieram junto. O arquivo em conflito estava certo, e a
+# regressão entrou por este arquivo, que chegou SEM conflito nenhum.
+#
+# Tentei desfazer com um partial nosso usando !Remove, e não funciona: partial
+# sobre partial não empilha, medido com o InsurgentFactionTest. Por isso a
+# remoção fica aqui, comentada em vez de apagada, para o próximo upstream
+# mostrar o conflito na linha certa em vez de reintroduzir calado.
+# </Whiskey>
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: npcFaction
+  id: Dragon
+  hostile:
+  - !Remove Wizard
+  - Heretic
+  - Blob
+  - Shadowling
+  # <Whiskey> - removido: hostilidade automática contra insurgente
+  # - Insurgent
+  # </Whiskey>
+  friendly:
+  - Wizard
+  - PirateFaction
+  - Lavafauna
+  - CrabFaction
+
+- type: npcFaction
+  id: NanoTrasen
+  hostile:
+  - Changeling
+  - Heretic
+  - Blob
+  - Shadowling
+  - PirateFaction
+  - Wraith
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - CrabFaction
+
+- type: npcFaction
+  id: Mouse
+  hostile: !Clear # mice shouldnt attack random pets
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+
+- type: npcFaction
+  id: Passive
+  hostile:
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+
+- type: npcFaction
+  id: PetsNT
+  friendly:
+  - !Remove NanoTrasen
+  hostile:
+  - Balloon # Pets can join the fight against the balloons
+  - Blob
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - CrabFaction
+
+- type: npcFaction
+  id: SimpleHostile
+  hostile:
+  - !Remove Wizard
+  - Heretic
+  - Blob
+  - PirateFaction
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  friendly:
+  - Wizard
+  - Shadowling
+  - Wraith
+
+- type: npcFaction
+  id: SimpleNeutral
+  hostile:
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+
+- type: npcFaction
+  id: Syndicate
+  hostile:
+  - Changeling
+  - Heretic
+  - Blob
+  - PirateFaction
+  - Shadowling
+  - Wraith
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - CrabFaction
+
+- type: npcFaction
+  id: Xeno
+  hostile:
+  - !Remove Wizard
+  - Heretic
+  - Blob
+  - PirateFaction
+  - Wraith
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - CrabFaction
+  friendly:
+  - Wizard
+
+- type: npcFaction
+  id: Zombie
+  friendly:
+  - InitialInfected
+  hostile:
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - Changeling
+  - Heretic
+  - Blob
+  - Shadowling
+  - PirateFaction
+  - Wraith
+  - Lavafauna
+  - CrabFaction
+
+- type: npcFaction
+  id: Revolutionary
+  hostile:
+  - Changeling
+  - Heretic
+  - Blob
+  - Shadowling
+  - Wizard
+  - PirateFaction
+  - Lavafauna
+  - Mouse
+  - Passive
+  - PetsNT
+  - SimpleNeutral
+  - Syndicate
+  - Xeno
+  - CrabFaction
+
+- type: npcFaction
+  id: AllHostile
+  hostile:
+  - Changeling
+  - Heretic
+  - Blob
+  - Shadowling
+  - PirateFaction
+  - Wraith
+  - Lavafauna
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+  - CrabFaction
+
+- type: npcFaction
+  id: Wizard
+  hostile:
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>
+
+- type: npcFaction
+  id: Xenoborg
+  hostile:
+  - Changeling
+  - Heretic
+  - PirateFaction
+  - Blob
+  - Shadowling
+  # <Whiskey> - idem
+  # - Insurgent
+  # </Whiskey>

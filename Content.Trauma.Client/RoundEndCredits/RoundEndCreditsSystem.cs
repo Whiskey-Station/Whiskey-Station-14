@@ -5,7 +5,6 @@ using Content.Shared.Random.Helpers;
 using Content.Trauma.Common.CCVar;
 using Content.Trauma.Common.LinkAccount;
 using Robust.Client.ResourceManagement;
-using Robust.Shared;
 using Robust.Shared.Configuration;
 using Robust.Shared.Random;
 
@@ -24,7 +23,6 @@ public sealed partial class RoundEndCreditsSystem : EntitySystem
     private EndRoundCreditsControl? _creditsContainer;
     private BoxContainer? _exitContainer;
     private bool _showCredits = true;
-    private float _uiScale;
     private bool Debug = false; // Set this to true if you want a bunch of dummy characters to spawn
 
     public override void Initialize()
@@ -34,7 +32,6 @@ public sealed partial class RoundEndCreditsSystem : EntitySystem
         SubscribeNetworkEvent<RoundRestartCleanupEvent>(OnRoundCleanup);
 
         Subs.CVar(_cfg, TraumaCVars.PlayMovieEndCredits, x => _showCredits = x, true);
-        Subs.CVar(_cfg, CVars.DisplayUIScale, x => _uiScale = x, true);
     }
 
     private void OnRoundCleanup(RoundRestartCleanupEvent ev)
@@ -56,7 +53,15 @@ public sealed partial class RoundEndCreditsSystem : EntitySystem
             shoutout = _random.Pick(patrons).Name;
 
         var credits = new EndRoundCreditsControl();
-        credits.SetSize = _clyde.MainWindow.Size / _uiScale;
+        // <Whiskey> - a escala tem que ser a resolvida, não o valor cru do CVar.
+        // O display.uiScale nasce em 0, que para o engine quer dizer "herdar a
+        // escala do sistema" e não "divisor zero". Quem nunca mexeu nessa opção
+        // ficava com a tela de créditos em tamanho infinito, ou seja invisível.
+        // O RootControl.UIScale é exatamente o que o engine usa para arranjar a
+        // raiz da janela, então a conta bate com a do resto da interface.
+        var uiScale = _ui.RootControl.UIScale;
+        credits.SetSize = _clyde.MainWindow.Size / (uiScale > 0f ? uiScale : 1f);
+        // </Whiskey>
         credits.Populate(message, _cache, ProtoMan, shoutout, Debug);
 
         var rand = new RobustRandom();

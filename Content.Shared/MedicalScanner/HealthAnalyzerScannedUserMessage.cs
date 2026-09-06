@@ -1,4 +1,5 @@
 // <Trauma>
+using Content.Medical.Common.Traumas;
 using Content.Medical.Common.Wounds;
 using Content.Shared.Body;
 using Content.Shared.FixedPoint;
@@ -39,6 +40,7 @@ public struct HealthAnalyzerUiState
     // <Trauma>
     public Dictionary<ProtoId<OrganCategoryPrototype>, WoundableSeverity>? Body;
     public HashSet<ProtoId<OrganCategoryPrototype>> Bleeding = new(); // per-part instead of global
+    public Dictionary<ProtoId<OrganCategoryPrototype>, BoneSeverity> BoneDamage = new();
     public FixedPoint2 VitalDamage;
     public NetEntity? Part;
     // </Traumaa>
@@ -50,6 +52,7 @@ public struct HealthAnalyzerUiState
     public HealthAnalyzerUiState(NetEntity? targetEntity, float temperature, float bloodLevel, bool? scanMode,
         // <Trauma>
         HashSet<ProtoId<OrganCategoryPrototype>> bleeding,
+        Dictionary<ProtoId<OrganCategoryPrototype>, BoneSeverity> boneDamage,
         bool? unrevivable,
         Dictionary<ProtoId<OrganCategoryPrototype>, WoundableSeverity>? body,
         FixedPoint2 vitalDamage,
@@ -67,6 +70,7 @@ public struct HealthAnalyzerUiState
         BloodLevel = bloodLevel;
         ScanMode = scanMode;
         Bleeding = bleeding;
+        BoneDamage = boneDamage;
         Unrevivable = unrevivable;
         MetabolizingReagents = metabolizingReagents;
     }
