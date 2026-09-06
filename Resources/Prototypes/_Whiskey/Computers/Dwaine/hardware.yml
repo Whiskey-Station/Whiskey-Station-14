@@ -70,6 +70,18 @@
     maxSessions: 256
     sessionLifetimeSeconds: 3600
   - type: DwaineIdentityRuntime
+  - type: DwaineShell
+    maxInputLength: 2048
+    maxTokens: 128
+    maxPipelineStages: 8
+    maxCommands: 32
+    maxHistoryEntries: 64
+    maxEnvironmentEntries: 64
+    maxEnvironmentCharacters: 8192
+    maxOutputCharacters: 16384
+    maxEvaluationDepth: 4
+    maxLoopIterations: 32
+  - type: DwaineShellRuntime
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineStorageDrive

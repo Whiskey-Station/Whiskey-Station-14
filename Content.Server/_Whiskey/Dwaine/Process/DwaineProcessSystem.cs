@@ -237,6 +237,32 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         return DwaineProcessControlResult.Success;
     }
 
+    public DwaineProcessControlResult TryKillAsOwner(
+        EntityUid mainframe,
+        DwaineProcessOwner requester,
+        DwaineProcessId targetId)
+    {
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
+            return DwaineProcessControlResult.MainframeUnavailable;
+        if (!runtime.Processes.TryGetValue(targetId, out var target))
+            return DwaineProcessControlResult.ProcessNotFound;
+        if (target.IsTerminal)
+            return DwaineProcessControlResult.InvalidState;
+        if (requester != DwaineProcessOwner.System && requester != target.Owner)
+            return DwaineProcessControlResult.AccessDenied;
+
+        CompleteProcessTree(
+            mainframe,
+            runtime,
+            target,
+            DwaineProcessState.Exited,
+            137,
+            DwaineProcessExitReason.Killed,
+            "killed",
+            _timing.CurTime);
+        return DwaineProcessControlResult.Success;
+    }
+
     public DwaineProcessControlResult TryStop(
         EntityUid mainframe,
         DwaineProcessId requesterId,
@@ -404,9 +430,20 @@ public sealed partial class DwaineProcessSystem : EntitySystem
 
     public bool TryWriteInput(EntityUid mainframe, DwaineProcessId processId, string text)
     {
-        return TryGetRuntimeProcess(mainframe, processId, out _, out var process)
-               && !process.IsTerminal
-               && process.Stdin.TryWrite(text);
+        if (!TryGetRuntimeProcess(mainframe, processId, out var runtime, out var process)
+            || process.IsTerminal
+            || !process.Stdin.TryWrite(text))
+        {
+            return false;
+        }
+
+        if (process.State == DwaineProcessState.Waiting && process.WaitingFor is null)
+        {
+            SetState(mainframe, runtime, process, DwaineProcessState.Ready);
+            EnqueueReady(mainframe, runtime, process);
+        }
+
+        return true;
     }
 
     public bool TryReadOutput(EntityUid mainframe, DwaineProcessId processId, out string text)
@@ -545,6 +582,18 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             case DwaineProcessStepKind.Yield:
                 SetState(mainframe, runtime, process, DwaineProcessState.Ready);
                 EnqueueReady(mainframe, runtime, process);
+                break;
+            case DwaineProcessStepKind.WaitForInput:
+                process.WaitingFor = null;
+                if (process.Stdin.Count > 0)
+                {
+                    SetState(mainframe, runtime, process, DwaineProcessState.Ready);
+                    EnqueueReady(mainframe, runtime, process);
+                }
+                else
+                {
+                    SetState(mainframe, runtime, process, DwaineProcessState.Waiting);
+                }
                 break;
             case DwaineProcessStepKind.WaitForChild:
                 if (step.WaitFor is not { } childId
