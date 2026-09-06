@@ -73,6 +73,8 @@
   - type: StationEvent
     weight: 0.5
     startAnnouncement: station-event-radiation-storm-announcement
+    startAudio: # Whiskey - o evento entrava mudo, e ninguém percebia o aviso
+      path: /Audio/Announcements/radiation.ogg
     minimumPlayers: 25
     reoccurrenceDelay: 20
     maxOccurrences: 3

@@ -9,33 +9,13 @@ using Robust.Shared.Containers;
 namespace Content.Trauma.Server._Whiskey.Translation;
 
 /// <summary>
-/// Traduz a fala de quem está com um tradutor de verdade ligado.
+/// Traduz a fala de quem está com um tradutor de verdade ligado. Engole o
+/// original e reenvia pelo caminho normal do chat uns 300ms depois, então a
+/// frase ainda passa por sotaque, alcance e log.
 /// </summary>
 /// <remarks>
-/// <para>
-/// O jeito que isto se encaixa num jogo síncrono: a fala é interceptada antes
-/// de sair, o original é engolido, e quando a tradução volta, uns três décimos
-/// depois, a frase é reenviada pelo mesmo caminho de sempre. Assim ela passa
-/// por sotaque, idioma da espécie, alcance e log exatamente como qualquer outra
-/// fala, em vez de virar um caminho paralelo que precisa reimplementar tudo
-/// isso.
-/// </para>
-/// <para>
-/// O preço é o atraso: a frase sai uns três décimos depois do enter, e duas
-/// pessoas falando ao mesmo tempo podem aparecer fora de ordem. Falha de
-/// tradução não engole a fala, porque o resultado já vem com o texto original
-/// dentro.
-/// </para>
-/// <para>
-/// Só pega fala local. Mensagem de rádio já retornou antes deste ponto do
-/// <c>ChatSystem</c>, e é melhor assim: o prefixo de canal viajaria junto para
-/// o tradutor e voltaria traduzido, quebrando o roteamento.
-/// </para>
-/// <para>
-/// Este é só o lado de quem fala. O lado de quem escuta, que é o outro metade
-/// do pedido, mexe em como a mensagem é entregue por ouvinte e vai em separado,
-/// para poder ser revertido sozinho se der problema.
-/// </para>
+/// Só fala local: rádio já retornou antes deste ponto, e traduzir junto
+/// quebraria o prefixo de canal.
 /// </remarks>
 public sealed partial class AutoTranslateSystem : EntitySystem
 {

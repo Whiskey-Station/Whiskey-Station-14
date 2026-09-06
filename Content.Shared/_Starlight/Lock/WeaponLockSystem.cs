@@ -34,6 +34,21 @@ public sealed partial class WeaponLockSystem : EntitySystem
 
     private void OnUnequipHand(EntityUid uid, LockComponent component, GotUnequippedHandEvent args)
     {
+        // <Whiskey> - não trava o que está sendo destruído.
+        //
+        // Este evento também dispara quando a entidade sai da mão porque está
+        // sendo deletada, e não porque alguém a soltou. Travar aí não serve para
+        // nada, e o Lock toca som: o resultado é áudio numa entidade que já está
+        // terminando.
+        //
+        // Aparecia como "Tried to play coordinates audio on a terminating /
+        // deleted entity", e derrubava o AllItemsHaveSpritesTest, que cria e
+        // destrói todo item do jogo. O defeito já existia e ficou visível quando
+        // o engine passou para 289.0.2.
+        if (TerminatingOrDeleted(uid))
+            return;
+        // </Whiskey>
+
         if (component.AutoLock)
             _lock.Lock(uid, null, component);
     }

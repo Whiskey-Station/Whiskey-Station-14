@@ -298,6 +298,7 @@ public sealed partial class HealthAnalyzerSystem : EntitySystem
             null,
             // <Trauma>
             FetchBleedData(entity), // was bleeding bool
+            FetchBoneData(entity),
             unrevivable,
             _wound.GetDamageableStatesOnBody(entity),
             _threshold.CheckVitalDamage(entity),

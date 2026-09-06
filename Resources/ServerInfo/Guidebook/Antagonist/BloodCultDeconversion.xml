@@ -47,8 +47,8 @@
   Nenhuma dessas pistas, isoladamente, substitui uma investigação:
 
   - Depois que o culto alcança 10% da tripulação, os cultistas passam a ter olhos vermelhos. Examine a pessoa sem óculos ou venda para notar a alteração.
-  - Ao alcançar 20%, um pentagrama aparece sobre todos os cultistas e não pode ser escondido.
-  - Nesse mesmo estágio, o líder possui também uma aura vermelha animada aos pés.
+  - Ao alcançar 20%, um pentagrama aparece sobre os cultistas comuns e não pode ser escondido.
+  - Nesse mesmo estágio, o líder possui uma auréola própria sobre a cabeça e uma aura vermelha animada aos pés.
   - Comunicação por encantamentos sussurrados, desenhos de sangue, metal rúnico e estruturas de aparência profana indicam atividade do culto.
 
   ## Contenção
@@ -56,6 +56,6 @@
   - Separe suspeitos: várias runas dependem da presença de dois ou três cultistas.
   - Mantenha cultistas algemados ou sob custódia enquanto são arrastados; ambas as condições impedem que sejam resgatados pela runa de invocação.
   - Procure runas de teleporte e de oferenda nas proximidades antes de permanecer em uma área.
-  - Destrua fábricas, pilares e reservas de metal rúnico para reduzir a capacidade de recuperação do culto.
+  - Destrua fábricas, coletores de sangue e reservas de metal rúnico para reduzir a capacidade de recuperação do culto.
   - Após um anúncio de rasgo dimensional, retire cultistas das runas. Quebrar o número mínimo reinicia o cântico.
 </Document>
