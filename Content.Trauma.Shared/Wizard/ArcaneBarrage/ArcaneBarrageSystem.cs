@@ -56,7 +56,7 @@ public sealed partial class ArcaneBarrageSystem : EntitySystem
 
     private void OnBarrageShot(Entity<ArcaneBarrageComponent> ent, ref GunShotEvent args)
     {
-        if (_timing.ApplyingState || !Exists(ent))
+        if (_timing.ApplyingState || !Exists(ent) || !ent.Comp.SwapHandsOnShot) // Whiskey
             return;
 
         var user = args.User;

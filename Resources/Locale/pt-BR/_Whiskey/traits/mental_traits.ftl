@@ -45,3 +45,25 @@ depression-thought-19 = Você já pensou em como seria simplesmente não acordar
 depression-thought-20 = Olha para você. Que merda de vida.
 
 mood-effect-WhiskeyDepressaoEpisodio = O peso desceu de novo.
+
+trait-jolly-name = Alegre
+trait-jolly-desc = Às vezes você simplesmente fica feliz, sem motivo nenhum. Vem sozinho e passa sozinho.
+
+mood-effect-WhiskeyAlegriaEpisodio = A vida ficou leve de repente.
+
+jolly-thought-1 = Deu uma vontade boa de assobiar.
+jolly-thought-2 = Hoje até o corredor de manutenção parece bonito.
+jolly-thought-3 = Nada aconteceu, e mesmo assim está tudo bem.
+jolly-thought-4 = Você se pegou sorrindo à toa e não se importou.
+jolly-thought-5 = A estação inteira parece um pouco menos pesada agora.
+jolly-thought-6 = Bateu uma vontade de puxar assunto com o primeiro que aparecer.
+jolly-thought-7 = O barulho do ar recirculando ficou até agradável.
+jolly-thought-8 = Você lembrou de uma bobagem antiga e riu sozinho.
+jolly-thought-9 = Dá vontade de fazer alguma coisa boba e inofensiva.
+jolly-thought-10 = Se alguém pedir ajuda agora, você ajuda de bom grado.
+jolly-thought-11 = O turno está passando rápido, e isso é bom.
+jolly-thought-12 = Você reparou que estava cantarolando sem perceber.
+jolly-thought-13 = Nada disso vai durar, mas por enquanto está ótimo.
+jolly-thought-14 = O café da cantina até que não é tão ruim assim.
+jolly-thought-15 = Deu uma paz esquisita, dessas que a gente não questiona.
+jolly-thought-16 = Você está de bem com o mundo, e o mundo que se explique.

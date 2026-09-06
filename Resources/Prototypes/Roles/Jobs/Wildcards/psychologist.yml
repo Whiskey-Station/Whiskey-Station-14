@@ -26,6 +26,17 @@
     id: PsychologistPDA
     ears: ClothingHeadsetMedical
     pocket1: PillCanisterSpaceDrugs
+    # <Whiskey> - o Psicólogo passa a começar com algo que trata humor
+    #
+    # O cargo existe para cuidar da cabeça de quem está na estação, e o único
+    # remédio que ele carregava era Space Mirage, que dá visão de arco-íris e
+    # não mexe em humor nenhum. Com os traços mentais no jogo, ele tinha
+    # paciente e não tinha remédio.
+    #
+    # O vidro vai no outro bolso e não substitui o que já estava, para nenhuma
+    # rodada perder o que o cargo já fazia.
+    pocket2: PillCanisterWhiskeyEuforico
+    # </Whiskey>
   storage:
     back:
     - RubberStampPsychologist

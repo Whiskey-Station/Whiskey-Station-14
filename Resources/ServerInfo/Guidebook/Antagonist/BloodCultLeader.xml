@@ -16,7 +16,7 @@
   - [bold]Para o culto:[/bold] o líder possui um ícone próprio no HUD e seu nome aparece em Estudar o véu como “a voz dela entre nós”.
   - [bold]Antes do pentagrama:[/bold] a tripulação não recebe uma marca exclusiva e confiável para diferenciá-lo dos demais cultistas.
   - [bold]No estágio de olhos vermelhos:[/bold] os olhos denunciam todos os cultistas sem proteção ocular, não apenas o líder.
-  - [bold]No estágio do pentagrama:[/bold] todos veem uma aura vermelha animada aos pés do líder. Ele ainda possui o pentagrama sobre a cabeça, como os demais cultistas.
+  - [bold]No estágio do pentagrama:[/bold] todos veem uma aura vermelha animada aos pés do líder e uma auréola sobre sua cabeça, substituindo o pentagrama dos demais cultistas.
 
   ## Magias exclusivas
 
@@ -40,7 +40,7 @@
     <GuideEntityEmbed Entity="ActionBloodCultEldritchPulse" Caption="Pulso Eldritch"/>
   </Box>
 
-  [bold]Pulso Eldritch[/bold] move um cultista, constructo, pilar, fábrica, porta rúnica ou barreira. Aponte primeiro para o alvo e depois para o destino, ambos dentro do alcance de 15 metros. A recarga de 2 minutos começa quando o alvo é transportado.
+  [bold]Pulso Eldritch[/bold] move um cultista, constructo, coletor de sangue, fábrica, porta rúnica ou barreira. Aponte primeiro para o alvo e depois para o destino, ambos dentro do alcance de 15 metros. A recarga de 2 minutos começa quando o alvo é transportado.
 
   ## Runas especiais e o fim da rodada
 

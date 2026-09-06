@@ -45,3 +45,25 @@ depression-thought-19 = You have thought about what it would be like to just not
 depression-thought-20 = Look at you. What a shit life.
 
 mood-effect-WhiskeyDepressaoEpisodio = The weight has come down again.
+
+trait-jolly-name = Jolly
+trait-jolly-desc = You sometimes just feel happy, for no reason at all. It comes on its own and passes on its own.
+
+mood-effect-WhiskeyAlegriaEpisodio = Life suddenly feels light.
+
+jolly-thought-1 = You feel a sudden urge to whistle.
+jolly-thought-2 = Even the maintenance corridor looks nice today.
+jolly-thought-3 = Nothing happened, and everything is still fine.
+jolly-thought-4 = You catch yourself smiling for no reason, and let it be.
+jolly-thought-5 = The whole station feels a little lighter right now.
+jolly-thought-6 = You feel like striking up a conversation with the next person you see.
+jolly-thought-7 = Even the hum of the air recyclers sounds pleasant.
+jolly-thought-8 = You remember something silly from long ago and laugh to yourself.
+jolly-thought-9 = You feel like doing something daft and harmless.
+jolly-thought-10 = If anyone asks for help right now, you would gladly give it.
+jolly-thought-11 = The shift is going by fast, and that is good.
+jolly-thought-12 = You notice you have been humming without realising it.
+jolly-thought-13 = None of this will last, but for now it is wonderful.
+jolly-thought-14 = The canteen coffee is not so bad after all.
+jolly-thought-15 = A strange calm settles in, the kind you do not question.
+jolly-thought-16 = You are at peace with the world, and the world can explain itself.

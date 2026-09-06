@@ -340,6 +340,11 @@ ui-options-disable-rainbow-overlay = Sobreposição arco-íris
 ui-options-disable-rainbow-overlay-tooltip = Substitui o movimento do shader arco-íris por um deslocamento estático.
 ui-options-disable-singulo-warp = Singularidade
 ui-options-disable-singulo-warp-tooltip = Desativa o efeito de deformação de tela da singularidade.
+
+# <Whiskey> - desligar o filtro de humor
+ui-options-disable-mood-overlay = Humor
+ui-options-disable-mood-overlay-tooltip = Desativa a perda de cor da tela causada por humor baixo. Não muda o humor em si.
+# </Whiskey>
 ui-options-screen-shake-intensity = Intensidade do tremor de tela
 ui-options-chat-window-opacity = Opacidade da janela de chat
 ui-options-speech-bubble-text-opacity = Opacidade do texto dos balões de fala
