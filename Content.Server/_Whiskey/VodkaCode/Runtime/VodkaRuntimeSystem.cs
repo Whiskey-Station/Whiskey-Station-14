@@ -5,6 +5,7 @@ using Content.Server._Whiskey.Dwaine.FileSystem;
 using Content.Server._Whiskey.Dwaine.Devices;
 using Content.Server._Whiskey.Dwaine.Identity;
 using Content.Server._Whiskey.Dwaine.Kernel;
+using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
 using Content.Server._Whiskey.Dwaine.Syscalls;
 using Content.Shared._Whiskey.Dwaine.Devices;
@@ -30,6 +31,8 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
     [Dependency] private DwaineFileSystemSystem _fileSystems = default!;
     [Dependency] private DwaineIdentitySystem _identities = default!;
     [Dependency] private DwaineKernelSystem _kernel = default!;
+    [Dependency] private DwaineCommunicationSystem _communications = default!;
+    [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private DwaineProcessSystem _processes = default!;
     [Dependency] private DwaineSyscallSystem _syscalls = default!;
     [Dependency] private IGameTiming _timing = default!;
@@ -443,6 +446,9 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
                 };
             }
 
+            if (name.StartsWith("sys.network.", StringComparison.Ordinal))
+                return Network(name, arguments);
+
             if (!_processId.IsValid || _machine is null || !TryMapCall(name, out var syscall))
                 return VodkaHostCallResult.Failure(VodkaHostCallStatus.UnknownFunction, $"unknown function: {name}");
             if (!TryConvertArguments(name, syscall, arguments, out var converted, out var conversionError))
@@ -524,6 +530,101 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
             return VodkaHostCallResult.Success(VodkaValue.FromBoolean(
                 Files.CheckExecute(_principal, path, _vfsWorkingDirectory) == DwaineVfsResult.Success));
         }
+
+        private VodkaHostCallResult Network(string name, IReadOnlyList<VodkaValue> arguments)
+        {
+            if (!_processId.IsValid || _machine is null)
+                return VodkaHostCallResult.Failure(VodkaHostCallStatus.AccessDenied, "network caller unavailable");
+            if (name == "sys.network.address" && arguments.Count == 0)
+            {
+                var result = _system._network.GetNode(_mainframe, out var node);
+                return NetworkValue(result, node.Address.Value);
+            }
+            if (name == "sys.network.discover"
+                && arguments.Count <= 1
+                && (arguments.Count == 0 || arguments[0].Kind == VodkaValueKind.String))
+            {
+                var result = _system._network.Discover(
+                    _mainframe,
+                    arguments.Count == 1 ? arguments[0].Text : null,
+                    out var nodes);
+                return NetworkValue(result, string.Join('\n', nodes.Select(node => node.Address.Value)));
+            }
+            if (name == "sys.network.ping"
+                && arguments.Count == 1
+                && arguments[0].Kind == VodkaValueKind.String)
+            {
+                var result = _system._network.TryRequest(
+                    _mainframe,
+                    arguments[0].Text,
+                    "dwaine.ping",
+                    string.Empty,
+                    out var correlation);
+                if (result is not (DwaineNetworkResult.Success or DwaineNetworkResult.Pending))
+                    return NetworkFailure(result);
+                result = _system._network.TryTakeReply(_mainframe, correlation, out var reply);
+                return NetworkValue(result, reply);
+            }
+            if (name == "sys.network.send"
+                && arguments.Count == 3
+                && arguments.All(argument => argument.Kind == VodkaValueKind.String))
+            {
+                var result = _system._communications.TrySend(
+                    _mainframe,
+                    _principal,
+                    arguments[0].Text,
+                    arguments[1].Text,
+                    arguments[2].Text);
+                return result == DwaineNetworkResult.Success
+                    ? VodkaHostCallResult.Success(VodkaValue.FromBoolean(true))
+                    : NetworkFailure(result);
+            }
+            if (name == "sys.network.sendfile"
+                && arguments.Count == 3
+                && arguments.All(argument => argument.Kind == VodkaValueKind.String))
+            {
+                var result = _system._communications.TrySendFile(
+                    _mainframe,
+                    _principal,
+                    arguments[0].Text,
+                    arguments[1].Text,
+                    arguments[2].Text,
+                    _vfsWorkingDirectory,
+                    out var receivedPath);
+                return NetworkValue(result, receivedPath);
+            }
+            if (name == "sys.network.receive" && arguments.Count == 0)
+            {
+                var result = _system._communications.TryReceive(_mainframe, _principal, out var message);
+                if (result == DwaineNetworkResult.NotFound)
+                    return VodkaHostCallResult.Success(VodkaValue.FromString(string.Empty));
+                return NetworkValue(result, $"{message.SourceAddress}\t{message.Sender}\t{message.Message}");
+            }
+            return VodkaHostCallResult.Failure(
+                VodkaHostCallStatus.InvalidArguments,
+                $"invalid network call: {name}");
+        }
+
+        private static VodkaHostCallResult NetworkValue(DwaineNetworkResult result, string value)
+            => result == DwaineNetworkResult.Success
+                ? VodkaHostCallResult.Success(VodkaValue.FromString(value))
+                : NetworkFailure(result);
+
+        private static VodkaHostCallResult NetworkFailure(DwaineNetworkResult result)
+            => VodkaHostCallResult.Failure(result switch
+            {
+                DwaineNetworkResult.InvalidNode or DwaineNetworkResult.InvalidAddress
+                    or DwaineNetworkResult.InvalidPayload => VodkaHostCallStatus.InvalidArguments,
+                DwaineNetworkResult.NotFound => VodkaHostCallStatus.NotFound,
+                DwaineNetworkResult.DuplicateAddress => VodkaHostCallStatus.Conflict,
+                DwaineNetworkResult.RateLimited => VodkaHostCallStatus.RateLimited,
+                DwaineNetworkResult.PayloadTooLarge or DwaineNetworkResult.CapacityReached => VodkaHostCallStatus.LimitExceeded,
+                DwaineNetworkResult.CrossNetwork => VodkaHostCallStatus.AccessDenied,
+                DwaineNetworkResult.Disabled or DwaineNetworkResult.AdapterMismatch
+                    or DwaineNetworkResult.OutOfRange or DwaineNetworkResult.Interfered
+                    or DwaineNetworkResult.Timeout or DwaineNetworkResult.Disconnected => VodkaHostCallStatus.Offline,
+                _ => VodkaHostCallStatus.Unavailable,
+            }, $"network: {result.ToString().ToLowerInvariant()}");
 
         private static bool TryMapCall(string name, out DwaineSyscallId syscall)
         {

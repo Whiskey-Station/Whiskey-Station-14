@@ -195,6 +195,16 @@ public readonly record struct DwaineBootDiagnostic(
     string Code,
     string Message);
 
+/// <summary>
+/// Synchronous bootloader extension point. A handler may satisfy the storage prerequisite only
+/// through its own bounded, authoritative recovery policy.
+/// </summary>
+[ByRefEvent]
+public record struct DwaineBootRecoveryRequestedEvent
+{
+    public bool Recovered;
+}
+
 public sealed class DwaineBootDiagnosticBuffer
 {
     public const int HardMaxEntries = 128;

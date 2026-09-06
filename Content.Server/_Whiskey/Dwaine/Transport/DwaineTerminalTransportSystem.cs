@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Server._Whiskey.Dwaine.Hardware;
+using Content.Server._Whiskey.Dwaine.Network;
 using Content.Shared._Whiskey.Dwaine;
 using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Transport;
@@ -20,8 +21,8 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
     private const int PendingInputCharacters = 8192;
 
     [Dependency] private DwaineHardwareSystem _hardware = default!;
+    [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private IGameTiming _timing = default!;
-    [Dependency] private SharedTransformSystem _transform = default!;
 
     private readonly HashSet<EntityUid> _mainframes = new();
     private readonly Dictionary<string, HashSet<EntityUid>> _mainframesByNetwork =
@@ -463,32 +464,14 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
         EntityUid mainframe,
         out DwaineConnectResult result)
     {
-        result = DwaineConnectResult.TopologyMismatch;
-        if (!TryComp<DwaineNetworkConnectorComponent>(terminal, out var terminalNetwork)
-            || !TryComp<DwaineNetworkConnectorComponent>(mainframe, out var mainframeNetwork)
-            || !terminalNetwork.Enabled
-            || !mainframeNetwork.Enabled
-            || string.IsNullOrWhiteSpace(terminalNetwork.NetworkId)
-            || terminalNetwork.NetworkId.Length > DwaineNetworkConnectorComponent.HardMaxNetworkIdLength
-            || string.IsNullOrWhiteSpace(mainframeNetwork.NetworkId)
-            || mainframeNetwork.NetworkId.Length > DwaineNetworkConnectorComponent.HardMaxNetworkIdLength
-            || !string.Equals(terminalNetwork.NetworkId, mainframeNetwork.NetworkId, StringComparison.Ordinal))
+        var networkResult = _network.CanReach(terminal, mainframe);
+        result = networkResult switch
         {
-            return false;
-        }
-
-        var range = Math.Min(terminalNetwork.LinkRange, mainframeNetwork.LinkRange);
-        if (!float.IsFinite(range)
-            || range <= 0f
-            || !_transform.GetMapCoordinates(terminal)
-                .InRange(_transform.GetMapCoordinates(mainframe), range))
-        {
-            result = DwaineConnectResult.OutOfRange;
-            return false;
-        }
-
-        result = DwaineConnectResult.Connected;
-        return true;
+            DwaineNetworkResult.Success => DwaineConnectResult.Connected,
+            DwaineNetworkResult.OutOfRange or DwaineNetworkResult.Interfered => DwaineConnectResult.OutOfRange,
+            _ => DwaineConnectResult.TopologyMismatch,
+        };
+        return networkResult == DwaineNetworkResult.Success;
     }
 
     private void ForceDisconnect(EntityUid terminal, DwaineDisconnectReason reason)

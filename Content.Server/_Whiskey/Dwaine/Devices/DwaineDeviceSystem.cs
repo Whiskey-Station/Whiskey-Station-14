@@ -4,6 +4,7 @@
 using Content.Server._Whiskey.Dwaine.Hardware;
 using Content.Server._Whiskey.Dwaine.Identity;
 using Content.Server._Whiskey.Dwaine.Kernel;
+using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
 using Content.Server._Whiskey.Dwaine.Storage;
 using Content.Server._Whiskey.Dwaine.Transport;
@@ -24,6 +25,7 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
 {
     [Dependency] private DwaineIdentitySystem _identities = default!;
     [Dependency] private DwaineKernelSystem _kernel = default!;
+    [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private DwaineProcessSystem _processes = default!;
     [Dependency] private DwaineStorageSystem _storage = default!;
     [Dependency] private DwaineTerminalTransportSystem _transport = default!;
@@ -324,6 +326,12 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
 
     private void Reconcile(EntityUid mainframe, DwaineDeviceAbiComponent config, DwaineDeviceAbiRuntimeComponent runtime)
     {
+        if (TryComp<DwaineDeviceComponent>(mainframe, out var localDevice)
+            && !runtime.ByEntity.ContainsKey(mainframe))
+        {
+            Attach(mainframe, mainframe, localDevice, config, runtime, null);
+        }
+
         if (TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var transport))
         {
             foreach (var session in transport.Sessions.Values)
@@ -497,6 +505,11 @@ public sealed partial class DwaineDeviceSystem : EntitySystem
             return _transport.HasSession(mainframe, session) ? DwaineDeviceStatus.Ready : DwaineDeviceStatus.Offline;
         if (TryComp<DwaineDeviceComponent>(endpoint.Entity, out var config) && !config.Enabled)
             return DwaineDeviceStatus.Offline;
+        if (string.Equals(endpoint.DriverId, "radio", StringComparison.Ordinal)
+            && _network.GetNode(endpoint.Entity, out _) != DwaineNetworkResult.Success)
+        {
+            return DwaineDeviceStatus.Offline;
+        }
         if (HasComp<DwaineStorageMediaComponent>(endpoint.Entity)
             && (!_storage.TryGetMediaSnapshot(endpoint.Entity, out var media) || media.InsertedInto != mainframe))
         {

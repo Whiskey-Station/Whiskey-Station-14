@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Server._Whiskey.Dwaine.FileSystem;
+using Content.Server._Whiskey.Dwaine.Devices;
 using Content.Server._Whiskey.Dwaine.Identity;
 using Content.Server._Whiskey.Dwaine.Kernel;
+using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
 using Content.Server._Whiskey.Dwaine.Storage;
 using Content.Server._Whiskey.Dwaine.Transport;
@@ -16,6 +18,7 @@ using Robust.Shared.Timing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Content.Server._Whiskey.Dwaine.Shell;
 
@@ -26,8 +29,11 @@ namespace Content.Server._Whiskey.Dwaine.Shell;
 public sealed partial class DwaineShellSystem : EntitySystem
 {
     [Dependency] private DwaineFileSystemSystem _fileSystems = default!;
+    [Dependency] private DwaineDeviceSystem _devices = default!;
     [Dependency] private DwaineIdentitySystem _identities = default!;
     [Dependency] private DwaineKernelSystem _kernel = default!;
+    [Dependency] private DwaineCommunicationSystem _communications = default!;
+    [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private DwaineProcessSystem _processes = default!;
     [Dependency] private DwaineStorageSystem _storage = default!;
     [Dependency] private DwaineTerminalTransportSystem _transport = default!;
@@ -390,7 +396,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
         EntityUid mainframe,
         DwaineSessionId transportSession,
         DwaineIdentityStore identities,
-        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost, IDwaineVodkaShellHost
+        DwaineVirtualFileSystem fileSystem) : IDwaineShellHost, IDwaineVodkaShellHost, IDwaineNetworkShellHost
     {
         public TimeSpan Now => system._timing.CurTime;
         public DwaineIdentitySessionSnapshot Identity =>
@@ -548,6 +554,136 @@ public sealed partial class DwaineShellSystem : EntitySystem
             return true;
         }
 
+        public DwaineShellHostResult Network(IReadOnlyList<string> arguments, DwaineVfsNodeHandle workingDirectory)
+        {
+            if (arguments.Count == 1 && arguments[0] == "address")
+            {
+                var result = system._network.GetNode(mainframe, out var node);
+                return result == DwaineNetworkResult.Success
+                    ? DwaineShellHostResult.Success(node.Address.Value + "\n")
+                    : NetworkFailure(result);
+            }
+            if (arguments.Count == 1 && arguments[0] == "status")
+            {
+                var result = system._network.GetNode(mainframe, out var node);
+                return result == DwaineNetworkResult.Success
+                    ? DwaineShellHostResult.Success(
+                        $"{node.Address.Value} {node.NetworkId} {node.Adapter.ToString().ToLowerInvariant()} " +
+                        $"{node.Frequency} {node.Channel} online\n")
+                    : NetworkFailure(result);
+            }
+            if (arguments.Count is 1 or 2 && arguments[0] == "discover")
+            {
+                var result = system._network.Discover(
+                    mainframe,
+                    arguments.Count == 2 ? arguments[1] : null,
+                    out var nodes);
+                if (result != DwaineNetworkResult.Success)
+                    return NetworkFailure(result);
+                var lines = nodes.Select(node =>
+                    $"{node.Address.Value}\t{string.Join(',', node.Tags)}\t{node.Adapter.ToString().ToLowerInvariant()}");
+                return DwaineShellHostResult.Success(string.Join('\n', lines) + (nodes.Length > 0 ? "\n" : string.Empty));
+            }
+            if (arguments.Count == 2 && arguments[0] == "ping")
+            {
+                var result = system._network.TryRequest(
+                    mainframe,
+                    arguments[1],
+                    "dwaine.ping",
+                    string.Empty,
+                    out var correlation);
+                if (result is not (DwaineNetworkResult.Success or DwaineNetworkResult.Pending))
+                    return NetworkFailure(result);
+                result = system._network.TryTakeReply(mainframe, correlation, out var reply);
+                return result == DwaineNetworkResult.Success
+                    ? DwaineShellHostResult.Success(reply + "\n")
+                    : NetworkFailure(result);
+            }
+            if (arguments.Count >= 4 && arguments[0] == "send")
+            {
+                var result = system._communications.TrySend(
+                    mainframe,
+                    Identity.Principal,
+                    arguments[1],
+                    arguments[2],
+                    string.Join(' ', arguments.Skip(3)));
+                return result == DwaineNetworkResult.Success
+                    ? DwaineShellHostResult.Success("sent\n")
+                    : NetworkFailure(result);
+            }
+            if (arguments.Count == 4 && arguments[0] == "sendfile")
+            {
+                var result = system._communications.TrySendFile(
+                    mainframe,
+                    Identity.Principal,
+                    arguments[1],
+                    arguments[2],
+                    arguments[3],
+                    workingDirectory,
+                    out var receivedPath);
+                return result == DwaineNetworkResult.Success
+                    ? DwaineShellHostResult.Success($"sent {receivedPath}\n")
+                    : NetworkFailure(result);
+            }
+            if (arguments.Count == 1 && arguments[0] == "inbox")
+            {
+                var output = new StringBuilder();
+                for (var count = 0; count < 64; count++)
+                {
+                    var result = system._communications.TryReceive(mainframe, Identity.Principal, out var message);
+                    if (result == DwaineNetworkResult.NotFound)
+                        break;
+                    if (result != DwaineNetworkResult.Success)
+                        return NetworkFailure(result);
+                    output.Append(message.SourceAddress)
+                        .Append(' ')
+                        .Append(message.Sender)
+                        .Append(": ")
+                        .AppendLine(message.Message);
+                }
+                return DwaineShellHostResult.Success(output.ToString());
+            }
+            if (arguments.Count == 1 && arguments[0] == "metrics")
+            {
+                if (!identities.HasPermission(Identity.Principal, DwaineIdentityPermission.InspectSessions))
+                    return DwaineShellHostResult.Failure("net: permission denied\n");
+                var metrics = system._network.GetMetrics(mainframe);
+                return DwaineShellHostResult.Success(
+                    $"sent={metrics.Sent} delivered={metrics.Delivered} dropped={metrics.Dropped} " +
+                    $"discoveries={metrics.Discoveries} requests={metrics.Requests} replies={metrics.Replies} " +
+                    $"pending={metrics.PendingRequests} capture={metrics.CapturedEntries}\n");
+            }
+            if (arguments.Count == 1 && arguments[0] == "capture")
+            {
+                if (!identities.HasPermission(Identity.Principal, DwaineIdentityPermission.InspectSessions))
+                    return DwaineShellHostResult.Failure("net: permission denied\n");
+                var entries = system._network.GetCapture(mainframe);
+                var lines = entries.Select(entry =>
+                    $"{entry.Source}->{entry.Destination} {entry.Protocol} bytes={entry.PayloadCharacters} {entry.Result.ToString().ToLowerInvariant()}");
+                return DwaineShellHostResult.Success(string.Join('\n', lines) + (entries.Length > 0 ? "\n" : string.Empty));
+            }
+            return DwaineShellHostResult.Failure(
+                "usage: net address|status|discover [TAG]|ping ADDRESS|send ADDRESS USER MESSAGE...|sendfile ADDRESS USER FILE|inbox|metrics|capture\n");
+        }
+
+        public DwaineShellHostResult Scan(DwaineProcessId process)
+        {
+            var discovery = system._network.Discover(mainframe, null, out var nodes);
+            if (discovery != DwaineNetworkResult.Success)
+                return NetworkFailure(discovery);
+            var scan = system._devices.TryScan(mainframe, process, Identity.Principal, out _);
+            if (scan != Content.Server._Whiskey.Dwaine.Devices.DwaineDeviceResult.Success)
+                return DwaineShellHostResult.Failure($"scnt: {scan.ToString().ToLowerInvariant()}\n");
+            var devices = system._devices.ListDevices(mainframe, process, Identity.Principal);
+            var output = new StringBuilder();
+            foreach (var node in nodes)
+                output.Append("network ").Append(node.Address.Value).Append(' ').AppendLine(string.Join(',', node.Tags));
+            foreach (var device in devices)
+                output.Append("device ").Append(device.Address).Append(' ').Append(device.DriverId).Append(' ')
+                    .AppendLine(device.Status.ToString().ToLowerInvariant());
+            return DwaineShellHostResult.Success(output.ToString());
+        }
+
         private DwaineStorageMediaSnapshot? FindMedia(string label)
         {
             foreach (var snapshot in system._storage.GetInsertedMedia(mainframe))
@@ -571,5 +707,8 @@ public sealed partial class DwaineShellSystem : EntitySystem
                         ? "\n"
                         : $" ({result.FileSystemResult.ToString().ToLowerInvariant()})\n"));
         }
+
+        private static DwaineShellHostResult NetworkFailure(DwaineNetworkResult result)
+            => DwaineShellHostResult.Failure($"net: {result.ToString().ToLowerInvariant()}\n");
     }
 }

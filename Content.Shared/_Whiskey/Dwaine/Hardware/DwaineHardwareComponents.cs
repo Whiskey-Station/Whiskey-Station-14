@@ -78,16 +78,50 @@ public sealed partial class DwaineStorageConnectorComponent : Component
 /// <summary>
 /// Physical network interface. Routing and discovery land in PR 13.
 /// </summary>
+[Flags]
+public enum DwaineNetworkAdapter : byte
+{
+    None = 0,
+    Wired = 1 << 0,
+    Radio = 1 << 1,
+    Omni = Wired | Radio,
+}
+
 [RegisterComponent]
 public sealed partial class DwaineNetworkConnectorComponent : Component
 {
     public const int HardMaxNetworkIdLength = 64;
+    public const int HardMaxAddressLength = 64;
+    public const int HardMaxTagCount = 16;
+    public const int HardMaxTagLength = 32;
+    public const int MinimumFrequency = 100;
+    public const int MaximumFrequency = 9999;
+    public const float HardMaxLinkRange = 256f;
 
     [DataField]
     public bool Enabled = true;
 
     [DataField]
     public string NetworkId = "station";
+
+    /// <summary>
+    /// Optional requested address. The server allocates an opaque unique address when empty and owns
+    /// duplicate resolution regardless of prototype configuration.
+    /// </summary>
+    [DataField]
+    public string Address = string.Empty;
+
+    [DataField]
+    public DwaineNetworkAdapter Adapter = DwaineNetworkAdapter.Radio;
+
+    [DataField]
+    public List<string> Tags = [];
+
+    [DataField]
+    public int Frequency = 1459;
+
+    [DataField]
+    public string Channel = "station";
 
     [DataField]
     public float LinkRange = 16f;

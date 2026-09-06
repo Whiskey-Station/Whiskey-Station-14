@@ -211,6 +211,15 @@ public interface IDwaineVodkaShellHost
     bool TryTakeVodkaOutput(DwaineProcessId processId, out DwaineShellProgramOutput output);
 }
 
+/// <summary>
+/// Optional server-owned network host used by the shell without exposing topology entities.
+/// </summary>
+public interface IDwaineNetworkShellHost
+{
+    DwaineShellHostResult Network(IReadOnlyList<string> arguments, DwaineVfsNodeHandle workingDirectory);
+    DwaineShellHostResult Scan(DwaineProcessId process);
+}
+
 public readonly record struct DwaineShellExecutionResult(
     int ExitCode,
     string StandardOutput,

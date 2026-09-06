@@ -78,7 +78,16 @@ public sealed class DwaineSyscallTest : GameTest
           - type: DwaineStorageRuntime
           - type: DwaineNetworkConnector
             networkId: syscall-test
+            address: syscall-mainframe
             linkRange: 10
+          - type: DwaineNetworkEndpoint
+          - type: DwaineDevice
+            driverId: radio
+            address: network0
+            tag: network
+            displayName: test network adapter
+            capabilities: Inspect, Message
+            access: Authenticated
           - type: DwaineDeviceBusEndpoint
             busId: syscall-test
           - type: DwaineDeviceAbi
@@ -411,6 +420,7 @@ public sealed class DwaineSyscallTest : GameTest
                 Assert.That(list.Value.Text, Does.Contain("sensor-a"));
                 Assert.That(list.Value.Text, Does.Contain("user-terminal"));
                 Assert.That(list.Value.Text, Does.Contain("storage-media"));
+                Assert.That(list.Value.Text, Does.Contain("network0"));
             });
 
             var acquired = syscalls.Execute(mainframe, parent, DwaineSyscallId.DeviceGet,
@@ -427,6 +437,23 @@ public sealed class DwaineSyscallTest : GameTest
                 DwaineSyscallValue.FromString(""),
             ]);
             Assert.That(status.Value.Text, Is.EqualTo("ready"));
+            var radio = syscalls.Execute(mainframe, parent, DwaineSyscallId.DeviceGet,
+            [
+                DwaineSyscallValue.FromString("network0"),
+                DwaineSyscallValue.FromInteger((long) (DwaineDeviceCapability.Inspect | DwaineDeviceCapability.Message)),
+            ]);
+            Assert.That(radio.Status, Is.EqualTo(DwaineSyscallStatus.Success));
+            var address = syscalls.Execute(mainframe, parent, DwaineSyscallId.DeviceMessage,
+            [
+                DwaineSyscallValue.FromDeviceHandle(radio.Value.DeviceHandle),
+                DwaineSyscallValue.FromString("address"),
+                DwaineSyscallValue.FromString(string.Empty),
+            ]);
+            Assert.Multiple(() =>
+            {
+                Assert.That(address.Status, Is.EqualTo(DwaineSyscallStatus.Success));
+                Assert.That(address.Value.Text, Is.EqualTo("syscall-mainframe"));
+            });
             Assert.That(syscalls.Execute(mainframe, peer, DwaineSyscallId.DeviceMessage,
             [
                 DwaineSyscallValue.FromDeviceHandle(sensorHandle),
