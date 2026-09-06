@@ -110,3 +110,8 @@ public readonly record struct DwaineProcessStateChangedEvent(
     DwaineProcessState Previous,
     DwaineProcessState Current,
     ulong BootGeneration);
+
+[ByRefEvent]
+public readonly record struct DwaineProcessRemovedEvent(
+    DwaineProcessId ProcessId,
+    ulong BootGeneration);

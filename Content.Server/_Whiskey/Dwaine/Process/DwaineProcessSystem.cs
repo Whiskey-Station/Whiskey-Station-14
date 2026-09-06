@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Server._Whiskey.Dwaine.Kernel;
+using Content.Server._Whiskey.Dwaine.FileSystem;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Process;
 using Robust.Shared.Timing;
@@ -20,6 +21,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
     public const int HardMaxErrorCodeLength = 48;
 
     [Dependency] private DwaineKernelSystem _kernel = default!;
+    [Dependency] private DwaineFileSystemSystem _fileSystem = default!;
     [Dependency] private IGameTiming _timing = default!;
 
     private readonly HashSet<EntityUid> _scheduledMainframes = new();
@@ -50,7 +52,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             }
 
             var limits = DwaineProcessLimits.FromComponent(config);
-            PruneCompleted(runtime, limits, now);
+            PruneCompleted(mainframe, runtime, limits, now);
 
             // Snapshotting the queue length guarantees at most one dispatch per process per update.
             var dispatches = Math.Min(limits.MaxDispatchesPerUpdate, runtime.ReadyQueue.Count);
@@ -118,7 +120,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         }
 
         var limits = DwaineProcessLimits.FromComponent(config);
-        PruneCompleted(runtime, limits, _timing.CurTime);
+        PruneCompleted(mainframe, runtime, limits, _timing.CurTime);
 
         DwaineProcessRecord? parent = null;
         if (request.ParentId is { } parentId)
@@ -130,6 +132,12 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                 return DwaineProcessSpawnResult.InvalidParent;
             }
         }
+
+        var workingDirectory = request.WorkingDirectory.IsValid
+            ? request.WorkingDirectory
+            : parent?.WorkingDirectory ?? DwaineWorkingDirectoryHandle.Root;
+        if (!_fileSystem.IsDirectory(mainframe, workingDirectory))
+            return DwaineProcessSpawnResult.InvalidWorkingDirectory;
 
         if (GetActiveProcessCount(runtime) >= limits.MaxProcesses)
             return DwaineProcessSpawnResult.MainframeLimitReached;
@@ -152,9 +160,6 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         if (!TryAllocateProcessId(runtime, out processId))
             return DwaineProcessSpawnResult.PidExhausted;
 
-        var workingDirectory = request.WorkingDirectory.IsValid
-            ? request.WorkingDirectory
-            : parent?.WorkingDirectory ?? DwaineWorkingDirectoryHandle.Root;
         var process = new DwaineProcessRecord(
             processId,
             request.ParentId,
@@ -298,7 +303,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
 
             target.LastWaitResult = child.Result();
             target.WaitingFor = null;
-            RemoveProcessRecord(runtime, child);
+            RemoveProcessRecord(mainframe, runtime, child);
         }
 
         SetState(mainframe, runtime, target, DwaineProcessState.Ready);
@@ -335,7 +340,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         if (child.IsTerminal)
         {
             result = child.Result();
-            RemoveProcessRecord(runtime, child);
+            RemoveProcessRecord(mainframe, runtime, child);
             return DwaineProcessWaitStatus.Completed;
         }
 
@@ -428,7 +433,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             return false;
         }
 
-        RemoveProcessRecord(runtime, process);
+        RemoveProcessRecord(mainframe, runtime, process);
         return true;
     }
 
@@ -591,7 +596,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                 break;
         }
 
-        PruneCompleted(runtime, limits, now);
+        PruneCompleted(mainframe, runtime, limits, now);
     }
 
     private bool BeginWait(
@@ -606,7 +611,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         if (child.IsTerminal)
         {
             parent.LastWaitResult = child.Result();
-            RemoveProcessRecord(runtime, child);
+            RemoveProcessRecord(mainframe, runtime, child);
             SetState(mainframe, runtime, parent, DwaineProcessState.Ready);
             EnqueueReady(mainframe, runtime, parent);
             return true;
@@ -722,7 +727,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         }
 
         if (delivered)
-            RemoveProcessRecord(runtime, process);
+            RemoveProcessRecord(mainframe, runtime, process);
         else
             runtime.CompletedOrder.Enqueue(process.Id);
     }
@@ -959,7 +964,8 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             runtime.ActiveByOwner[owner] = count - 1;
     }
 
-    private static void RemoveProcessRecord(
+    private void RemoveProcessRecord(
+        EntityUid mainframe,
         DwaineProcessRuntimeComponent runtime,
         DwaineProcessRecord process)
     {
@@ -977,9 +983,12 @@ public sealed partial class DwaineProcessSystem : EntitySystem
         process.Mailbox.Clear();
         if (process.IsTerminal && runtime.CompletedProcessCount > 0)
             runtime.CompletedProcessCount--;
+        var removed = new DwaineProcessRemovedEvent(process.Id, runtime.BootGeneration);
+        RaiseLocalEvent(mainframe, ref removed);
     }
 
-    private static void PruneCompleted(
+    private void PruneCompleted(
+        EntityUid mainframe,
         DwaineProcessRuntimeComponent runtime,
         DwaineProcessLimits limits,
         TimeSpan now)
@@ -998,7 +1007,7 @@ public sealed partial class DwaineProcessSystem : EntitySystem
                 break;
 
             runtime.CompletedOrder.Dequeue();
-            RemoveProcessRecord(runtime, process);
+            RemoveProcessRecord(mainframe, runtime, process);
         }
     }
 
