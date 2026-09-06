@@ -87,7 +87,11 @@ public sealed partial class BloodRitesUi : BoundUserInterface
                 return;
 
             var name = $"{cost}: {proto.Name}";
-            var button = CreateButton(name, _sprite.Frame0(proto));
+            var color = Color.White;
+            if (proto.TryComp(out SpriteComponent? sprite, _entManager.ComponentFactory))
+                color = sprite.Color; // Whiskey - Frame0 does not preserve the prototype's sprite tint.
+
+            var button = CreateButton(name, _sprite.Frame0(proto), color);
             button.OnButtonUp += _ =>
             {
                 TryCraft(protoId, cost);
@@ -97,7 +101,7 @@ public sealed partial class BloodRitesUi : BoundUserInterface
         }
     }
 
-    private RadialMenuButton CreateButton(string name, Texture icon)
+    private RadialMenuButton CreateButton(string name, Texture icon, Color color)
     {
         var button = new RadialMenuButton
         {
@@ -112,7 +116,8 @@ public sealed partial class BloodRitesUi : BoundUserInterface
             VerticalAlignment = Control.VAlignment.Center,
             HorizontalAlignment = Control.HAlignment.Center,
             Texture = icon,
-            TextureScale = iconScale
+            TextureScale = iconScale,
+            Modulate = color // Whiskey - keep tinted rite icons red in the radial menu.
         };
 
         button.AddChild(texture);

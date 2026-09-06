@@ -4,6 +4,9 @@
 using System.Linq;
 using System.Numerics;
 using Content.Server.Popups;
+using Content.Medical.Common.Damage;
+using Content.Medical.Common.Targeting;
+using Content.Shared.Body.Systems;
 using Content.Shared.Damage;
 using Content.Shared.Humanoid;
 using Content.Shared.Interaction;
@@ -30,6 +33,7 @@ public sealed partial class PylonSystem : EntitySystem
 
     [Dependency] private AppearanceSystem _appearance = default!;
     [Dependency] private AudioSystem _audio = default!;
+    [Dependency] private BloodstreamSystem _bloodstream = default!;
     [Dependency] private DamageableSystem _damageable = default!;
     [Dependency] private EntityLookupSystem _lookup = default!;
     [Dependency] private MapSystem _map = default!;
@@ -133,8 +137,21 @@ public sealed partial class PylonSystem : EntitySystem
 
         foreach (var target in targets)
         {
-            if (HasComp<BloodCultistComponent>(target) && !_mobState.IsDead(target))
-                _damageable.TryChangeDamage(target.Owner, pylon.Comp.Healing, true);
+            if (!HasComp<BloodCultistComponent>(target) || _mobState.IsDead(target))
+                continue;
+
+            // Whiskey - Trauma stores ordinary injuries on body parts, so healing only the root entity
+            // would frequently miss the actual wound and make the collector appear ineffective.
+            _damageable.TryChangeDamage(target.Owner,
+                pylon.Comp.Healing,
+                true,
+                false,
+                targetPart: TargetBodyPart.All,
+                splitDamage: SplitDamageBehavior.SplitEnsureAllOrganic,
+                canMiss: false);
+
+            // Whiskey - Bloodloss damage and actual bloodstream volume are separate systems.
+            _bloodstream.TryModifyBloodLevel(target.Owner, pylon.Comp.BloodRegenerationAmount);
         }
     }
 }

@@ -69,11 +69,13 @@
     <GuideEntityEmbed Entity="BloodSpear" Caption="Alabarda de sangue"/>
     <GuideEntityEmbed Entity="BloodBoltBarrage" Caption="Rajada de raios de sangue"/>
     <GuideEntityEmbed Entity="BloodBeamAura" Caption="Feixe de sangue"/>
+    <GuideEntityEmbed Entity="BloodGazeAura" Caption="Olhar de sangue"/>
   </Box>
 
-  Ao usar a aura dos Ritos de Sangue na própria mão, o sangue armazenado pode ser convertido em um destes ritos:
+  Ao usar a aura dos Ritos de Sangue na própria mão, o sangue armazenado pode ser convertido em um destes ritos. A aura e todas as invocações abaixo ficam vinculadas à mão e não podem ser largadas acidentalmente, com exceção da alabarda, que continua podendo ser arremessada.
 
   - [bold]Alabarda de sangue — 150:[/bold] possui grande alcance, pode ser arremessada e concede ao seu criador uma ação para chamá-la de volta.
-  - [bold]Rajada de raios de sangue — 300:[/bold] cria uma invocação temporária com 25 disparos de sangue cristalizado, causando 20 de dano cada.
-  - [bold]Feixe de sangue — 500:[/bold] exige nove segundos de concentração e então dispara 12 feixes em leque. Cada feixe atravessa obstáculos, causa dano pesado, derruba não-cultistas, cura cultistas atingidos e converte pisos, paredes e airlocks atingidos em estruturas do culto. O conjurador fica exausto ao terminar.
+  - [bold]Rajada de raios de sangue — 500:[/bold] cria uma invocação temporária com 25 disparos de sangue cristalizado, causando 20 de dano cada.
+  - [bold]Feixe de sangue — 300:[/bold] exige três segundos de concentração e então dispara 12 feixes em leque. Cada feixe atravessa obstáculos, causa dano pesado, derruba não-cultistas, cura cultistas atingidos e converte pisos, paredes e airlocks atingidos em estruturas do culto. O conjurador fica exausto ao terminar.
+  - [bold]Olhar de sangue — 700:[/bold] durante os nove segundos de invocação, um vórtice vermelho denuncia o ritual. Ao terminar, dispara por dez segundos um enorme feixe vermelho que acompanha a mira, atravessa tudo em sua linha, derruba quem for atingido e causa dano bruto concentrado nas partes vitais. O feixe converte pisos, paredes e airlocks em estruturas do culto e deixa grandes poças de sangue pelo caminho. O raio pode atingir aliados, mas nunca o próprio conjurador; ele derruba as vítimas no lugar, sem arrastá-las junto com o feixe.
 </Document>

@@ -22,11 +22,23 @@
 - type: moodCategory
   id: WhiskeyDepressao
 
+# Números do /tg/station, em code/datums/mood_events/generic_negative_events.dm:
+# mood_change -12 e timeout de 2 minutos. Os valores de antes, -18 e 180, eram
+# estimativa de quando este traço foi escrito sem ninguém ter ido ler a fonte.
+#
+# A diferença não era pequena. Com -18 o humor ia a 32, que é a faixa Péssimo,
+# a segunda pior do jogo, por um episódio que no TG é o segundo nível de quatro.
+# Com -12 vai a 38, que é Ruim, e bate com o MOOD_SAD2 de lá.
+#
+# A duração precisa ser MENOR que o menor intervalo entre episódios: sendo da
+# mesma categoria, um episódio novo substitui o anterior e reinicia o relógio,
+# e com duração maior o humor ficaria preso embaixo para sempre. Isso já foi
+# defeito real aqui, com a tela cinza que não voltava, e hoje tem teste.
 - type: moodEffect
   id: WhiskeyDepressaoEpisodio
   category: WhiskeyDepressao
-  moodChange: -18
-  timeout: 180
+  moodChange: -12
+  timeout: 120
 
 - type: localizedDataset
   id: WhiskeyDepressaoPensamentos
@@ -59,7 +71,66 @@
     - type: Mood
     - type: PeriodicMood
       effect: WhiskeyDepressaoEpisodio
-      minTimeBetween: 240
-      maxTimeBetween: 900
+      # O TG dispara com SPT_PROB(0.416), e o comentário deles diz o que isso
+      # significa: 15 acertos em 3600 segundos, ou seja um episódio a cada 240
+      # segundos em média. O intervalo de 150 a 330 dá essa mesma média.
+      #
+      # Antes eram 240 a 900, média de 570, ou seja menos da metade da
+      # frequência do TG. Junto com o peso maior, o traço era mais raro e mais
+      # violento que o original. Agora é mais frequente e mais leve, que é como
+      # o TG desenhou: presença constante em vez de susto ocasional.
+      minTimeBetween: 150
+      maxTimeBetween: 330
       messages: WhiskeyDepressaoPensamentos
       gainMessage: trait-depression-aviso
+
+# ---------------------------------------------------------------------------
+# Alegre, que é o `jolly` do /tg/station.
+#
+# É o espelho exato da depressão, e de propósito: no TG as duas quirks têm a
+# mesma forma, um episódio que chega sozinho em hora imprevisível, com a mesma
+# probabilidade por tique. Muda o sinal e o peso.
+#
+# Por isso este traço não precisou de código nenhum: o PeriodicMood já fazia
+# tudo o que ele exige. Ele existe aqui como prova de que aquele motor não é
+# "o sistema da depressão", é um relógio genérico de episódio de humor.
+#
+# Números do TG, em code/datums/mood_events/generic_positive_events.dm:
+# mood_change 6 e timeout de 2 minutos. Com 6, o humor vai a 56, que é a faixa
+# Ótimo. A frequência lá é de 15 por hora, ou seja um a cada 240 segundos em
+# média, que é o que o intervalo de 150 a 330 dá aqui.
+# ---------------------------------------------------------------------------
+- type: moodCategory
+  id: WhiskeyAlegria
+
+# A duração precisa ser MENOR que o menor intervalo entre episódios. Sendo da
+# mesma categoria, um episódio novo substitui o anterior e reinicia o relógio,
+# e com duração maior o humor ficaria preso lá em cima para sempre. Com 120
+# contra um mínimo de 150, sobra pelo menos meio minuto de respiro.
+- type: moodEffect
+  id: WhiskeyAlegriaEpisodio
+  category: WhiskeyAlegria
+  moodChange: 6
+  timeout: 120
+
+- type: localizedDataset
+  id: WhiskeyAlegriaPensamentos
+  values:
+    prefix: jolly-thought-
+    count: 16
+
+- type: trait
+  id: Jolly
+  name: trait-jolly-name
+  description: trait-jolly-desc
+  category: Quirks
+  components:
+    - type: Mood
+    - type: PeriodicMood
+      effect: WhiskeyAlegriaEpisodio
+      minTimeBetween: 150
+      maxTimeBetween: 330
+      messages: WhiskeyAlegriaPensamentos
+      # Verde acinzentado, para o pensamento bom não se confundir com o roxo
+      # da depressão nem com comunicado da estação.
+      messageColor: "#8CA88C"
