@@ -38,19 +38,21 @@ PR 01 intentionally defines no gameplay component. Empty marker components would
 
 | Domain | World-facing ECS ownership | Internal server model | Target |
 | --- | --- | --- | --- |
-| Hardware | computer, mainframe, terminal, power, device bus, network port, storage port | bounded connection/session indexes | PR 02 |
-| Kernel | mainframe entity and lifecycle events | scheduler, processes, streams, cancellation | PR 03 |
-| VFS | storage media and mount-capable device entities | volumes, nodes, paths, metadata, links | PR 04 |
-| Identity | terminal session and authenticated principal references | accounts, groups, password verifier, permissions | PR 05 |
-| Shell | terminal input/output events | parser, history, environment, command registry | PR 06 |
-| Vodka Code | process-owned execution requests | lexer, parser, AST/IR, deterministic VM | PR 07-08 |
-| Utilities | executable descriptors | command implementations over kernel/VFS APIs | PR 09 |
-| Syscalls/devices | capability-bearing device entities | syscall dispatcher and opaque handle table | PR 10 |
-| Network | ports, links, topology membership | bounded routing, discovery, request/reply | PR 11 |
-| Storage/services | removable media and service hosts | persistent volume and mailbox/log/document stores | PR 12 |
-| Station drivers | explicit components and systems per supported machine | validated command adapters | PR 13 |
-| Quality | diagnostics components only where operationally useful | fuzz/stress harnesses and metrics | PR 14 |
-| Acceptance | end-to-end gameplay fixtures | parity audit and showcase route | PR 15 |
+| Hardware | computer, terminal, power, device bus, network port, storage port | bounded presentation state and input validation | PR 02 |
+| Session transport | mainframe and terminal entities | bounded connection/session indexes and text queues | PR 03 |
+| Kernel | mainframe entity and lifecycle events | boot state and kernel service registry | PR 04 |
+| Processes | process-owned execution requests | scheduler, processes, streams and cancellation | PR 05 |
+| VFS | logical filesystem ownership | nodes, paths, metadata and links | PR 06 |
+| Storage | mount-capable device and media entities | volumes, mounts and persistent media | PR 07 |
+| Identity | terminal session and authenticated principal references | accounts, groups, password verifier and permissions | PR 08 |
+| Shell/utilities | terminal input/output events and executable descriptors | parser, history, environment and command registry | PR 09 |
+| Vodka Code frontend | source files | lexer, parser and AST/IR | PR 10 |
+| Vodka Code runtime | process-owned execution requests | deterministic sandboxed VM and resource accounting | PR 11 |
+| Syscalls/devices | capability-bearing device entities | syscall dispatcher, drivers and opaque handle table | PR 12 |
+| Network | ports, links and topology membership | bounded routing, discovery and request/reply | PR 13 |
+| Services/station integration | service hosts and common station devices | mailbox, log, document and validated device adapters | PR 14 |
+| Advanced automation | specialized device entities and diagnostics | orchestration, remaining drivers and server metrics | PR 15 |
+| Release gate | no new world-facing domain | audit, hardening, fuzz/stress and end-to-end acceptance | After PR 15 |
 
 ## Authority and trust boundary
 

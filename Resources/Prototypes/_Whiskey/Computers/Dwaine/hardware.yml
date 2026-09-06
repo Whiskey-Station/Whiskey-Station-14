@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: entity
+  parent: BaseComputer
+  id: WhiskeyDwaineTerminal
+  name: DWAINE terminal
+  description: A server-driven terminal chassis awaiting a mainframe connection.
+  components:
+  - type: DwaineComputerHardware
+    kind: Terminal
+  - type: DwaineHardwareRuntime
+  - type: DwaineTerminal
+    maxInputLength: 512
+    outputLineLimit: 64
+    outputCharacterLimit: 8192
+  - type: DwaineDisplay
+    columns: 80
+    rows: 25
+  - type: DwaineKeyboardInput
+  - type: DwaineStorageConnector
+    slotCount: 1
+  - type: DwaineNetworkConnector
+    networkId: station
+    linkRange: 16
+  - type: DwaineDeviceBusEndpoint
+    busId: primary
+    endpointLimit: 16
+  - type: PowerSwitch
+  - type: ActivatableUI
+    key: enum.DwaineTerminalUiKey.Key
+  - type: UserInterface
+    interfaces:
+      enum.DwaineTerminalUiKey.Key:
+        type: DwaineTerminalBoundUserInterface
+      enum.WiresUiKey.Key:
+        type: WiresBoundUserInterface
+
+- type: entity
+  abstract: true
+  id: WhiskeyDwaineComputerChassis
+  components:
+  - type: DwaineComputerHardware
+  - type: DwaineHardwareRuntime
+  - type: DwaineStorageConnector
+  - type: DwaineNetworkConnector
+  - type: DwaineDeviceBusEndpoint
