@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: accent
+  id: Mooca
+  wordReplacements:
+    accent-mooca-words-1: accent-mooca-words-replace-1
+    accent-mooca-words-2: accent-mooca-words-replace-2
+    accent-mooca-words-3: accent-mooca-words-replace-3
+    accent-mooca-words-4: accent-mooca-words-replace-4
+    accent-mooca-words-5: accent-mooca-words-replace-5
+    accent-mooca-words-6: accent-mooca-words-replace-6
+    accent-mooca-words-7: accent-mooca-words-replace-7
+    accent-mooca-words-8: accent-mooca-words-replace-8
+    accent-mooca-words-9: accent-mooca-words-replace-9
+    accent-mooca-words-10: accent-mooca-words-replace-10
+    accent-mooca-words-11: accent-mooca-words-replace-11
+    accent-mooca-words-12: accent-mooca-words-replace-12
+    accent-mooca-words-13: accent-mooca-words-replace-13
+    accent-mooca-words-14: accent-mooca-words-replace-14
+    accent-mooca-words-15: accent-mooca-words-replace-15
+    accent-mooca-words-16: accent-mooca-words-replace-16
+    accent-mooca-words-17: accent-mooca-words-replace-17
+    accent-mooca-words-18: accent-mooca-words-replace-18
+    accent-mooca-words-19: accent-mooca-words-replace-19
+    accent-mooca-words-20: accent-mooca-words-replace-20
+    accent-mooca-words-21: accent-mooca-words-replace-21
+    accent-mooca-words-22: accent-mooca-words-replace-22
+    accent-mooca-words-23: accent-mooca-words-replace-23
+    accent-mooca-words-24: accent-mooca-words-replace-24
+    accent-mooca-words-25: accent-mooca-words-replace-25
+    accent-mooca-words-26: accent-mooca-words-replace-26
+    accent-mooca-words-27: accent-mooca-words-replace-27
+    accent-mooca-words-28: accent-mooca-words-replace-28
+    accent-mooca-words-29: accent-mooca-words-replace-29
+    accent-mooca-words-30: accent-mooca-words-replace-30
