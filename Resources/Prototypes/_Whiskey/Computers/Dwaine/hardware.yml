@@ -51,6 +51,10 @@
     outputLineLimit: 128
     outputCharacterLimit: 16384
   - type: DwaineMainframeRuntime
+  - type: DwaineKernel
+    autoBoot: true
+    requireStorageConnector: true
+  - type: DwaineKernelRuntime
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineNetworkConnector

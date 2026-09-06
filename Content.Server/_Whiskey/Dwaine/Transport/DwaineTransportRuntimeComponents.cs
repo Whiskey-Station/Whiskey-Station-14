@@ -74,3 +74,9 @@ public readonly record struct DwaineMainframeInputReceivedEvent(
     EntityUid Terminal,
     EntityUid Owner,
     string Text);
+
+[ByRefEvent]
+public readonly record struct DwaineMainframeSessionConnectedEvent(
+    DwaineSessionId Session,
+    EntityUid Terminal,
+    EntityUid Owner);

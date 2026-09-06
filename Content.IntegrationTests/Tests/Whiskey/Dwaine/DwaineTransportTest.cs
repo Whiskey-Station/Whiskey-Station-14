@@ -5,8 +5,10 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Content.IntegrationTests.Fixtures;
 using Content.Server._Whiskey.Dwaine.Hardware;
+using Content.Server._Whiskey.Dwaine.Kernel;
 using Content.Server._Whiskey.Dwaine.Transport;
 using Content.Shared._Whiskey.Dwaine.Hardware;
+using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Transport;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
@@ -198,7 +200,7 @@ public sealed class DwaineTransportTest : GameTest
     }
 
     [Test]
-    public async Task InvalidTargetsRangeAndProductionPrototypeStayPhysicalOnly()
+    public async Task InvalidTargetsRangeAndProductionPrototypeHaveTransportComponents()
     {
         await Server.WaitAssertion(() =>
         {
@@ -227,6 +229,8 @@ public sealed class DwaineTransportTest : GameTest
                     Is.EqualTo(DwaineConnectResult.OutOfRange));
                 Assert.That(entities.HasComponent<DwaineMainframeComponent>(production), Is.True);
                 Assert.That(entities.HasComponent<DwaineMainframeRuntimeComponent>(production), Is.True);
+                Assert.That(entities.HasComponent<DwaineKernelComponent>(production), Is.True);
+                Assert.That(entities.HasComponent<DwaineKernelRuntimeComponent>(production), Is.True);
             });
 
             entities.DeleteEntity(production);

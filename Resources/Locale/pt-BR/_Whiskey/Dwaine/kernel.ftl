@@ -1,0 +1,13 @@
+dwaine-kernel-diagnostic-post = autoteste de inicialização iniciado
+dwaine-kernel-diagnostic-bootloader = o carregador de inicialização selecionou a origem local configurada
+dwaine-kernel-diagnostic-initialize = inicialização do núcleo iniciada
+dwaine-kernel-diagnostic-ready = sistema pronto
+dwaine-kernel-diagnostic-shutdown = desligamento limpo iniciado
+dwaine-kernel-diagnostic-reboot = reinicialização limpa iniciada
+dwaine-kernel-diagnostic-off = sistema encerrado
+dwaine-kernel-diagnostic-power-lost = energia perdida; o estado transitório do núcleo foi limpo
+dwaine-kernel-diagnostic-panic = falha controlada do núcleo; reinicialização necessária
+dwaine-kernel-diagnostic-hardware-failed = falha no autoteste: o hardware obrigatório do mainframe está indisponível
+dwaine-kernel-diagnostic-storage-failed = falha no autoteste: nenhum conector de armazenamento utilizável está disponível
+dwaine-kernel-diagnostic-initialize-failed = a inicialização do núcleo falhou de modo controlado
+dwaine-kernel-diagnostic-service-failed = o encerramento do serviço falhou de modo controlado: {$service}
