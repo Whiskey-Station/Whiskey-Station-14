@@ -9,3 +9,4 @@ credit-account-deposit-failed = O cartão recusa o depósito.
 credit-account-withdraw = Sacou { $valor } spesos.
 credit-account-withdraw-verb = Sacar { $valor }
 credit-account-withdraw-all = Sacar tudo ({ $valor })
+cargo-sale-commission = Comissão: { $valor } spesos.

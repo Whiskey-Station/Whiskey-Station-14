@@ -12,6 +12,7 @@
       primaryCut: 0.9 # Trauma
     # <Whiskey>
     - type: Payroll
+    - type: SalesCommission
     # </Whiskey>
     - type: StationCargoOrderDatabase
       orders:

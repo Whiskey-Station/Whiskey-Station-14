@@ -253,6 +253,15 @@ public sealed partial class CargoSystem
         }
 
         Dirty(station, bankAccount);
+
+        // <Whiskey> - comissão de venda para quem apertou o botão
+        var comissao = new _Whiskey.Economy.CargoPalletSoldEvent(station,
+            args.Actor,
+            uid,
+            (int) Math.Round(goods.Sum(g => g.Item3)));
+        RaiseLocalEvent(ref comissao);
+        // </Whiskey>
+
         _audio.PlayPvs(ApproveSound, uid);
         UpdatePalletConsoleInterface(uid);
     }
