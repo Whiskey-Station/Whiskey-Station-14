@@ -80,7 +80,7 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
     private void OnTerminalLinkShutdown(Entity<DwaineTerminalLinkComponent> ent, ref ComponentShutdown args)
     {
         if (ent.Comp is { Mainframe: { } mainframe, Session: { } session })
-            RemoveSessionFromMainframe(mainframe, session, ent.Owner);
+            RemoveSessionFromMainframe(mainframe, session, ent.Owner, DwaineDisconnectReason.EntityRemoved);
 
         ClearLink(ent.Comp, DwaineDisconnectReason.EntityRemoved);
     }
@@ -265,7 +265,7 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
             return false;
         }
 
-        RemoveSessionFromMainframe(mainframe, session, terminal);
+        RemoveSessionFromMainframe(mainframe, session, terminal, DwaineDisconnectReason.Requested);
         ClearLink(link, DwaineDisconnectReason.Requested);
         _hardware.UpdateUi(terminal);
         return true;
@@ -464,7 +464,7 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
             return;
 
         if (link is { Mainframe: { } mainframe, Session: { } session })
-            RemoveSessionFromMainframe(mainframe, session, terminal);
+            RemoveSessionFromMainframe(mainframe, session, terminal, reason);
 
         ClearLink(link, reason);
         if (!TerminatingOrDeleted(terminal))
@@ -492,6 +492,13 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
                 if (!TerminatingOrDeleted(session.Terminal))
                     _hardware.UpdateUi(session.Terminal);
             }
+
+            var disconnected = new DwaineMainframeSessionDisconnectedEvent(
+                session.Id,
+                session.Terminal,
+                session.Owner,
+                reason);
+            RaiseLocalEvent(mainframe, ref disconnected);
         }
 
         runtime.Sessions.Clear();
@@ -501,12 +508,21 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
     private void RemoveSessionFromMainframe(
         EntityUid mainframe,
         DwaineSessionId session,
-        EntityUid terminal)
+        EntityUid terminal,
+        DwaineDisconnectReason reason)
     {
         if (!TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var runtime))
             return;
 
-        runtime.Sessions.Remove(session);
+        if (runtime.Sessions.Remove(session, out var removed))
+        {
+            var disconnected = new DwaineMainframeSessionDisconnectedEvent(
+                removed.Id,
+                removed.Terminal,
+                removed.Owner,
+                reason);
+            RaiseLocalEvent(mainframe, ref disconnected);
+        }
         if (runtime.TerminalSessions.TryGetValue(terminal, out var indexed) && indexed == session)
             runtime.TerminalSessions.Remove(terminal);
     }

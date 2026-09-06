@@ -41,6 +41,8 @@ public enum DwaineVfsMode : ushort
     OtherExecute = 1 << 8,
 
     OwnerAll = OwnerRead | OwnerWrite | OwnerExecute,
+    GroupAll = GroupRead | GroupWrite | GroupExecute,
+    OtherAll = OtherRead | OtherWrite | OtherExecute,
     GroupReadExecute = GroupRead | GroupExecute,
     OtherReadExecute = OtherRead | OtherExecute,
     DefaultDirectory = OwnerAll | GroupReadExecute | OtherReadExecute,
