@@ -3,3 +3,7 @@
 
 - type: Tag
   id: BloodRitesAura
+
+# Whiskey - held Blood Rites invocations that the remove-spell action may dismiss.
+- type: Tag
+  id: BloodRiteBoundItem

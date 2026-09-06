@@ -8,27 +8,13 @@ using Robust.Shared.Timing;
 namespace Content.Server._Whiskey.Translation;
 
 /// <summary>
-/// <para>
-/// Mede o volume de fala do servidor por idioma. Não altera nada no jogo: só
-/// escuta o <see cref="EntitySpokeEvent"/>, que já é disparado em toda fala, e
-/// escreve um resumo no log de tempos em tempos.
-/// </para>
-/// <para>
-/// Existe para responder uma pergunta antes de qualquer tradutor ser
-/// construído: quantas mensagens por minuto, em quais idiomas, e com quantos
-/// caracteres. Sem esse número, qualquer estimativa de custo de tradução é
-/// chute. Depois de medido, este sistema pode ser removido ou deixado
-/// desligado.
-/// </para>
-/// <para>
-/// Sussurro não é contado separado de propósito. O campo
-/// <see cref="EntitySpokeEvent.IsWhisper"/> existe, mas os dois pontos que
-/// disparam o evento passam <c>false</c> fixo, então ele nunca chega
-/// verdadeiro. Um contador que sempre marca zero é pior que contador nenhum,
-/// porque parece dado de verdade. Se o fork um dia preencher esse campo, dá
-/// para reativar em duas linhas.
-/// </para>
+/// Mede volume de fala por idioma para dimensionar custo de tradução. Só
+/// escuta e loga, não altera nada.
 /// </summary>
+/// <remarks>
+/// Sussurro não é contado: o <c>IsWhisper</c> chega sempre falso neste fork, e
+/// contador que só marca zero engana mais que a ausência dele.
+/// </remarks>
 public sealed partial class SpeechVolumeMeterSystem : EntitySystem
 {
     [Dependency] private IGameTiming _timing = default!;

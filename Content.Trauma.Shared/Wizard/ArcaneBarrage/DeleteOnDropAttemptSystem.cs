@@ -18,12 +18,18 @@ public sealed class DeleteOnDropAttemptSystem : EntitySystem
 
     private void OnExamine(Entity<DeleteOnDropAttemptComponent> ent, ref ExaminedEvent args)
     {
-        args.PushMarkup(Loc.GetString("delete-on-drop-attempt-comp-examine"));
+        var message = ent.Comp.DeleteOnAttempt
+            ? "delete-on-drop-attempt-comp-examine"
+            : "delete-on-drop-attempt-comp-examine-bound"; // Whiskey
+        args.PushMarkup(Loc.GetString(message));
     }
 
     private void OnDroppedItem(Entity<DeleteOnDropAttemptComponent> ent, ref ItemDropAttemptEvent args)
     {
-        PredictedQueueDel(ent);
+        if (ent.Comp.DeleteOnAttempt)
+            PredictedQueueDel(ent);
+
+        // Whiskey - both variants cancel the drop; bound rites stay safely in hand.
         args.Cancelled = true;
     }
 }

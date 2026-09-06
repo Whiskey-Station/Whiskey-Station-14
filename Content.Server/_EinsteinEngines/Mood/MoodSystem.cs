@@ -433,9 +433,30 @@ public sealed partial class MoodSystem : EntitySystem
 
     private void OnDamageChange(EntityUid uid, MoodComponent component, DamageChangedEvent args)
     {
-        if (!// Whiskey: o TotalDamage é [Access] do DamageableSystem aqui, então vai
-            // pela API dele.
-            _mobThreshold.TryGetPercentageForState(uid, MobState.Critical, _damageable.GetTotalDamage((uid, args.Damageable)), out var damage))
+        // Whiskey: o TotalDamage é [Access] do DamageableSystem aqui, então vai
+        // pela API dele.
+        var dano = _damageable.GetTotalDamage((uid, args.Damageable));
+
+        // Whiskey: a referência é o SoftCrit, e não o Critical.
+        //
+        // O porte veio de um jogo com um estágio de queda só, onde a pessoa
+        // desmaia ao chegar no Critical. Lá "0,8 do limiar" queria dizer "80%
+        // do caminho até cair no chão", que é uma escala com sentido.
+        //
+        // O Trauma partiu isso em dois. No humanoide a escada herdada de
+        // species_base.yml é 100 SoftCrit, 150 Critical e 200 morte, e quem cai
+        // no chão cai no SoftCrit. Medindo contra o Critical, cair valia
+        // 100/150, ou seja 0,67, e o modificador pesado só entrava com 120 de
+        // dano, que é vinte DEPOIS de a pessoa já estar caída. Na prática o
+        // humor parava em Ruim por mais machucada que ela estivesse, e as duas
+        // faixas de baixo eram inalcançáveis por dano.
+        //
+        // A reserva não é decoração: só o species_base.yml declara SoftCrit, e
+        // 55 prototypes declaram Critical. Bicho vai direto de vivo para
+        // crítico. Sem o segundo tento, o humor morreria calado em tudo que não
+        // é humanoide.
+        if (!_mobThreshold.TryGetPercentageForState(uid, MobState.SoftCrit, dano, out var damage)
+            && !_mobThreshold.TryGetPercentageForState(uid, MobState.Critical, dano, out damage))
             return;
 
         var protoId = "HealthNoDamage";
