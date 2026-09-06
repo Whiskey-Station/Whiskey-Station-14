@@ -33,6 +33,7 @@ public enum GenericCultVisuals : byte
 public enum PylonVisuals : byte
 {
     Activated,
+    BaseLayer, // Whiskey
     Layer
 }
 

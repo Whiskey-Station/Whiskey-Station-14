@@ -242,3 +242,10 @@ public sealed partial class BloodBeamChargeDoAfterEvent : SimpleDoAfterEvent
 {
     public NetCoordinates AimCoordinates;
 }
+
+// Whiskey
+[Serializable, NetSerializable]
+public sealed partial class BloodGazeChargeDoAfterEvent : SimpleDoAfterEvent
+{
+    public NetCoordinates AimCoordinates;
+}

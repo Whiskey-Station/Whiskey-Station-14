@@ -202,7 +202,7 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
             if (required > _maxIntensity)
                 return; // blocker is never destroyed.
 
-            var clearIteration = iteration + (int) MathF.Ceiling((float)required / _intensityStepSize);
+            var clearIteration = GetClearIteration(iteration, required, _intensityStepSize);
             if (FreedTileLists.TryGetValue(clearIteration, out var list))
                 list.Add(tile);
             else
@@ -295,7 +295,7 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
                 continue;
 
             // At what explosion iteration would this blocker be destroyed?
-            var clearIteration = iteration + (int) MathF.Ceiling((float) sealIntegrity / _intensityStepSize);
+            var clearIteration = GetClearIteration(iteration, sealIntegrity, _intensityStepSize);
 
             // Get the delayed neighbours list
             if (!_delayedNeighbors.TryGetValue(clearIteration, out var list))
@@ -314,6 +314,21 @@ public sealed class ExplosionGridTileFlood : ExplosionTileFlood
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Calculates when an airtight blocker can be cleared without ever scheduling work into an iteration
+    /// that has already been processed.
+    /// </summary>
+    /// <remarks>
+    /// A stale airtight cache can briefly report negative remaining resistance when an entity has already taken
+    /// enough damage to reach its destruction threshold. Scheduling that value into a past iteration can mutate the
+    /// same freed-tile set currently being enumerated.
+    /// </remarks>
+    internal static int GetClearIteration(int iteration, FixedPoint2 required, float intensityStepSize)
+    {
+        var delay = Math.Max(0, (int) MathF.Ceiling((float) required / intensityStepSize));
+        return iteration + delay;
     }
 
     protected override AtmosDirection GetUnblockedDirectionOrAll(Vector2i tile)
