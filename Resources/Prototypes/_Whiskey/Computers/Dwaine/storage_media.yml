@@ -17,6 +17,8 @@
     maxNodes: 8192
     maxDepth: 32
   - type: DwaineStorageMediaRuntime
+  - type: DwaineBootMedia
+    profile: whiskey-system-v1
   - type: DwaineDevice
     driverId: storage-media
     tag: storage
@@ -91,3 +93,19 @@
     displayName: data tape
     capabilities: Inspect, Mount
     access: Authenticated
+
+- type: entity
+  parent: WhiskeyDwaineTape
+  id: WhiskeyDwaineRecoveryTape
+  name: DWAINE recovery tape
+  description: A data-only boot profile for recovering a DWAINE mainframe without executing host code.
+  components:
+  - type: DwaineStorageMedia
+    kind: Tape
+    label: recovery
+    readOnly: true
+    maxNodes: 4096
+    maxDepth: 24
+    maxArchiveEntries: 2048
+  - type: DwaineBootMedia
+    profile: whiskey-system-v1

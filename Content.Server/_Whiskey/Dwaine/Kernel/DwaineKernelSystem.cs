@@ -328,12 +328,15 @@ public sealed partial class DwaineKernelSystem : EntitySystem
             return;
         }
 
-        if (config.RequireStorageConnector
-            && (!TryComp<DwaineStorageConnectorComponent>(mainframe, out var storage)
-                || !storage.Enabled
-                || storage.SlotCount <= 0))
+        var storageReady = TryComp<DwaineStorageConnectorComponent>(mainframe, out var storage)
+                           && storage.Enabled
+                           && storage.SlotCount > 0;
+        if ((config.RequireStorageConnector && !storageReady) || config.RequireBootMedia)
         {
-            var recovery = new DwaineBootRecoveryRequestedEvent();
+            var recovery = new DwaineBootRecoveryRequestedEvent
+            {
+                Profile = config.RequireBootMedia ? config.BootProfile : string.Empty,
+            };
             RaiseLocalEvent(mainframe, ref recovery);
             if (recovery.Recovered)
             {

@@ -6,6 +6,8 @@ using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Server.Power.Components;
 using Content.Shared.Power;
 using Content.Shared.Power.EntitySystems;
+using Content.Shared.PowerCell;
+using Content.Shared.PowerCell.Components;
 
 namespace Content.Server._Whiskey.Dwaine.Hardware;
 
@@ -16,6 +18,7 @@ namespace Content.Server._Whiskey.Dwaine.Hardware;
 public sealed partial class DwaineHardwareSystem : EntitySystem
 {
     [Dependency] private SharedPowerReceiverSystem _power = default!;
+    [Dependency] private PowerCellSystem _powerCell = default!;
     [Dependency] private SharedUserInterfaceSystem _ui = default!;
 
     public override void Initialize()
@@ -25,6 +28,9 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         SubscribeLocalEvent<DwaineComputerHardwareComponent, MapInitEvent>(OnHardwareMapInit);
         SubscribeLocalEvent<DwaineComputerHardwareComponent, ComponentShutdown>(OnHardwareShutdown);
         SubscribeLocalEvent<DwaineComputerHardwareComponent, PowerChangedEvent>(OnPowerChanged);
+        SubscribeLocalEvent<DwaineComputerHardwareComponent, BatteryStateChangedEvent>(OnBatteryStateChanged);
+        SubscribeLocalEvent<DwaineComputerHardwareComponent, PowerCellChangedEvent>(OnPowerCellChanged);
+        SubscribeLocalEvent<DwaineComputerHardwareComponent, PowerCellSlotEmptyEvent>(OnPowerCellEmpty);
         SubscribeLocalEvent<DwaineTerminalComponent, BoundUIOpenedEvent>(OnUiOpened);
         SubscribeLocalEvent<DwaineTerminalComponent, BoundUIClosedEvent>(OnUiClosed);
         SubscribeLocalEvent<DwaineTerminalComponent, DwaineTerminalTogglePowerMessage>(OnTogglePower);
@@ -46,6 +52,11 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         {
             runtime.PowerEnabled = !receiver.PowerDisabled;
             runtime.HasPowerSupply = receiver.Powered;
+        }
+        else if (HasComp<PowerCellDrawComponent>(ent))
+        {
+            runtime.PowerEnabled = true;
+            runtime.HasPowerSupply = _powerCell.HasDrawCharge(ent.Owner);
         }
         else
         {
@@ -74,6 +85,26 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         if (TryComp<ApcPowerReceiverComponent>(ent, out var receiver))
             runtime.PowerEnabled = !receiver.PowerDisabled;
 
+        RefreshStatus((ent.Owner, ent.Comp, runtime));
+    }
+
+    private void OnBatteryStateChanged(Entity<DwaineComputerHardwareComponent> ent, ref BatteryStateChangedEvent args)
+        => RefreshPowerCell(ent);
+
+    private void OnPowerCellChanged(Entity<DwaineComputerHardwareComponent> ent, ref PowerCellChangedEvent args)
+        => RefreshPowerCell(ent);
+
+    private void OnPowerCellEmpty(Entity<DwaineComputerHardwareComponent> ent, ref PowerCellSlotEmptyEvent args)
+        => RefreshPowerCell(ent);
+
+    private void RefreshPowerCell(Entity<DwaineComputerHardwareComponent> ent)
+    {
+        if (!HasComp<PowerCellDrawComponent>(ent)
+            || !TryComp<DwaineHardwareRuntimeComponent>(ent, out var runtime))
+        {
+            return;
+        }
+        runtime.HasPowerSupply = _powerCell.HasDrawCharge(ent.Owner);
         RefreshStatus((ent.Owner, ent.Comp, runtime));
     }
 

@@ -118,6 +118,7 @@ internal sealed class DwaineDeviceEndpoint
     public required DwaineDeviceAccess Access;
     public required EntityUid Entity;
     public DwaineSessionId? TerminalSession;
+    public bool NetworkAttached;
     public DwaineDeviceStatus Status = DwaineDeviceStatus.Ready;
 }
 

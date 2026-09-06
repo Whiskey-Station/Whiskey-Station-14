@@ -175,6 +175,8 @@ public interface IDwaineShellHost
 
     DwaineVfsResult TryGetPath(DwaineVfsNodeHandle handle, out string path);
     DwaineVfsResult TryCanonicalize(string path, DwaineVfsNodeHandle workingDirectory, out string canonical);
+    DwaineIdentityResult TryBootstrap(string name, string password, out DwaineIdentitySessionSnapshot session);
+    DwaineIdentityResult TryCreateAccount(string name, string password, out DwaineAccountSnapshot account);
     DwaineIdentityResult TryElevate(string name, string password, out DwaineIdentitySessionSnapshot session);
     DwaineIdentityResult TryLogout(out DwaineIdentitySessionSnapshot session);
     IReadOnlyList<DwaineShellUserEntry> GetUsers();
@@ -218,6 +220,18 @@ public interface IDwaineNetworkShellHost
 {
     DwaineShellHostResult Network(IReadOnlyList<string> arguments, DwaineVfsNodeHandle workingDirectory);
     DwaineShellHostResult Scan(DwaineProcessId process);
+}
+
+/// <summary>
+/// Optional server-owned station-service façade. The caller process and authenticated principal
+/// are revalidated by the service subsystem for every operation.
+/// </summary>
+public interface IDwaineServiceShellHost
+{
+    DwaineShellHostResult Service(
+        DwaineProcessId process,
+        DwaineVfsNodeHandle workingDirectory,
+        IReadOnlyList<string> arguments);
 }
 
 public readonly record struct DwaineShellExecutionResult(

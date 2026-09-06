@@ -57,6 +57,8 @@
   - type: DwaineKernel
     autoBoot: true
     requireStorageConnector: true
+    requireBootMedia: true
+    bootProfile: whiskey-system-v1
   - type: DwaineKernelRuntime
   - type: DwaineFileSystem
   - type: DwaineFileSystemRuntime
@@ -101,6 +103,8 @@
   - type: DwaineStorageConnector
     slotCount: 4
   - type: DwaineStorageDrive
+    startingMedia:
+    - WhiskeyDwaineHardDrive
   - type: DwaineStorageRuntime
   - type: DwaineNetworkConnector
     networkId: station
@@ -143,7 +147,103 @@
     maxArgumentCharacters: 8192
     maxResultCharacters: 16384
   - type: DwaineSyscallRuntime
+  - type: DwaineServiceSuite
+    maxMailMessages: 1024
+    maxMailPerUser: 64
+    maxLogEntries: 1024
+  - type: DwaineServiceRuntime
+  - type: DwaineStationServiceBridge
   - type: PowerSwitch
+
+- type: entity
+  parent: BaseHandheldComputer
+  id: WhiskeyDwainePortableTerminal
+  name: portable DWAINE terminal
+  description: A battery-powered portable terminal using the same authoritative DWAINE transport.
+  components:
+  - type: Item
+    sprite: Objects/Tools/handheld_mass_scanner.rsi
+  - type: Sprite
+    sprite: Objects/Tools/handheld_mass_scanner.rsi
+    state: icon
+  - type: DwaineComputerHardware
+    kind: Terminal
+    requiresExternalPower: false
+  - type: DwaineHardwareRuntime
+  - type: DwaineTerminalLink
+  - type: DwaineTerminal
+    maxInputLength: 512
+    outputLineLimit: 64
+    outputCharacterLimit: 8192
+  - type: DwaineDisplay
+    columns: 64
+    rows: 20
+  - type: DwaineKeyboardInput
+  - type: DwaineNetworkConnector
+    networkId: station
+    adapter: Radio
+    tags:
+    - terminal
+    - portable
+    linkRange: 16
+  - type: DwaineDeviceBusEndpoint
+    busId: portable
+    endpointLimit: 4
+  - type: PowerCellDraw
+    drawRate: 0.5
+  - type: ActivatableUI
+    key: enum.DwaineTerminalUiKey.Key
+    inHandsOnly: true
+    singleUser: true
+  - type: UserInterface
+    interfaces:
+      enum.DwaineTerminalUiKey.Key:
+        type: DwaineTerminalBoundUserInterface
+
+- type: entity
+  parent: BaseComputer
+  id: WhiskeyDwaineNetworkPrinter
+  name: DWAINE network printer
+  description: A capability-gated network printer for bounded text documents.
+  components:
+  - type: DwainePrinter
+    maxDocumentCharacters: 4096
+  - type: DwaineNetworkConnector
+    networkId: station
+    adapter: Radio
+    tags:
+    - device
+    - printer
+    linkRange: 16
+  - type: DwaineNetworkEndpoint
+  - type: DwaineDevice
+    driverId: printer
+    tag: printer
+    displayName: DWAINE paper printer
+    capabilities: Inspect, Message
+    access: Authenticated
+
+- type: entity
+  parent: APCBasic
+  id: WhiskeyDwaineNetworkApc
+  name: DWAINE network APC
+  description: An explicitly networked APC whose breaker is restricted to DWAINE operators.
+  components:
+  - type: DwaineApcInterface
+  - type: DwaineNetworkConnector
+    networkId: station
+    adapter: Radio
+    tags:
+    - device
+    - apc
+    linkRange: 16
+  - type: DwaineNetworkEndpoint
+  - type: DwaineDevice
+    driverId: apc
+    tag: apc
+    displayName: station APC interface
+    capabilities: Inspect, Message
+    access: Operator
 
 - type: entity
   abstract: true

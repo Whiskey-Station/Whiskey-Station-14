@@ -7,6 +7,7 @@ using Content.Server._Whiskey.Dwaine.Identity;
 using Content.Server._Whiskey.Dwaine.Kernel;
 using Content.Server._Whiskey.Dwaine.Network;
 using Content.Server._Whiskey.Dwaine.Process;
+using Content.Server._Whiskey.Dwaine.Services;
 using Content.Server._Whiskey.Dwaine.Syscalls;
 using Content.Shared._Whiskey.Dwaine.Devices;
 using Content.Shared._Whiskey.Dwaine.FileSystem;
@@ -34,6 +35,7 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
     [Dependency] private DwaineCommunicationSystem _communications = default!;
     [Dependency] private DwaineNetworkSystem _network = default!;
     [Dependency] private DwaineProcessSystem _processes = default!;
+    [Dependency] private DwaineServiceSystem _services = default!;
     [Dependency] private DwaineSyscallSystem _syscalls = default!;
     [Dependency] private IGameTiming _timing = default!;
 
@@ -448,6 +450,8 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
 
             if (name.StartsWith("sys.network.", StringComparison.Ordinal))
                 return Network(name, arguments);
+            if (name.StartsWith("sys.service.", StringComparison.Ordinal))
+                return Service(name, arguments);
 
             if (!_processId.IsValid || _machine is null || !TryMapCall(name, out var syscall))
                 return VodkaHostCallResult.Failure(VodkaHostCallStatus.UnknownFunction, $"unknown function: {name}");
@@ -603,6 +607,49 @@ internal sealed partial class VodkaRuntimeSystem : EntitySystem
             return VodkaHostCallResult.Failure(
                 VodkaHostCallStatus.InvalidArguments,
                 $"invalid network call: {name}");
+        }
+
+        private VodkaHostCallResult Service(string name, IReadOnlyList<VodkaValue> arguments)
+        {
+            if (!_processId.IsValid || _machine is null)
+                return VodkaHostCallResult.Failure(VodkaHostCallStatus.AccessDenied, "service caller unavailable");
+
+            DwaineServiceResponse response;
+            if (name == "sys.service.list" && arguments.Count == 0)
+            {
+                response = _system._services.ListServices(_mainframe, _processId, _principal);
+            }
+            else if (name == "sys.service.call"
+                     && arguments.Count >= 2
+                     && arguments.All(argument => argument.Kind == VodkaValueKind.String))
+            {
+                response = _system._services.Call(
+                    _mainframe,
+                    _processId,
+                    _principal,
+                    arguments[0].Text,
+                    arguments[1].Text,
+                    arguments.Skip(2).Select(argument => argument.Text).ToArray(),
+                    _vfsWorkingDirectory);
+            }
+            else
+            {
+                return VodkaHostCallResult.Failure(
+                    VodkaHostCallStatus.InvalidArguments,
+                    $"invalid service call: {name}");
+            }
+
+            return response.Succeeded
+                ? VodkaHostCallResult.Success(VodkaValue.FromString(response.Output))
+                : VodkaHostCallResult.Failure(response.Status switch
+                {
+                    DwaineServiceStatus.InvalidArguments => VodkaHostCallStatus.InvalidArguments,
+                    DwaineServiceStatus.AccessDenied => VodkaHostCallStatus.AccessDenied,
+                    DwaineServiceStatus.NotFound => VodkaHostCallStatus.NotFound,
+                    DwaineServiceStatus.Conflict => VodkaHostCallStatus.Conflict,
+                    DwaineServiceStatus.CapacityReached => VodkaHostCallStatus.LimitExceeded,
+                    _ => VodkaHostCallStatus.Unavailable,
+                }, response.Output.Trim());
         }
 
         private static VodkaHostCallResult NetworkValue(DwaineNetworkResult result, string value)

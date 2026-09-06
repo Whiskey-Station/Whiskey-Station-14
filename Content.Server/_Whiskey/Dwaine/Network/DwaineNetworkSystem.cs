@@ -115,6 +115,42 @@ public sealed partial class DwaineNetworkSystem : EntitySystem
         return DwaineNetworkResult.Success;
     }
 
+    /// <summary>
+    /// Server-only topology bridge for trusted subsystems such as the Device ABI. Entity identifiers
+    /// never cross a packet or scripting contract. Candidates come from lifecycle indexes and remain
+    /// bounded and reachability-checked; this method does not enumerate map entities.
+    /// </summary>
+    public DwaineNetworkResult FindReachableEntities(
+        EntityUid source,
+        string tag,
+        int maximum,
+        out EntityUid[] entities)
+    {
+        entities = [];
+        if (!TryGetUsableNode(source, out var sourceNode, out var sourceConnector, out var failure))
+            return failure;
+        var normalizedTag = NormalizeIdentifier(tag, DwaineNetworkConnectorComponent.HardMaxTagLength);
+        if (normalizedTag.Length == 0)
+            return DwaineNetworkResult.InvalidAddress;
+
+        var limit = Math.Clamp(maximum, 1, GetLimits(source).MaxDiscoveryResults);
+        if (!_tags.TryGetValue((sourceNode.NetworkId, normalizedTag), out var indexed))
+            return DwaineNetworkResult.Success;
+        var reachable = new List<EntityUid>(limit);
+        foreach (var candidate in indexed.OrderBy(entity => entity.Id).ToArray())
+        {
+            if (candidate == source || !TryGetNode(candidate, out var node, out var connector))
+                continue;
+            if (CanReach(sourceNode, sourceConnector, node, connector) != DwaineNetworkResult.Success)
+                continue;
+            reachable.Add(candidate);
+            if (reachable.Count >= limit)
+                break;
+        }
+        entities = reachable.ToArray();
+        return DwaineNetworkResult.Success;
+    }
+
     public DwaineNetworkResult TrySend(
         EntityUid source,
         string destination,
@@ -256,9 +292,15 @@ public sealed partial class DwaineNetworkSystem : EntitySystem
         Entity<DwaineNetworkBootClientComponent> ent,
         ref DwaineBootRecoveryRequestedEvent args)
     {
-        if (!ent.Comp.Enabled
+        if (args.Recovered
+            || !ent.Comp.Enabled
             || NormalizeIdentifier(ent.Comp.ProviderAddress).Length == 0
-            || NormalizeIdentifier(ent.Comp.RecoveryProfile).Length == 0)
+            || NormalizeIdentifier(ent.Comp.RecoveryProfile).Length == 0
+            || !string.IsNullOrEmpty(args.Profile)
+               && !string.Equals(
+                   NormalizeIdentifier(args.Profile),
+                   NormalizeIdentifier(ent.Comp.RecoveryProfile),
+                   StringComparison.Ordinal))
         {
             return;
         }

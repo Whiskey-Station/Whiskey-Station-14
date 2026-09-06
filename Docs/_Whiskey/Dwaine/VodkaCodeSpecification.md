@@ -7,7 +7,7 @@ Version: 0.1 (initial normative specification)
 
 Canonical extension: `.vodka`
 
-Implementation status: frontend delivered in PR 10, deterministic process runtime delivered in PR 11, and capability/syscall bindings assigned to PR 12-15.
+Implementation status: frontend delivered in PR 10, deterministic process runtime delivered in PR 11, capability/syscall bindings in PR 12, networking in PR 13, and bounded services in PR 14. There is no PR 15.
 
 Vodka Code is Whiskey DWAINE's native, deterministic scripting language. DWAINE is the operating environment; Vodka Code is the language executed inside it. It is an original Whiskey design intended to express the useful automation behaviors of the reference environment without executing or translating DM.
 
@@ -150,7 +150,7 @@ The shell command `vodka FILE.vodka [argument...]` resolves and reads the source
 
 ## Host APIs
 
-Host functions are namespaced and capability-checked. The final names become normative when implemented and tested in PR 12-15. Required families are:
+Host functions are namespaced and capability-checked. The following final families are implemented and tested through PR 14:
 
 - terminal-safe output and input;
 - VFS read, write, append, list, metadata, predicates, and path operations;
@@ -158,6 +158,16 @@ Host functions are namespaced and capability-checked. The final names become nor
 - device discovery, capability acquisition, bounded request/reply, and revocation;
 - network discovery and bounded messaging;
 - email, document, and log services.
+
+The service entry points are `sys.service.list()` and
+`sys.service.call(service, operation, argument...)`. Every argument to `sys.service.call` is a
+string. It returns the bounded textual service response, and converts authorization, lookup,
+capacity, conflict, and availability failures into stable VM host-call errors. Implemented service
+names are `email`, `documents`, `logs`, and `diagnostics`; production station mainframes additionally
+expose `bank`, `jobs`, `manifest`, and `records`. `jobs list`, `records medical`, and `records security`
+are operator-only; `jobs set JOB SLOTS` changes only an existing station job and clamps the requested
+slot count to 0..256. These calls revalidate the current process owner and principal and
+never accept an entity, session, station, device, or dependency-container reference.
 
 The VM validates argument count, type, size, current principal, process ownership, path permission, network membership, device capability, and target state on every call.
 

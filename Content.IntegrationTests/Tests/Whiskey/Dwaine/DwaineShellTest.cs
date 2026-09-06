@@ -112,7 +112,7 @@ public sealed class DwaineShellTest : GameTest
         """;
 
     [Test]
-    public async Task ShellRunsAsWaitingProcessesAndSurvivesLoginCommandsAndReconnect()
+    public async Task ShellBootstrapsAccountsRunsAsWaitingProcessesAndSurvivesReconnect()
     {
         EntityUid map = EntityUid.Invalid;
         EntityUid mainframe = EntityUid.Invalid;
@@ -141,12 +141,8 @@ public sealed class DwaineShellTest : GameTest
         {
             var ui = Server.System<SharedUserInterfaceSystem>();
             var transport = Server.System<DwaineTerminalTransportSystem>();
-            var identities = Server.System<DwaineIdentitySystem>();
             Assert.That(Server.System<DwaineKernelSystem>().GetState(mainframe),
                 Is.EqualTo(DwaineSystemState.SystemReady));
-            Assert.That(identities.TryGetStore(mainframe, out var store), Is.True);
-            Assert.That(store.TryCreateAccount("alex", "alex-password", false, out _),
-                Is.EqualTo(DwaineIdentityResult.Success));
             Assert.That(ui.TryOpenUi(terminalA, DwaineTerminalUiKey.Key, actorA), Is.True);
             Assert.That(transport.TryConnect(terminalA, mainframe, actorA, out sessionA),
                 Is.EqualTo(DwaineConnectResult.Connected));
@@ -181,7 +177,7 @@ public sealed class DwaineShellTest : GameTest
                 "a shell waiting for input must not consume scheduler slices");
         });
 
-        await Send(terminalA, actorA, "su alex alex-password");
+        await Send(terminalA, actorA, "bootstrap alex alex-password");
         await Server.WaitRunTicks(3);
         await Server.WaitAssertion(() =>
         {
@@ -190,9 +186,25 @@ public sealed class DwaineShellTest : GameTest
                 Is.EqualTo(DwaineIdentityResult.Success));
             Assert.That(identities.TryGetStore(mainframe, out var store), Is.True);
             Assert.That(store.TryGetAccount(identity.Principal, out var account), Is.True);
-            Assert.That(account.Name, Is.EqualTo("alex"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(account.Name, Is.EqualTo("alex"));
+                Assert.That(account.Temporary, Is.False);
+                Assert.That(account.Groups, Does.Contain(DwaineGroupId.Operators));
+                Assert.That(store.PersistentAccountCount, Is.EqualTo(1));
+            });
             var shell = Server.EntMan.GetComponent<DwaineShellRuntimeComponent>(mainframe).Sessions[sessionA];
             Assert.That(shell.Environment["USER"], Is.EqualTo("alex"));
+        });
+
+        await Send(terminalA, actorA, "useradd bob bob-password");
+        await Server.WaitRunTicks(2);
+        await Server.WaitAssertion(() =>
+        {
+            var identities = Server.System<DwaineIdentitySystem>();
+            Assert.That(identities.TryGetStore(mainframe, out var store), Is.True);
+            Assert.That(store.TryGetAccount("bob", out var bob), Is.True);
+            Assert.That(bob.Groups, Does.Not.Contain(DwaineGroupId.Operators));
         });
 
         await Send(terminalA, actorA, "mkdir -p work; echo integration > work/note; cat work/note");
@@ -236,6 +248,31 @@ public sealed class DwaineShellTest : GameTest
                 Is.EqualTo(DwaineConnectResult.Connected));
         });
         await Server.WaitRunTicks(2);
+        await Send(terminalB, actorB, "bootstrap intruder intruder-password");
+        await Server.WaitRunTicks(2);
+        await Server.WaitAssertion(() =>
+        {
+            var identities = Server.System<DwaineIdentitySystem>();
+            Assert.That(identities.TryGetSession(mainframe, sessionB, out var identity),
+                Is.EqualTo(DwaineIdentityResult.Success));
+            Assert.That(identity.Temporary, Is.True);
+            Assert.That(identities.TryGetStore(mainframe, out var store), Is.True);
+            Assert.That(store.TryGetAccount("intruder", out _), Is.False);
+        });
+        await Send(terminalB, actorB, "su bob bob-password");
+        await Server.WaitRunTicks(3);
+        await Server.WaitAssertion(() =>
+        {
+            var identities = Server.System<DwaineIdentitySystem>();
+            Assert.That(identities.TryGetSession(mainframe, sessionB, out var identity),
+                Is.EqualTo(DwaineIdentityResult.Success));
+            Assert.That(identities.TryGetStore(mainframe, out var store), Is.True);
+            Assert.That(store.TryGetAccount(identity.Principal, out var account), Is.True);
+            Assert.That(account.Name, Is.EqualTo("bob"));
+            Assert.That(Server.System<DwaineFileSystemSystem>().TryGetFileSystem(mainframe, out var fileSystem), Is.True);
+            Assert.That(fileSystem.TryResolve("/home/bob", fileSystem.Root, out _),
+                Is.EqualTo(DwaineVfsResult.Success));
+        });
         await Send(terminalB, actorB, "history");
         await Server.WaitRunTicks(2);
         await Server.WaitAssertion(() =>
@@ -248,6 +285,8 @@ public sealed class DwaineShellTest : GameTest
                 Assert.That(runtime.Sessions, Has.Count.EqualTo(2));
                 Assert.That(Server.System<DwaineProcessSystem>().GetActiveProcessCount(mainframe), Is.EqualTo(2));
                 Assert.That(secondOutput.Any(line => line.Contains("alex-password")), Is.False);
+                Assert.That(secondOutput.Any(line => line.Contains("bob-password")), Is.False);
+                Assert.That(secondOutput.Any(line => line.Contains("intruder-password")), Is.False);
                 Assert.That(secondOutput.Any(line => line.Contains("mkdir -p work")), Is.False);
             });
             Assert.That(Server.System<DwaineTerminalTransportSystem>().TryDisconnect(terminalA, actorA), Is.True);

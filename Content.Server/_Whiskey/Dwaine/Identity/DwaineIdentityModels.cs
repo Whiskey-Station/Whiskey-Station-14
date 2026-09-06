@@ -129,6 +129,7 @@ public sealed class DwaineIdentityStore
     private ulong _nextSession = 1;
 
     public int AccountCount => _accounts.Count;
+    public int PersistentAccountCount => _accounts.Values.Count(account => !account.Temporary);
     public int SessionCount => _sessions.Count;
 
     public DwaineIdentityStore(int accountCapacity = 512, int groupCapacity = 64, int sessionCapacity = 256)
@@ -181,6 +182,64 @@ public sealed class DwaineIdentityStore
         _accountsByName.Add(name, principal);
         account = Snapshot(created);
         return DwaineIdentityResult.Success;
+    }
+
+    /// <summary>
+    /// Atomically converts the current temporary principal into the first persistent operator.
+    /// This is the only unauthenticated account-creation path and closes permanently as soon as
+    /// any persistent account exists.
+    /// </summary>
+    public DwaineIdentityResult TryBootstrapOperator(
+        DwaineIdentitySessionId sessionId,
+        string name,
+        string password,
+        TimeSpan now,
+        out DwaineIdentitySessionSnapshot session)
+    {
+        session = default;
+        var sessionResult = TryGetSession(sessionId, now, out var current);
+        if (sessionResult != DwaineIdentityResult.Success)
+            return sessionResult;
+        if (!current.Temporary || PersistentAccountCount != 0)
+            return DwaineIdentityResult.AccessDenied;
+        if (!IsValidName(name))
+            return DwaineIdentityResult.InvalidName;
+        if (!IsValidPassword(password))
+            return DwaineIdentityResult.InvalidCredential;
+        if (!_accounts.TryGetValue(current.Principal, out var account)
+            || !account.Temporary
+            || !_sessions.TryGetValue(sessionId, out var live))
+        {
+            return DwaineIdentityResult.SessionNotFound;
+        }
+        if (_accountsByName.TryGetValue(name, out var existing) && existing != current.Principal)
+            return DwaineIdentityResult.AlreadyExists;
+
+        var salt = RandomNumberGenerator.GetBytes(PasswordSaltLength);
+        _accountsByName.Remove(account.Name);
+        account.Name = name;
+        account.Temporary = false;
+        account.Enabled = true;
+        account.PasswordSalt = salt;
+        account.PasswordHash = HashPassword(password, salt);
+        account.Groups.Add(DwaineGroupId.Users);
+        account.Groups.Add(DwaineGroupId.Operators);
+        _accountsByName.Add(name, account.Principal);
+        live.Temporary = false;
+        session = Snapshot(live);
+        return DwaineIdentityResult.Success;
+    }
+
+    public DwaineIdentityResult TryCreateManagedAccount(
+        DwainePrincipalId actor,
+        string name,
+        string password,
+        out DwaineAccountSnapshot account)
+    {
+        account = default;
+        return HasPermission(actor, DwaineIdentityPermission.ManageUsers)
+            ? TryCreateAccount(name, password, false, out account)
+            : DwaineIdentityResult.AccessDenied;
     }
 
     public DwaineIdentityResult TryCreateTemporarySession(
@@ -320,6 +379,12 @@ public sealed class DwaineIdentityStore
         account = default;
         return false;
     }
+
+    public DwaineAccountSnapshot[] GetAccounts()
+        => _accounts.Values
+            .Select(Snapshot)
+            .OrderBy(account => account.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
     public bool TryGetGroup(string name, out DwaineGroupId group)
     {
