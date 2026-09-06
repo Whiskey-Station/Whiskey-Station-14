@@ -8,6 +8,7 @@ using Robust.Server.Player;
 using Robust.Shared.Configuration;
 using Robust.Shared.ContentPack;
 using Robust.Shared.Prototypes;
+using Content.Shared.Random.Helpers;
 using Robust.Shared.Random;
 using Robust.Shared.Utility;
 
@@ -157,7 +158,22 @@ public sealed partial class GameMapManager : IGameMapManager
     public void SelectMapRandom()
     {
         var maps = CurrentlyEligibleMaps().ToList();
-        _selectedMap = _random.Pick(maps);
+
+        // <Whiskey> - respeita o Weight do mapa em vez de tratar todos igual.
+        //
+        // Peso zero ou negativo tira o mapa do sorteio sem precisar remover ele
+        // do pool, que é como se congela um mapa sem perder a configuração dele.
+        // Se TODOS ficarem em zero o dicionário fica vazio, e aí volta para o
+        // sorteio simples, senão o servidor não escolhe mapa nenhum e não sobe.
+        var pesos = new Dictionary<GameMapPrototype, float>();
+        foreach (var map in maps)
+        {
+            if (map.Weight > 0f)
+                pesos[map] = map.Weight;
+        }
+
+        _selectedMap = pesos.Count > 0 ? _random.Pick(pesos) : _random.Pick(maps);
+        // </Whiskey>
     }
 
     public void SelectMapFromRotationQueue(bool markAsPlayed = false)

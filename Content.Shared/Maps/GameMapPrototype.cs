@@ -24,6 +24,18 @@ public sealed partial class GameMapPrototype : IPrototype
     [DataField]
     public float MaxRandomOffset = 1000f;
 
+    // <Whiskey>
+    /// <summary>
+    ///     Chance relativa deste mapa no sorteio. 2 cai o dobro de um mapa com 1.
+    /// </summary>
+    /// <remarks>
+    ///     Só vale para o sorteio aleatório. Com a rotação ligada, quem manda é a
+    ///     fila de quem faz mais tempo que não cai, e o peso não entra.
+    /// </remarks>
+    [DataField]
+    public float Weight = 1f;
+    // </Whiskey>
+
     /// <summary>
     /// Turns out some of the map files are actually secretly grids. Excellent. I love map loading code.
     /// </summary>

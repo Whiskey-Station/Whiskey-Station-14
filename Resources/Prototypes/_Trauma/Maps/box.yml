@@ -4,6 +4,7 @@
   id: Box
   mapName: 'Box Station'
   mapPath: /Maps/_Trauma/box.yml
+  weight: 3.0
   minPlayers: 30
   maxPlayers: 85
   stations:

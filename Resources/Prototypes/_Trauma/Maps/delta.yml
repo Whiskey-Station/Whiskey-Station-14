@@ -4,6 +4,7 @@
   id: Delta
   mapName: 'Delta Station'
   mapPath: /Maps/_Trauma/delta.yml
+  weight: 3.0
   minPlayers: 55
   stations:
     Delta:
