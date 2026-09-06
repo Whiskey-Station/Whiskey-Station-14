@@ -327,29 +327,6 @@ public sealed class DwaineFileSystemPrimitivesTest
     }
 
     [Test]
-    public void ArchivesNestedInsideArchivesPreserveEmbeddedPayload()
-    {
-        var fileSystem = Create();
-        Assert.That(
-            fileSystem.TryCreate(
-                "/tmp/source",
-                fileSystem.Root,
-                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "nested" },
-                InitialTime,
-                out _),
-            Is.EqualTo(DwaineVfsResult.Success));
-        Assert.That(fileSystem.TryCreateArchive("/tmp/source", "/tmp/inner.arc", fileSystem.Root, InitialTime, out _),
-            Is.EqualTo(DwaineVfsResult.Success));
-        Assert.That(fileSystem.TryCreateArchive("/tmp/inner.arc", "/tmp/outer.arc", fileSystem.Root, InitialTime, out _),
-            Is.EqualTo(DwaineVfsResult.Success));
-        Assert.That(fileSystem.TryExtractArchive("/tmp/outer.arc", "/home", fileSystem.Root, InitialTime),
-            Is.EqualTo(DwaineVfsResult.Success));
-        Assert.That(fileSystem.TryGetArchiveEntries("/home/inner.arc", fileSystem.Root, out var embedded),
-            Is.EqualTo(DwaineVfsResult.Success));
-        Assert.That(embedded.Single().Text, Is.EqualTo("nested"));
-    }
-
-    [Test]
     public void MetadataHooksPreserveOwnershipAndReadOnlyNodesRejectMutation()
     {
         var fileSystem = Create();
@@ -443,8 +420,264 @@ public sealed class DwaineFileSystemPrimitivesTest
         });
     }
 
+    [Test]
+    public void MountedVolumesSupportRelativePathsCrossVolumeCopiesAndStableHandles()
+    {
+        var fileSystem = Create();
+        var volume = CreateVolume(2);
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/disk", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/disk", fileSystem.Root, volume),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.AttachedVolumeCount, Is.EqualTo(1));
+        Assert.That(fileSystem.TryResolve("/mnt/disk", fileSystem.Root, out var mountedRoot),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(mountedRoot, Is.EqualTo(new DwaineVfsNodeHandle(volume.Id, DwaineVfsNodeId.Root)));
+
+        Assert.That(fileSystem.TryCreateDirectory("work", mountedRoot, InitialTime, out var work),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(
+            fileSystem.TryCreate(
+                "note",
+                work,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "portable" },
+                InitialTime,
+                out var note),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryGetPath(note, out var mountedPath), Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(mountedPath, Is.EqualTo("/mnt/disk/work/note"));
+        Assert.That(fileSystem.TryReadText("./note", work, out var text), Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(text, Is.EqualTo("portable"));
+
+        Assert.That(fileSystem.TryCopy("./note", "/home/copied", work, InitialTime, out var copy),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(copy.Volume, Is.EqualTo(DwaineVfsVolumeId.System));
+        Assert.That(fileSystem.TryMove("./note", "/home/moved", work, InitialTime),
+            Is.EqualTo(DwaineVfsResult.CrossVolumeMoveDenied));
+        Assert.That(fileSystem.TryDelete("/mnt/disk", fileSystem.Root, true, InitialTime),
+            Is.EqualTo(DwaineVfsResult.RootProtected));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/disk", fileSystem.Root, CreateVolume(3)),
+            Is.EqualTo(DwaineVfsResult.MountPointBusy));
+    }
+
+    [Test]
+    public void DetachInvalidatesHandlesAndReattachPreservesMediaState()
+    {
+        var fileSystem = Create();
+        var volume = CreateVolume(2);
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/a", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/b", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/a", fileSystem.Root, volume),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(
+            fileSystem.TryCreate(
+                "/mnt/a/persistent",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "survives" },
+                InitialTime,
+                out var file),
+            Is.EqualTo(DwaineVfsResult.Success));
+
+        Assert.That(fileSystem.TryDetachVolume(volume.Id, out var detached), Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(detached, Is.SameAs(volume));
+        Assert.That(fileSystem.TryGetSnapshot(file, out _), Is.EqualTo(DwaineVfsResult.InvalidHandle));
+        Assert.That(fileSystem.TryResolve("/mnt/a/persistent", fileSystem.Root, out _),
+            Is.EqualTo(DwaineVfsResult.NotFound));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/b", fileSystem.Root, detached),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryReadText("/mnt/b/persistent", fileSystem.Root, out var text),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(text, Is.EqualTo("survives"));
+        Assert.That(fileSystem.TryGetPath(file, out var path), Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(path, Is.EqualTo("/mnt/b/persistent"));
+    }
+
+    [Test]
+    public void MultipleMountedVolumesRemainIsolatedAndRejectDuplicateAttachment()
+    {
+        var fileSystem = Create();
+        var first = CreateVolume(2);
+        var second = CreateVolume(3);
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/first", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/second", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/first", fileSystem.Root, first),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/second", fileSystem.Root, second),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/home", fileSystem.Root, first),
+            Is.EqualTo(DwaineVfsResult.VolumeAlreadyAttached));
+
+        Assert.That(
+            fileSystem.TryCreate(
+                "/mnt/first/same",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "one" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(
+            fileSystem.TryCreate(
+                "/mnt/second/same",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "two" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryDetachVolume(first.Id, out _), Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryReadText("/mnt/second/same", fileSystem.Root, out var remaining),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(remaining, Is.EqualTo("two"));
+        Assert.That(fileSystem.AttachedVolumeCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MountedVolumeReadOnlyAndPerVolumeLimitsAreEnforced()
+    {
+        var fileSystem = Create();
+        var volume = CreateVolume(2, maxTextCharacters: 4);
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/media", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/media", fileSystem.Root, volume),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(
+            fileSystem.TryCreate(
+                "/mnt/media/too-large",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "12345" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.DataLimit));
+        Assert.That(
+            fileSystem.TryCreate(
+                "/mnt/media/ok",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "1234" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(
+            fileSystem.TryCreate(
+                $"/mnt/media/{new string('a', 33)}",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.InvalidName));
+
+        volume.ReadOnly = true;
+        Assert.That(fileSystem.TryWriteText("/mnt/media/ok", fileSystem.Root, "x", false, InitialTime),
+            Is.EqualTo(DwaineVfsResult.ReadOnly));
+        Assert.That(fileSystem.TryDelete("/mnt/media/ok", fileSystem.Root, false, InitialTime),
+            Is.EqualTo(DwaineVfsResult.ReadOnly));
+    }
+
+    [Test]
+    public void MountedVolumeStructuralLimitsCannotBeBypassedByRenameMoveOrCopy()
+    {
+        var fileSystem = Create();
+        var nameLimited = CreateVolume(2, maxNameLength: 4);
+        var pathLimited = CreateVolume(3, maxPathLength: 10);
+        var childLimited = CreateVolume(4, maxChildrenPerDirectory: 2);
+        foreach (var path in new[] { "/mnt/name", "/mnt/path", "/mnt/children" })
+        {
+            Assert.That(fileSystem.TryCreateDirectory(path, fileSystem.Root, InitialTime, out _),
+                Is.EqualTo(DwaineVfsResult.Success));
+        }
+
+        Assert.That(fileSystem.TryAttachVolume("/mnt/name", fileSystem.Root, nameLimited),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/path", fileSystem.Root, pathLimited),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryAttachVolume("/mnt/children", fileSystem.Root, childLimited),
+            Is.EqualTo(DwaineVfsResult.Success));
+
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/name/ok", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryRename("/mnt/name/ok", "longer", fileSystem.Root, InitialTime),
+            Is.EqualTo(DwaineVfsResult.InvalidName));
+
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/path/a", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/path/a/123456", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryRename("/mnt/path/a", "long", fileSystem.Root, InitialTime),
+            Is.EqualTo(DwaineVfsResult.InvalidPath));
+        Assert.That(fileSystem.TryCreateDirectory("/home/tree", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/home/tree/12345678", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCopy("/home/tree", "/mnt/path/x", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.InvalidPath));
+
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/children/src", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/children/dest", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/children/src/move", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/children/dest/a", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateDirectory("/mnt/children/dest/b", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryMove(
+                "/mnt/children/src/move",
+                "/mnt/children/dest/move",
+                fileSystem.Root,
+                InitialTime),
+            Is.EqualTo(DwaineVfsResult.ChildLimit));
+    }
+
+    [Test]
+    public void ArchivesNestedInsideArchivesPreserveEmbeddedPayload()
+    {
+        var fileSystem = Create();
+        Assert.That(
+            fileSystem.TryCreate(
+                "/tmp/source",
+                fileSystem.Root,
+                new DwaineVfsCreateRequest { Kind = DwaineVfsNodeKind.Text, Text = "nested" },
+                InitialTime,
+                out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateArchive("/tmp/source", "/tmp/inner.arc", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryCreateArchive("/tmp/inner.arc", "/tmp/outer.arc", fileSystem.Root, InitialTime, out _),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryExtractArchive("/tmp/outer.arc", "/home", fileSystem.Root, InitialTime),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(fileSystem.TryGetArchiveEntries("/home/inner.arc", fileSystem.Root, out var embedded),
+            Is.EqualTo(DwaineVfsResult.Success));
+        Assert.That(embedded.Single().Text, Is.EqualTo("nested"));
+    }
+
     private static DwaineVirtualFileSystem Create(DwaineFileSystemComponent? component = null)
     {
         return new DwaineVirtualFileSystem(component ?? new DwaineFileSystemComponent(), InitialTime);
+    }
+
+    private static DwaineVfsVolume CreateVolume(
+        ulong id,
+        int maxTextCharacters = 128,
+        int maxNameLength = 32,
+        int maxPathLength = 256,
+        int maxChildrenPerDirectory = 32)
+    {
+        var limits = DwaineVfsLimits.FromValues(
+            128,
+            12,
+            maxNameLength,
+            maxPathLength,
+            maxChildrenPerDirectory,
+            8,
+            maxTextCharacters,
+            16,
+            128,
+            64,
+            8);
+        return new DwaineVfsVolume(new DwaineVfsVolumeId(id), limits, false, InitialTime);
     }
 }

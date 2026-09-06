@@ -66,6 +66,8 @@
   - type: DwaineProcessRuntime
   - type: DwaineStorageConnector
     slotCount: 4
+  - type: DwaineStorageDrive
+  - type: DwaineStorageRuntime
   - type: DwaineNetworkConnector
     networkId: station
     linkRange: 16

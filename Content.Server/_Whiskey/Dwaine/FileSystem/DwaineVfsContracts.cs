@@ -52,6 +52,9 @@ public enum DwaineVfsResult : byte
     DestinationInsideSource,
     CrossVolumeMoveDenied,
     MountUnavailable,
+    VolumeAlreadyAttached,
+    MountPointBusy,
+    VolumeNotAttached,
 }
 
 public readonly record struct DwaineVfsMetadata(
@@ -182,5 +185,32 @@ internal readonly record struct DwaineVfsLimits(
                 DwaineFileSystemComponent.HardMaxRecordCharacters),
             Math.Clamp(component.MaxArchiveEntries, 1, DwaineFileSystemComponent.HardMaxArchiveEntries),
             Math.Clamp(component.MaxArchiveDepth, 1, DwaineFileSystemComponent.HardMaxArchiveDepth));
+    }
+
+    public static DwaineVfsLimits FromValues(
+        int maxNodes,
+        int maxDepth,
+        int maxNameLength,
+        int maxPathLength,
+        int maxChildrenPerDirectory,
+        int maxLinkDepth,
+        int maxTextCharacters,
+        int maxRecordEntries,
+        int maxRecordCharacters,
+        int maxArchiveEntries,
+        int maxArchiveDepth)
+    {
+        return new DwaineVfsLimits(
+            Math.Clamp(maxNodes, 1, DwaineFileSystemComponent.HardMaxNodes),
+            Math.Clamp(maxDepth, 1, DwaineFileSystemComponent.HardMaxDepth),
+            Math.Clamp(maxNameLength, 1, DwaineFileSystemComponent.HardMaxNameLength),
+            Math.Clamp(maxPathLength, 1, DwaineFileSystemComponent.HardMaxPathLength),
+            Math.Clamp(maxChildrenPerDirectory, 1, DwaineFileSystemComponent.HardMaxChildrenPerDirectory),
+            Math.Clamp(maxLinkDepth, 1, DwaineFileSystemComponent.HardMaxLinkDepth),
+            Math.Clamp(maxTextCharacters, 1, DwaineFileSystemComponent.HardMaxTextCharacters),
+            Math.Clamp(maxRecordEntries, 1, DwaineFileSystemComponent.HardMaxRecordEntries),
+            Math.Clamp(maxRecordCharacters, 1, DwaineFileSystemComponent.HardMaxRecordCharacters),
+            Math.Clamp(maxArchiveEntries, 1, DwaineFileSystemComponent.HardMaxArchiveEntries),
+            Math.Clamp(maxArchiveDepth, 1, DwaineFileSystemComponent.HardMaxArchiveDepth));
     }
 }
