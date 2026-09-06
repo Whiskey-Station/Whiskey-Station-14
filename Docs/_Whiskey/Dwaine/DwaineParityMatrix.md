@@ -63,7 +63,7 @@ Status values used during delivery:
 | Shared/server/client dependency boundary | C3, MF, PROG | Shared contracts; authoritative server; presentation-only client | SPECIFIED | 01/15 | `SharedContractsDoNotReferencePresentationOrAuthorityAssemblies` | No Server/Client cycle. |
 | Architecture identity/version | NS, C3 | `DwaineArchitecturePrototype` `WhiskeyDwaine` | SPECIFIED | 01/15 | `ArchitecturePrototypeMatchesCanonicalSpecification` | Couples docs to Vodka Code 0.1 and `.vodka`. |
 | Computer role | C3 | composed computer hardware entity | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer` | Not a god component. |
-| Mainframe role | MF | mainframe component plus focused server systems | PLANNED | 03/15 | Mainframe/session lifecycle | Owns runtime association, not all logic. |
+| Mainframe role | MF | mainframe component plus focused server transport system | IMPLEMENTED | 03/15 | `InvalidTargetsRangeAndProductionPrototypeStayPhysicalOnly` | Owns runtime association, not kernel or shell logic. |
 | Terminal role | TERM, C3 | terminal component, BUI and authoritative request events | IMPLEMENTED | 02/15 | `PrototypeComposesOnlyPhysicalTerminalLayer`, `BuiReconnectIsIdempotentAndDestructionCleansPresentationState` | Client never authenticates actions. |
 | Display and terminal output | C3, TERM | bounded server output buffer and client presentation state | IMPLEMENTED | 02/15 | `ServerOutputBufferEnforcesBothBounds` | Presentation uses plain text; session output transport lands in PR 03. |
 | Keyboard/input abstraction | C3, TERM | BUI input request validated against the active server-side UI actor | IMPLEMENTED | 02/15 | `TerminalInputValidationRejectsUnboundedAndMultilineData` | Input length bounded; session ownership is added in PR 03. |
@@ -75,10 +75,10 @@ Status values used during delivery:
 | Computer construction and repair | BUILD | Whiskey construction graph for frame, board, storage and peripherals | PLANNED | 14/15 | Hardware/build/deconstruct | New `_Whiskey` prototypes only. |
 | Modular peripherals | PERIPH | installable explicit device components | PLANNED | 14/15 | Hardware/peripheral constraints | Cards do not execute gameplay logic themselves. |
 | Portable/luggable computer | C3 | portable terminal hardware profile with cell power | PLANNED | 14/15 | Hardware/portable lifecycle | Reuses the same terminal/runtime contracts. |
-| Terminal connect/disconnect/reconnect | TERM, MF | validated session state machine | PLANNED | 03/15 | Transport/connect suite | Includes invalid targets and deletion. |
-| Multiple terminals per mainframe | MF, KERNEL | indexed server sessions per mainframe | PLANNED | 03/15 | Transport/multi-terminal | Isolation tested again with authentication and networking. |
-| Connection heartbeat and timeout | TERM, MF | `IGameTiming` lifecycle validation | PLANNED | 03/15 | Transport/timeout/reconnect | No frame-time dependency. |
-| Device connection records | MF | generation-checked connection records scoped to mainframe | PLANNED | 03/15 | Transport/stale connection | Never accepts client-selected ownership. |
+| Terminal connect/disconnect/reconnect | TERM, MF | validated server session state machine | IMPLEMENTED | 03/15 | `ConnectInputOutputDisconnectAndReconnectAreAuthoritative` | Repeated BUI open and connect requests preserve one session. |
+| Multiple terminals per mainframe | MF, KERNEL | indexed bounded server sessions per mainframe | IMPLEMENTED | 03/15 | `MultipleMachinesDeletionAndTopologyChangesCleanSessions` | Mainframe capacity and multi-mainframe isolation are enforced. |
+| Connection heartbeat and timeout | TERM, MF | periodic `IGameTiming` lifecycle validation | IMPLEMENTED | 03/15 | `MultipleMachinesDeletionAndTopologyChangesCleanSessions` | Equivalent lifecycle validation avoids a client-controlled heartbeat. |
+| Device connection records | MF | opaque internal session records scoped to mainframe | IMPLEMENTED | 03/15 | `SessionIdentityNeverAppearsInClientMessages` | Session ID and ownership never cross the BUI contract. |
 | POWER → POST | C3, MF | deterministic hardware POST stage | PLANNED | 04/15 | Kernel/boot | Failed storage and power cases included. |
 | Network bootloader/recovery | OS, MEDIA, MF | bootloader that discovers authorized recovery media/services | PLANNED | 04/15 | Kernel/netboot recovery | Recovery does not trust remote file types blindly. |
 | Kernel startup | KERNEL | bounded server kernel runtime | PLANNED | 04/15 | Kernel/startup/failure | Per-mainframe state. |

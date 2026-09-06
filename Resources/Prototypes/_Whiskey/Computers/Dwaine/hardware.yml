@@ -10,6 +10,7 @@
   - type: DwaineComputerHardware
     kind: Terminal
   - type: DwaineHardwareRuntime
+  - type: DwaineTerminalLink
   - type: DwaineTerminal
     maxInputLength: 512
     outputLineLimit: 64
@@ -35,6 +36,30 @@
         type: DwaineTerminalBoundUserInterface
       enum.WiresUiKey.Key:
         type: WiresBoundUserInterface
+
+- type: entity
+  parent: BaseComputer
+  id: WhiskeyDwaineMainframe
+  name: DWAINE mainframe
+  description: A high-capacity computer chassis for terminal sessions.
+  components:
+  - type: DwaineComputerHardware
+    kind: Mainframe
+  - type: DwaineHardwareRuntime
+  - type: DwaineMainframe
+    maxSessions: 32
+    outputLineLimit: 128
+    outputCharacterLimit: 16384
+  - type: DwaineMainframeRuntime
+  - type: DwaineStorageConnector
+    slotCount: 4
+  - type: DwaineNetworkConnector
+    networkId: station
+    linkRange: 16
+  - type: DwaineDeviceBusEndpoint
+    busId: primary
+    endpointLimit: 64
+  - type: PowerSwitch
 
 - type: entity
   abstract: true

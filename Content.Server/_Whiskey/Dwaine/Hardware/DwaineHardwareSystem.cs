@@ -241,7 +241,7 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         return true;
     }
 
-    private bool IsAuthorizedUiActor(EntityUid terminal, EntityUid actor)
+    public bool IsAuthorizedUiActor(EntityUid terminal, EntityUid actor)
     {
         return !TerminatingOrDeleted(actor)
                && _ui.IsUiOpen(terminal, DwaineTerminalUiKey.Key, actor)
@@ -279,7 +279,7 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         UpdateUi(ent.Owner);
     }
 
-    private void UpdateUi(EntityUid uid)
+    public void UpdateUi(EntityUid uid)
     {
         if (!TryComp<DwaineTerminalComponent>(uid, out var terminal)
             || !TryComp<DwaineHardwareRuntimeComponent>(uid, out var runtime))
@@ -291,6 +291,9 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
         var storage = CompOrNull<DwaineStorageConnectorComponent>(uid);
         var network = CompOrNull<DwaineNetworkConnectorComponent>(uid);
         var bus = CompOrNull<DwaineDeviceBusEndpointComponent>(uid);
+        var presentation = new DwaineTerminalPresentationEvent();
+        RaiseLocalEvent(uid, ref presentation);
+
         var state = new DwaineTerminalBoundUserInterfaceState(
             runtime.Status,
             runtime.PowerEnabled,
@@ -301,7 +304,10 @@ public sealed partial class DwaineHardwareSystem : EntitySystem
             storage is { Enabled: true } ? storage.SlotCount : 0,
             network is { Enabled: true } ? network.NetworkId : string.Empty,
             bus is { Enabled: true } ? bus.BusId : string.Empty,
-            runtime.Output?.Snapshot() ?? []);
+            presentation.OutputOverride ?? runtime.Output?.Snapshot() ?? [],
+            presentation.Status,
+            presentation.ConnectedMainframe,
+            presentation.AvailableMainframes);
 
         _ui.SetUiState(uid, DwaineTerminalUiKey.Key, state);
     }

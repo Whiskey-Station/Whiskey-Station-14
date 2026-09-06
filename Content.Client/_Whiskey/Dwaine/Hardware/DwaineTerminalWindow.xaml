@@ -11,7 +11,14 @@
             <Label Name="Display" />
             <Label Text="{Loc 'dwaine-terminal-connectors-label'}" StyleClasses="LabelKeyText" />
             <Label Name="Connectors" />
+            <Label Text="{Loc 'dwaine-terminal-connection-label'}" StyleClasses="LabelKeyText" />
+            <Label Name="Connection" />
         </GridContainer>
+        <BoxContainer Orientation="Horizontal" Margin="0 8 0 0">
+            <OptionButton Name="Mainframes" HorizontalExpand="True" />
+            <Button Name="Connect" Text="{Loc 'dwaine-terminal-connect-button'}" Margin="8 0 0 0" />
+            <Button Name="Disconnect" Text="{Loc 'dwaine-terminal-disconnect-button'}" Margin="8 0 0 0" />
+        </BoxContainer>
         <PanelContainer StyleClasses="LowDivider" Margin="0 8" />
         <ScrollContainer VerticalExpand="True" HorizontalExpand="True">
             <Label Name="Output" VerticalAlignment="Top" HorizontalExpand="True" />

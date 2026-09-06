@@ -19,6 +19,8 @@ public sealed class DwaineTerminalBoundUserInterface(EntityUid owner, Enum uiKey
         _window = this.CreateWindow<DwaineTerminalWindow>();
         _window.OnPowerRequested += () => SendMessage(new DwaineTerminalTogglePowerMessage());
         _window.OnInputSubmitted += text => SendMessage(new DwaineTerminalInputMessage(text));
+        _window.OnConnectRequested += target => SendMessage(new DwaineTerminalConnectMessage(target));
+        _window.OnDisconnectRequested += () => SendMessage(new DwaineTerminalDisconnectMessage());
     }
 
     protected override void UpdateState(BoundUserInterfaceState state)

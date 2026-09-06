@@ -79,6 +79,8 @@ public sealed partial class DwaineStorageConnectorComponent : Component
 [RegisterComponent]
 public sealed partial class DwaineNetworkConnectorComponent : Component
 {
+    public const int HardMaxNetworkIdLength = 64;
+
     [DataField]
     public bool Enabled = true;
 
