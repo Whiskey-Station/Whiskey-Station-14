@@ -2,6 +2,7 @@
 
 using Content.Server.Chat.Managers;
 using Content.Shared.Chat;
+using Robust.Shared.Audio.Systems;
 using Content.Shared.Weather;
 using Robust.Shared.Map.Components;
 using Robust.Shared.Player;
@@ -13,6 +14,7 @@ namespace Content.Trauma.Server.Weather;
 public sealed partial class WeatherSchedulerSystem : EntitySystem
 {
     [Dependency] private IChatManager _chat = default!;
+    [Dependency] private SharedAudioSystem _audio = default!; // Whiskey - alarme global por estágio
     [Dependency] private IGameTiming _timing = default!;
     [Dependency] private IRobustRandom _random = default!;
     [Dependency] private SharedWeatherSystem _weather = default!;
@@ -53,6 +55,13 @@ public sealed partial class WeatherSchedulerSystem : EntitySystem
                     duration += SharedWeatherSystem.ShutdownTime;
                 _weather.TryAddWeather(mapId, weather, out _, duration);
             }
+
+            // <Whiskey> - alarme de estação, que é global de propósito.
+            // O som do próprio clima é ambiental e some dentro do casco, então
+            // não serve para avisar quem está no meio da estação.
+            if (stage.Sound is { } alarme)
+                _audio.PlayGlobal(alarme, Filter.BroadcastMap(mapId), true);
+            // </Whiskey>
 
             if (stage.Message is { } message)
             {

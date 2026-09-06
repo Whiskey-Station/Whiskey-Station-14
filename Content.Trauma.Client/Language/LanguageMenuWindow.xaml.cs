@@ -17,12 +17,25 @@ public sealed partial class LanguageMenuWindow : DefaultWindow
     {
         RobustXamlLoader.Load(this);
         _language = IoCManager.Resolve<IEntitySystemManager>().GetEntitySystem<LanguageSystem>();
-        _language.OnLanguagesChanged += UpdateState;
     }
 
     protected override void Opened()
     {
         UpdateState();
+    }
+
+    protected override void EnteredTree()
+    {
+        base.EnteredTree();
+
+        _language.OnLanguagesChanged += UpdateState;
+    }
+
+    protected override void ExitedTree()
+    {
+        base.ExitedTree();
+
+        _language.OnLanguagesChanged -= UpdateState;
     }
 
     private void UpdateState()
@@ -32,13 +45,6 @@ public sealed partial class LanguageMenuWindow : DefaultWindow
             return;
 
         UpdateState(languageSpeaker.CurrentLanguage, languageSpeaker.Speaks);
-    }
-
-    [Obsolete]
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        _language.OnLanguagesChanged -= UpdateState;
     }
 
     public void UpdateState(ProtoId<LanguagePrototype> currentLanguage, List<ProtoId<LanguagePrototype>> spokenLanguages)

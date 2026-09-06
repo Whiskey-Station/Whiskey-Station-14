@@ -25,6 +25,8 @@ namespace Content.Client.Chat.UI;
 /// </summary>
 public sealed partial class RunechatSpeechBubble : SpeechBubble
 {
+    internal const string UnicodeFallbackFontPath = "/Fonts/NotoSans/NotoSans-Regular.ttf";
+
     private const string SayStyle = "runechatSay";
     private const string WhisperStyle = "runechatWhisper";
     private const string EmoteStyle = "runechatEmote";
@@ -261,6 +263,12 @@ public sealed partial class RunechatSpeechBubble : SpeechBubble
     private static int ScaleFontSize(int fontSize, float scale)
     {
         return (int) MathF.Round(fontSize * scale);
+    }
+
+    internal static Font AddUnicodeFallback(IResourceCache resourceCache, Font preferredFont, int size)
+    {
+        var unicodeFont = resourceCache.GetFont(UnicodeFallbackFontPath, Math.Max(1, size));
+        return new StackedFont(preferredFont, unicodeFont);
     }
 
     private readonly record struct RunechatVisualStyle(
@@ -763,7 +771,7 @@ public sealed partial class RunechatSpeechBubble : SpeechBubble
             {
                 try
                 {
-                    return face.Load(size);
+                    return AddUnicodeFallback(_resourceCache, face.Load(size), size);
                 }
                 catch
                 {
@@ -771,7 +779,8 @@ public sealed partial class RunechatSpeechBubble : SpeechBubble
                 }
             }
 
-            return _resourceCache.GetFont(FallbackFontPath, size);
+            var fallbackFont = _resourceCache.GetFont(FallbackFontPath, size);
+            return AddUnicodeFallback(_resourceCache, fallbackFont, size);
         }
 
         private ISystemFontFace? TryGetSmallFontsFace()

@@ -116,12 +116,12 @@
 
   <Box>
     <GuideEntityEmbed Entity="RunedMetal" Caption="Metal rúnico"/>
-    <GuideEntityEmbed Entity="CultPylon" Caption="Pilar do culto"/>
+    <GuideEntityEmbed Entity="CultPylon" Caption="Coletor de sangue"/>
   </Box>
 
-  Use metal rúnico na mão para abrir o menu de construção. Com ele é possível criar pilares, altares, forjas, arquivos, vigas e portas do culto.
+  Use metal rúnico na mão para abrir o menu de construção. Com ele é possível criar coletores de sangue, altares, forjas, arquivos, vigas e portas do culto.
 
-  O [bold]pilar[/bold] pode ser ligado ou desligado por um cultista. Quando ativo, corrompe lentamente o piso e cura cultistas vivos próximos. Não-cultistas queimam a mão ao tocá-lo.
+  O [bold]coletor de sangue[/bold] pode ser ligado ou desligado por um cultista. Quando ativo, corrompe lentamente o piso e cura cultistas vivos próximos. Não-cultistas queimam a mão ao tocá-lo.
 
   As três fábricas possuem uma recarga própria de quatro minutos:
 
@@ -142,7 +142,11 @@
     <GuideEntityEmbed Entity="ConstructShell" Caption="Casca de constructo"/>
   </Box>
 
-  Sacrifícios deixam a alma da vítima em um fragmento. Use um fragmento ocupado em uma casca para permitir que seu ocupante escolha uma forma.
+  Sacrifícios deixam a alma da vítima em um fragmento. Ative um fragmento ocupado no chão para manifestar temporariamente seu ocupante como um shade; ative o fragmento novamente para recolhê-lo. Use o fragmento ocupado em uma casca para permitir que seu ocupante escolha uma forma permanente de constructo.
+
+  <Box>
+    <GuideEntityEmbed Entity="ShadeCult" Caption="Shade manifestado"/>
+  </Box>
 
   <Box>
     <GuideEntityEmbed Entity="ConstructArtificer" Caption="Artífice"/>

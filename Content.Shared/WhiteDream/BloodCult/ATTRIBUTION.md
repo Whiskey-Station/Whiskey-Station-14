@@ -66,6 +66,13 @@ authorship and upstream sprite sources are preserved in each RSI's `meta.json`. 
 and bolt prototypes are adapted from Monolith commits `31b5cd10d86b8c0cdde1e654dbcba4230ddb0640`
 and `8aac82c006cb84f2ac608ab4aa6e990b11829eec` to this codebase's bow and damage APIs.
 
+The cult member status icon, runic metal, cult shade and leader halo under
+`Resources/Textures/_Whiskey/BloodCult/` were imported from
+[Funky Station](https://github.com/funky-station/funky-station). The icon, metal and shade use commit
+`1d33e834c087ba7d481e600de9a45dbbc7684042`; the halo uses its original introduction commit
+`f5e00a9ec875112e1fc62a4f084706540f41e943`. Their CC-BY-SA-3.0 credits are preserved in each RSI's
+`meta.json`.
+
 The Blood Bolt Barrage and Blood Beam greater rites are adapted from
 [BeeStation/BeeStation-Hornet](https://github.com/BeeStation/BeeStation-Hornet), including the
 25-shot barrage and the charged 12-beam fan behavior. The SS13 implementation is AGPL-3.0 and was
