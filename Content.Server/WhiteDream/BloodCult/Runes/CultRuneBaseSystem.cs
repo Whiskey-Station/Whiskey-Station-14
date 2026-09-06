@@ -27,6 +27,7 @@ using Content.Shared.UserInterface;
 using Content.Shared.WhiteDream.BloodCult.BloodCultist;
 using Content.Shared.WhiteDream.BloodCult.Constructs;
 using Content.Shared.WhiteDream.BloodCult.Runes;
+using Content.Shared.WhiteDream.BloodCult;
 using Robust.Server.Audio;
 using Robust.Server.GameObjects;
 using Robust.Shared.Audio;
@@ -307,8 +308,7 @@ public sealed partial class CultRuneBaseSystem : EntitySystem
         if (damage is null)
             return;
 
-        // So the original DamageSpecifier will not be changed.
-        var newDamage = new DamageSpecifier(damage);
+        var newDamage = BloodCultDamage.WithoutWounds(damage);
         if (TryComp(user, out BloodCultEmpoweredComponent? empowered))
         {
             foreach (var (key, value) in newDamage.DamageDict)

@@ -726,7 +726,6 @@ public abstract partial class SharedGunSystem : EntitySystem
             Projectiles.SetShooter(uid, projectile, shooter.Value);
 
         projectile.OriginalShooter = projectile.Shooter;
-        TransformSystem.SetWorldRotation(uid, direction.ToWorldAngle() + projectile.Angle);
         // <Trauma>
         if (targetCoordinates is {} target)
             projectile.TargetCoordinates = target;
@@ -751,6 +750,23 @@ public abstract partial class SharedGunSystem : EntitySystem
         Physics.SetLinearVelocity(uid, finalLinear, body: physics);
 
         Physics.UpdateIsPredicted(uid, physics);
+        Dirty(uid, projectile);
+        // </Trauma>
+
+        // <Trauma>
+        // A rotação fica DEPOIS da física de propósito, que é onde o upstream a
+        // colocou. Eu tinha deixado só a chamada do topo ao desduplicar este
+        // trecho, e em jogo o projétil saía com o sprite virado, parecendo
+        // voltar para o atirador antes de sumir.
+        //
+        // O OriginalShooter e o TargetCoordinates continuam no topo, porque o
+        // Whiskey subiu aquele trecho para montar dano e comportamento antes de
+        // o projétil entrar na física predita. Repetir o target aqui o
+        // redeclararia no mesmo escopo, que foi o erro CS0128 deste merge.
+        TransformSystem.SetWorldRotation(uid, direction.ToWorldAngle() + projectile.Angle);
+
+        if (user != null)
+            projectile.IgnoredEntities.Add(user.Value);
 
         if (user is {} userUid)
         {

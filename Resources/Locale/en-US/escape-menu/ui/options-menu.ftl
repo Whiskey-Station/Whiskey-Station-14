@@ -360,6 +360,11 @@ ui-options-disable-rainbow-overlay-tooltip = Replaces the movement in the rainbo
 ui-options-disable-singulo-warp = Singularity
 ui-options-disable-singulo-warp-tooltip = Disables the screen warping effect on the singularity.
 
+# <Whiskey> - desligar o filtro de humor
+ui-options-disable-mood-overlay = Mood
+ui-options-disable-mood-overlay-tooltip = Disables the loss of colour caused by low mood. Does not change the mood itself.
+# </Whiskey>
+
 ui-options-screen-shake-intensity = Screen shake intensity
 
 ui-options-chat-window-opacity = Chat window opacity

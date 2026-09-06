@@ -73,3 +73,20 @@
     onHandInteract: false
     onInteractUsing: false
     shockDamage: 0
+
+# Whiskey - red version of the original Star Gaze casting vortex, kept for the full invocation.
+- type: entity
+  parent: EffectGazerOrb
+  id: EffectBloodGazeOrb
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: TimedDespawn
+    lifetime: 9
+  - type: Sprite
+    noRot: true
+    drawdepth: Effects
+    color: "#ff2020"
+    layers:
+    - shader: unshaded
+      sprite: _Goobstation/Heretic/Effects/effects160x160.rsi
+      state: gazer_beam_charge

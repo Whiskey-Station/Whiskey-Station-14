@@ -19,7 +19,18 @@ namespace Content.Client.Changelog
         [Dependency] private IConfigurationManager _configManager = default!;
 
         private const string SawmillName = "changelog";
-        public const string MainChangelogName = "Traumalog";
+        // <Whiskey> - o changelog principal é o nosso, e não o do fork pai.
+        //
+        // Isto não escolhe qual aba abre, escolhe de qual arquivo sai o aviso de
+        // novidade no botão: o MaxId vem daqui e é comparado com o LastReadId de
+        // quem está jogando. Com o do Trauma, o aviso acendia por mudança que a
+        // Whiskey não fez, e ficava mudo quando a Whiskey mudava alguma coisa.
+        //
+        // Os ids do WhiskeyChangelog continuam de onde o do Trauma parou por
+        // causa disto: se recomeçassem do 1, o LastReadId de quem já jogou seria
+        // maior que o MaxId e o aviso nunca mais apareceria.
+        public const string MainChangelogName = "Whiskeylog";
+        // </Whiskey>
 
         private ISawmill _sawmill = default!;
 
