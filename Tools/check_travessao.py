@@ -38,6 +38,13 @@ PREFIXOS = (
 # Docs/Changes fica de fora de proposito: sao worklogs assinados por quem
 # portou, em ingles, e la o travessao separa data de descricao. Reescrever
 # pontuacao de texto assinado por outra pessoa nao e trabalho de linter.
+#
+# Locale/*/paper tambem: e literatura in-game, livro escrito por personagem e
+# assinado por autor de verdade. O travessao la e escolha de quem escreveu, e
+# o check existe para o texto que a Whiskey produz, nao para prosa importada.
+
+EXCECOES = ("Resources/Locale/pt-BR/_Whiskey/paper/",
+            "Resources/Locale/en-US/_Whiskey/paper/")
 
 
 def arquivos_de_texto() -> Iterable[str]:
@@ -50,7 +57,7 @@ def arquivos_de_texto() -> Iterable[str]:
 
     for linha in processo.stdout.splitlines():
         caminho = linha.strip()
-        if caminho.startswith(PREFIXOS):
+        if caminho.startswith(PREFIXOS) and not caminho.startswith(EXCECOES):
             yield caminho
 
 
