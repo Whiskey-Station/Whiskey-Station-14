@@ -18,6 +18,15 @@
   parent: WeatherFallout
   id: WeatherRadiationStorm
   components:
+  # <Whiskey> - o alarme NÃO vai aqui, e isso custou um teste em jogo para
+  # descobrir. O som do WeatherStatusEffect é ambiental: o cliente procura, num
+  # raio de três tiles, um tile por onde o clima entra, e se não achar nenhum
+  # joga a oclusão para 3, que abafa quase tudo. Ele existe para a pessoa ouvir
+  # a tempestade lá fora através do casco. Dentro da estação some, mesmo com o
+  # dano acontecendo, porque o dano ignora teto e o som não.
+  #
+  # Alarme de estação precisa ser global. Ele está no estágio do agendador,
+  # logo abaixo, junto da mensagem que já era global.
   - type: WeatherEffects
     conditions:
     - !type:WhitelistCondition
@@ -98,6 +107,25 @@
         max: 40
     - weather: WeatherRadiationStorm
       message: radiation-storm-alert
+      # <Whiskey> - alarme nuclear pedido pela host, global para alcançar quem
+      # está no fundo da estação.
+      #
+      # NÃO usar o /Audio/Machines/Nuke/nuke_alarm.ogg, que seria o literal:
+      # ele é o alarme da bomba armada, em NukeComponent.AlertSound, e emprestar
+      # esse som faz quem ouve achar que a estação vai explodir.
+      #
+      # O meltdown_siren da mesma pasta serviria pelo som, mas é
+      # CC-BY-NC-SA-3.0, e non commercial não combina com o AGPL daqui.
+      # Um toque só, no começo da tempestade, e não em laço. O arquivo tem 4,2
+      # segundos e a tempestade fica 40 no ar: alarme estridente repetindo dez
+      # vezes vira tortura, e no teste em jogo já ficou irritante demais no
+      # volume cheio. O papel dele é fazer a pessoa levantar da cadeira, não
+      # acompanhar o evento inteiro.
+      sound:
+        path: /Audio/_FarHorizons/Machines/reactor_alarm_3.ogg
+        params:
+          volume: -8
+      # </Whiskey>
       duration: # 1-2.5 mins
         min: 60
         max: 150
@@ -106,3 +134,11 @@
       duration:
         min: 10
         max: 10
+    # <Whiskey> - o /tg/station avisa quando a ameaça passa, e aqui não avisava.
+    # Sem clima, é só o recado de que dá para sair do abrigo. Um estágio sem
+    # weather nenhum encerra o agendador logo em seguida, porque ele é temporary.
+    - message: radiation-storm-over
+      duration:
+        min: 1
+        max: 1
+    # </Whiskey>

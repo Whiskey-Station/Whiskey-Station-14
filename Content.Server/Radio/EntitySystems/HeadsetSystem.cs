@@ -30,7 +30,6 @@ public sealed partial class HeadsetSystem : SharedHeadsetSystem
         SubscribeLocalEvent<HeadsetComponent, EncryptionChannelsChangedEvent>(OnKeysChanged);
 
         SubscribeLocalEvent<WearingHeadsetComponent, EntitySpokeEvent>(OnSpeak);
-        SubscribeLocalEvent<HeadsetComponent, RadioReceiveAttemptEvent>(OnHeadsetReceiveAttempt); // Goobstation - Whitelisted radio channel
     }
 
     private void OnKeysChanged(EntityUid uid, HeadsetComponent component, EncryptionChannelsChangedEvent args)
@@ -109,7 +108,10 @@ public sealed partial class HeadsetSystem : SharedHeadsetSystem
 
     private void OnHeadsetReceive(EntityUid uid, HeadsetComponent component, ref RadioReceiveEvent args)
     {
-        // Einstein Engines - Language begin
+        // TODO: change this when a code refactor is done
+        // this is currently done this way because receiving radio messages on an entity otherwise requires that entity
+        // to have an ActiveRadioComponent
+
         var parent = Transform(uid).ParentUid;
 
         if (parent.IsValid())
@@ -119,6 +121,7 @@ public sealed partial class HeadsetSystem : SharedHeadsetSystem
         }
 
         if (TryComp(parent, out ActorComponent? actor))
+        // <Trauma> - check if the mob understands the language and choose the message to show
         {
             var canUnderstand = _language.CanUnderstand(parent, args.Language.ID);
 
@@ -135,7 +138,7 @@ public sealed partial class HeadsetSystem : SharedHeadsetSystem
             };
             _netMan.ServerSendMessage(msg, actor.PlayerSession.Channel);
         }
-        // Einstein Engines - Language end
+        // </Trauma>
     }
 
     /// <summary>
@@ -178,11 +181,5 @@ public sealed partial class HeadsetSystem : SharedHeadsetSystem
         });
 
         return true;
-    }
-
-    // Goobstation - Whitelisted radio channel
-    private void OnHeadsetReceiveAttempt(EntityUid uid, HeadsetComponent component, ref RadioReceiveAttemptEvent args)
-    {
-        args.Cancelled |= _whitelist.IsWhitelistFail(args.Channel.ReceiveWhitelist, uid);
     }
 }
