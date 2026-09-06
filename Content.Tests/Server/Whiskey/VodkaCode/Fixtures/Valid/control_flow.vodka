@@ -1,0 +1,9 @@
+let counter = 0;
+while (counter < 3) {
+    counter = counter + 1;
+}
+if (counter == 3) {
+    return counter;
+} else {
+    exit 1;
+}
