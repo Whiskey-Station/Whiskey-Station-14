@@ -5,6 +5,10 @@
   name: PDA
   description: Personal Data Assistant.
   components:
+  # <Whiskey - Nano XP 2000 and station-local G-Mail>
+  - type: NanoXpDevice
+    kind: Pda
+  # </Whiskey>
   - type: Appearance
     appearanceDataInit:
      enum.PdaVisuals.PdaType:

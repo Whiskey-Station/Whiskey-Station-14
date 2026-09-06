@@ -5,6 +5,9 @@
   placement:
     mode: SnapgridCenter
   components:
+  # <Whiskey - Nano XP 2000 secondary desktop>
+  - type: NanoXpDevice
+  # </Whiskey>
   - type: TelekineticInteractable # Trauma
   - type: Animateable
   - type: MeleeSound

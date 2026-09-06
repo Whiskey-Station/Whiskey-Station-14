@@ -3,6 +3,9 @@
   parent: [BaseItem, PowerCellSlotSmallItem]
   id: BaseHandheldComputer
   components:
+  # <Whiskey - Nano XP 2000 secondary desktop>
+  - type: NanoXpDevice
+  # </Whiskey>
   - type: ActivatableUIRequiresPowerCell
   - type: ItemToggleExaminableStatus
   - type: ItemToggle

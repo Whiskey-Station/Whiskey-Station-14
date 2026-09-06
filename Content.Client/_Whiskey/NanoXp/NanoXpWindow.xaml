@@ -1,0 +1,104 @@
+<!--
+SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<DefaultWindow xmlns="https://spacestation14.io"
+               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+               MinSize="700 460"
+               SetSize="760 520"
+               Title="{Loc 'nano-xp-window-title'}">
+    <BoxContainer Orientation="Vertical" Margin="8" SeparationOverride="6">
+        <PanelContainer StyleClasses="BackgroundPanelDark">
+            <BoxContainer Orientation="Horizontal" Margin="8 5">
+                <Label Name="SystemTitle" Text="Nano XP 2000" StyleClasses="LabelHeading" />
+                <Label Name="NetworkStatus" HorizontalExpand="True" HorizontalAlignment="Right" />
+            </BoxContainer>
+        </PanelContainer>
+        <Label Name="Notice" Align="Center" />
+        <BoxContainer Orientation="Horizontal" VerticalExpand="True" SeparationOverride="8">
+            <BoxContainer Orientation="Vertical" MinWidth="150" SeparationOverride="5">
+                <Button Name="DesktopButton" Text="{Loc 'nano-xp-app-desktop'}" />
+                <Button Name="MailButton" Text="{Loc 'nano-xp-app-mail'}" />
+                <Button Name="DepartmentButton" Text="{Loc 'nano-xp-app-department'}" />
+                <Button Name="BrowserButton" Text="{Loc 'nano-xp-app-browser'}" />
+                <Button Name="DwaineButton" Text="{Loc 'nano-xp-app-dwaine'}" />
+                <Control VerticalExpand="True" />
+                <Button Name="RefreshButton" Text="{Loc 'nano-xp-refresh'}" />
+                <Button Name="LogoutButton" Text="{Loc 'nano-xp-logout'}" />
+            </BoxContainer>
+            <PanelContainer StyleClasses="BackgroundPanel" HorizontalExpand="True" VerticalExpand="True">
+                <BoxContainer Orientation="Vertical" Margin="10" SeparationOverride="6">
+                    <BoxContainer Name="DesktopView" Orientation="Vertical" SeparationOverride="6">
+                        <Label Text="{Loc 'nano-xp-desktop-title'}" StyleClasses="LabelHeading" />
+                        <Label Name="Welcome" />
+                        <GridContainer Columns="2">
+                            <Label Text="{Loc 'nano-xp-device-label'}" StyleClasses="LabelKeyText" />
+                            <Label Name="Device" />
+                            <Label Text="{Loc 'nano-xp-account-label'}" StyleClasses="LabelKeyText" />
+                            <Label Name="Account" />
+                            <Label Text="{Loc 'nano-xp-job-label'}" StyleClasses="LabelKeyText" />
+                            <Label Name="Job" />
+                            <Label Text="{Loc 'nano-xp-department-label'}" StyleClasses="LabelKeyText" />
+                            <Label Name="Department" />
+                        </GridContainer>
+                        <PanelContainer StyleClasses="LowDivider" Margin="0 5" />
+                        <BoxContainer Name="LoginPanel" Orientation="Vertical" SeparationOverride="5">
+                            <Label Text="{Loc 'nano-xp-login-title'}" StyleClasses="LabelHeading" />
+                            <LineEdit Name="AddressInput" PlaceHolder="{Loc 'nano-xp-address-placeholder'}" />
+                            <LineEdit Name="PasswordInput" PlaceHolder="{Loc 'nano-xp-password-placeholder'}" />
+                            <BoxContainer Orientation="Horizontal" SeparationOverride="5">
+                                <Button Name="LoginButton" Text="{Loc 'nano-xp-login'}" HorizontalExpand="True" />
+                                <Button Name="EnrollButton" Text="{Loc 'nano-xp-enroll'}" HorizontalExpand="True" />
+                            </BoxContainer>
+                            <Label Name="EnrollmentHelp" />
+                        </BoxContainer>
+                        <Label Name="DesktopHelp" />
+                    </BoxContainer>
+
+                    <BoxContainer Name="MailView" Orientation="Vertical" VerticalExpand="True" SeparationOverride="5" Visible="False">
+                        <Label Text="{Loc 'nano-xp-mail-title'}" StyleClasses="LabelHeading" />
+                        <BoxContainer Orientation="Horizontal" VerticalExpand="True" SeparationOverride="8">
+                            <ItemList Name="Inbox" MinWidth="235" VerticalExpand="True" />
+                            <ScrollContainer HorizontalExpand="True" VerticalExpand="True">
+                                <BoxContainer Orientation="Vertical" SeparationOverride="4">
+                                    <Label Name="MailSender" StyleClasses="LabelKeyText" />
+                                    <Label Name="MailSubject" StyleClasses="LabelHeading" />
+                                    <RichTextLabel Name="MailBody" HorizontalExpand="True" VerticalExpand="True" />
+                                </BoxContainer>
+                            </ScrollContainer>
+                        </BoxContainer>
+                        <PanelContainer StyleClasses="LowDivider" />
+                        <GridContainer Columns="2">
+                            <Label Text="{Loc 'nano-xp-mail-to'}" />
+                            <LineEdit Name="RecipientInput" />
+                            <Label Text="{Loc 'nano-xp-mail-subject'}" />
+                            <LineEdit Name="SubjectInput" />
+                        </GridContainer>
+                        <TextEdit Name="BodyInput" MinHeight="70" />
+                        <Button Name="SendMailButton" Text="{Loc 'nano-xp-mail-send'}" />
+                    </BoxContainer>
+
+                    <BoxContainer Name="DepartmentView" Orientation="Vertical" SeparationOverride="6" Visible="False">
+                        <Label Text="{Loc 'nano-xp-department-title'}" StyleClasses="LabelHeading" />
+                        <Label Name="DepartmentAccess" />
+                        <Label Name="DepartmentIdentity" />
+                        <Label Text="{Loc 'nano-xp-department-help'}" />
+                    </BoxContainer>
+
+                    <BoxContainer Name="BrowserView" Orientation="Vertical" VerticalExpand="True" SeparationOverride="6" Visible="False">
+                        <Label Text="{Loc 'nano-xp-browser-title'}" StyleClasses="LabelHeading" />
+                        <Label Text="{Loc 'nano-xp-browser-help'}" />
+                        <ItemList Name="Directory" VerticalExpand="True" />
+                    </BoxContainer>
+
+                    <BoxContainer Name="DwaineView" Orientation="Vertical" SeparationOverride="6" Visible="False">
+                        <Label Text="{Loc 'nano-xp-dwaine-title'}" StyleClasses="LabelHeading" />
+                        <Label Name="DwaineStatus" />
+                        <Button Name="LaunchDwaineButton" Text="{Loc 'nano-xp-dwaine-launch'}" />
+                    </BoxContainer>
+                </BoxContainer>
+            </PanelContainer>
+        </BoxContainer>
+    </BoxContainer>
+</DefaultWindow>

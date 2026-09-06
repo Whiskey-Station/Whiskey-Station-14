@@ -587,7 +587,14 @@ public sealed partial class DwaineStorageSystem : EntitySystem
         if (container is not ContainerSlot physicalSlot || physicalSlot.ContainedEntity != media)
             return false;
 
-        return _containers.Remove(media, physicalSlot, force: force);
+        // EntityManager flushes maps, grids, containers and their contents in an order that does not leave a
+        // valid world parent for every drive. Preserve normal mainframe/media deletion behavior while the world
+        // is live, but do not reparent into a map or grid that is itself terminating.
+        var mainframeTransform = Transform(mainframe);
+        var canReparent = !force
+                          || ((mainframeTransform.MapUid is not { } map || !TerminatingOrDeleted(map))
+                              && (mainframeTransform.GridUid is not { } grid || !TerminatingOrDeleted(grid)));
+        return _containers.Remove(media, physicalSlot, reparent: canReparent, force: force);
     }
 
     private static string ContainerId(int slot)

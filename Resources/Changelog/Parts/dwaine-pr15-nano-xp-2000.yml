@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+author: Whiskey Station Contributors
+changes:
+  - type: Add
+    message: >-
+      Computadores, computadores portáteis e PDAs agora possuem o micro desktop
+      opcional Nano XP 2000, com Desktop, portal departamental, NanoNet e atalho
+      compatível para terminais DWAINE, sem substituir as interfaces anteriores.
+  - type: Add
+    message: >-
+      Todo PDA agora pode criar, a partir de seu cartão de identificação, uma
+      conta protegida por senha no G-Mail (Correio Galáctico) local da estação;
+      a mesma conta acessa apenas computadores autorizados para seus acessos.
+  - type: Fix
+    message: >-
+      Mídias inseridas em drives DWAINE não tentam mais ser recolocadas em mapas
+      ou grids durante o encerramento dessas entidades.
