@@ -4,17 +4,18 @@ namespace Content.Server.Entry
     public static class IgnoredComponents
     {
         public static string[] List => new[] {
-            // <Trauma>
-            "RotationDrawDepth",
-            "ToggleableLightWieldable",
-            "HideClothingLayerClothing",
-            "ItemSlotRenderer",
-            "ShowSpriteLayerStatusEffect",
-            "AnimatedEmotesBlacklist",
+            // <Whiskey> - os seis do Trauma sairam daqui de proposito: eles
+            // migraram para Content.Trauma.Server/Entry/EntryPoint.cs, que usa
+            // RegisterIgnore e veio neste upstream. Manter aqui duplicaria.
+            //
+            // Estes tres continuam porque sao do cliente e nao tem dono do lado
+            // do servidor: eles vivem em Content.Client/_ES. O certo seria um
+            // EntryPoint do Whiskey com RegisterIgnore, igual ao do Trauma, mas
+            // isso e mudanca de estrutura e nao cabe num merge de upstream.
             "ESTimedDespawnLightFade",
             "ESTimedDespawnSpriteFade",
             "ESGenericPointLightVisualizer",
-            // </Trauma>
+            // </Whiskey>
             "ConstructionGhost",
             "IconSmooth",
             "InteractionOutline",

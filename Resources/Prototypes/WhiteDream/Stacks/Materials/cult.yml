@@ -1,6 +1,6 @@
 ﻿- type: stack
   id: RunedMetalSheets
   name: materials-runed-metal
-  icon: { sprite: /Textures/WhiteDream/BloodCult/Entities/runic_metal.rsi, state: runic}
+  icon: { sprite: /Textures/_Whiskey/BloodCult/Sheets/metal.rsi, state: runedmetal } # Whiskey
   spawn: RunedMetal1
   maxCount: 30

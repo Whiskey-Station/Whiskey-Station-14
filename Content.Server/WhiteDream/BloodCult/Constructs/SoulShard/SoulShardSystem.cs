@@ -52,24 +52,33 @@ public sealed partial class SoulShardSystem : EntitySystem
 
     private void OnActivate(Entity<SoulShardComponent> shard, ref ActivateInWorldEvent args)
     {
-        if (!_mind.TryGetMind(shard, out var mindId, out _))
-            return;
-
+        // Whiskey - while manifested, the mind belongs to the shade rather than the shard. Check
+        // ShadeUid before looking for a mind in the shard so the shade can be recalled correctly.
         if (!shard.Comp.IsBlessed)
         {
             if (!HasComp<BloodCultistComponent>(args.User))
                 return;
+
             if (shard.Comp.ShadeUid.HasValue)
+            {
                 DespawnShade(shard);
-            else
-                SpawnShade(shard, shard.Comp.ShadeProto, mindId);
+                return;
+            }
+
+            if (_mind.TryGetMind(shard, out var cultMindId, out _))
+                SpawnShade(shard, shard.Comp.ShadeProto, cultMindId);
+
             return;
         }
 
         if (shard.Comp.ShadeUid.HasValue)
+        {
             DespawnShade(shard);
-        else
-            SpawnShade(shard, shard.Comp.PurifiedShadeProto, mindId);
+            return;
+        }
+
+        if (_mind.TryGetMind(shard, out var holyMindId, out _))
+            SpawnShade(shard, shard.Comp.PurifiedShadeProto, holyMindId);
     }
 
     private void OnInteractUsing(Entity<SoulShardComponent> shard, ref InteractUsingEvent args)

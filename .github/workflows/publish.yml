@@ -23,10 +23,21 @@ jobs:
 
     - name: Get Engine Tag
       run: |
+        # <Whiskey> - mantido contra o upstream de propósito, e não é teimosia.
+        # O Trauma resolve a tag com git describe --tags, que devolve a tag mais
+        # próxima no histórico do submódulo e não a versão que o engine declara.
+        # Foi isso que fez o Hub anunciar rt 288 rodando 289, e o conserto está
+        # no commit 2ea1a7103c de 29/08.
+        #
+        # Ler o Robust.Engine.Version.props devolve a versão de verdade, e o
+        # ls-remote confere que a tag existe no RobustToolbox oficial, que é a
+        # mesma garantia que o fetch wizden do lado deles queria dar, sem
+        # precisar baixar nada.
         ENGINE_VERSION=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' RobustToolbox/MSBuild/Robust.Engine.Version.props)
         ENGINE_TAG="v${ENGINE_VERSION}"
         git ls-remote --exit-code --tags https://github.com/space-wizards/RobustToolbox.git "refs/tags/${ENGINE_TAG}"
         echo "ENGINE_TAG=${ENGINE_TAG}" >> "$GITHUB_ENV"
+        # </Whiskey>
 
     - name: Install dependencies
       run: dotnet restore

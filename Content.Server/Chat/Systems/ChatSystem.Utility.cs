@@ -142,21 +142,9 @@ public sealed partial class ChatSystem
     }
 
     /// <summary>
-    ///     Whiskey: entrega a fala traduzida para um ouvinte que esteja com
-    ///     tradutor, em vez de mandar o texto original.
+    ///     Whiskey: entrega a fala traduzida a quem tem tradutor. Verdadeiro
+    ///     significa que quem chamou não manda nada, a mensagem chega depois.
     /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Devolvendo verdadeiro, quem chamou não deve mandar nada: a mensagem
-    ///     chega depois, quando a tradução volta, uns três décimos mais tarde.
-    ///     Só quem tem tradutor paga esse atraso; todo mundo em volta continua
-    ///     recebendo na hora.
-    ///     </para>
-    ///     <para>
-    ///     Falha de tradução não engole a fala, porque o resultado sempre
-    ///     carrega o texto original dentro.
-    ///     </para>
-    /// </remarks>
     private bool TryIdiomaDoOuvinte(
         EntityUid listener,
         EntityUid source,

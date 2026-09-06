@@ -37,7 +37,6 @@ public sealed partial class HealthAnalyzerControl
     private WoundSystem _wound = default!;
 
     private EntityQuery<AmputationTraumaComponent> _amputationQuery = default!;
-    private EntityQuery<BoneComponent> _boneQuery = default!;
 
     public event Action<ProtoId<OrganCategoryPrototype>?, EntityUid>? OnBodyPartSelected;
 
@@ -57,7 +56,6 @@ public sealed partial class HealthAnalyzerControl
         _wound = _entityManager.System<WoundSystem>();
 
         _amputationQuery = _entityManager.GetEntityQuery<AmputationTraumaComponent>();
-        _boneQuery = _entityManager.GetEntityQuery<BoneComponent>();
 
         _bodyPartControls = new Dictionary<ProtoId<OrganCategoryPrototype>, TextureButton>
         {
@@ -160,6 +158,7 @@ public sealed partial class HealthAnalyzerControl
     public void PopulateBody(EntityUid target, ref HealthAnalyzerUiState state, bool bloodLevelLow = false)
     {
         var selectedPart = _entityManager.GetEntity(state.Part);
+        var selectedCategory = selectedPart is { } selectedUid ? _body.GetCategory(selectedUid) : null;
         if (selectedPart != null)
             target = selectedPart.Value;
         var isPart = selectedPart != null;
@@ -209,8 +208,26 @@ public sealed partial class HealthAnalyzerControl
 
         foreach (var bleeding in state.Bleeding)
         {
+            if (selectedCategory is { } category && bleeding != category)
+                continue;
+
             var name = _prototypes.Index(bleeding).Name.ToLowerInvariant();
             var locString = Loc.GetString("condition-body-part-bleeding", ("entity", identity), ("part", name));
+
+            ConditionsListContainer.AddChild(new RichTextLabel
+            {
+                Text = locString,
+                Margin = new Thickness(0, 4),
+            });
+        }
+
+        foreach (var (category, severity) in state.BoneDamage)
+        {
+            if (selectedCategory is { } selected && category != selected)
+                continue;
+
+            var name = _prototypes.Index(category).Name.ToLowerInvariant();
+            var locString = Loc.GetString($"condition-body-trauma-BoneDamage-{severity}", ("woundable", name));
 
             ConditionsListContainer.AddChild(new RichTextLabel
             {
@@ -229,6 +246,10 @@ public sealed partial class HealthAnalyzerControl
 
             foreach (var trauma in traumas)
             {
+                // Bone damage is sent explicitly by the server because contained body parts may not be in client PVS.
+                if (trauma.Comp.TraumaType == TraumaType.BoneDamage)
+                    continue;
+
                 string locString;
                 if (_amputationQuery.TryComp(trauma, out var amputation))
                 {
@@ -237,10 +258,7 @@ public sealed partial class HealthAnalyzerControl
                 }
                 else
                 {
-                    var suffix = trauma.Comp.TraumaType == TraumaType.BoneDamage
-                        ? $"-{_boneQuery.Comp(part).BoneSeverity}"
-                        : "";
-                    locString = Loc.GetString($"condition-body-trauma-{trauma.Comp.TraumaType}{suffix}", ("woundable", part));
+                    locString = Loc.GetString($"condition-body-trauma-{trauma.Comp.TraumaType}", ("woundable", part));
                 }
 
                 ConditionsListContainer.AddChild(new RichTextLabel
