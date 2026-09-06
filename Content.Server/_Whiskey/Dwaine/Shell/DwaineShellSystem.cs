@@ -223,7 +223,7 @@ public sealed partial class DwaineShellSystem : EntitySystem
         shell.ProcessOwner = owner;
         if (announce)
         {
-            _transport.WriteOutput(mainframe, transportSession, "DWAINE ready — type help for commands");
+            _transport.WriteOutput(mainframe, transportSession, "DWAINE ready: type help for commands");
             WritePrompt(mainframe, transportSession, shell, identity, fileSystem);
         }
         return true;
