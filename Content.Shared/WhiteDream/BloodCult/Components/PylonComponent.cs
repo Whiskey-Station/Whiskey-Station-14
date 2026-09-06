@@ -2,6 +2,7 @@
 // Blood Cult: ported from WWhiteDreamProject/wwdpublic. See Content.Shared/WhiteDream/BloodCult/ATTRIBUTION.md
 
 using Content.Shared.Damage;
+using Content.Shared.FixedPoint;
 using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
@@ -49,6 +50,9 @@ public sealed partial class PylonComponent : Component
 
     [DataField]
     public DamageSpecifier Healing = new();
+
+    [DataField]
+    public FixedPoint2 BloodRegenerationAmount = 20; // Whiskey
 
     [DataField]
     public DamageSpecifier DamageOnInteract = new();

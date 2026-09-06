@@ -300,7 +300,8 @@
   description: A bound spirit.
   components:
   - type: Sprite
-    state: shade_cult
+    sprite: _Whiskey/BloodCult/Mobs/constructs.rsi # Whiskey
+    state: shade # Whiskey
   - type: Construct
     # A spirit doesn't shatter, it is pulled back through the veil.
     shatterSound:
@@ -394,4 +395,5 @@
   name: purified shade
   components:
   - type: Sprite
+    sprite: WhiteDream/BloodCult/mobs.rsi # Whiskey - the Funky RSI only replaces the cult shade.
     state: shade_holy

@@ -541,3 +541,11 @@ entity-effect-guidebook-plant-mutate-chemicals =
         [1] Mutates
         *[other] mutate
     } a plant to produce {$name}
+
+# <Whiskey> - efeito que levanta modificador de humor
+entity-effect-guidebook-adjust-mood =
+    { $chance ->
+        [1] Affects
+        *[other] affect
+    } the mood of those who have one
+# </Whiskey>

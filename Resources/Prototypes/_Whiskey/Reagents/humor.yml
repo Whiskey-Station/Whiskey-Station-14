@@ -1,0 +1,74 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# ---------------------------------------------------------------------------
+# Tratamento da depressão, no desenho do /tg/station: ele existe, funciona, e
+# TEM PREÇO.
+#
+# Lá a `mood stabilizer pill` do Psicólogo carrega /datum/reagent/drug/happiness,
+# que não é remédio, é euforia química. Ela vicia, com
+# addiction_types = list(/datum/addiction/hallucinogens = 30), causa dano
+# cerebral leve e tem overdose em 20.
+#
+# Isso é decisão de desenho e não descuido: cura limpa ANULA o traço, e traço
+# anulado não vale a pena escolher. Um remédio que funciona mas cobra dá o que
+# o regulamento chama de contrajogo.
+# ---------------------------------------------------------------------------
+
+# Categoria própria: uma dose nova substitui a anterior em vez de empilhar, e
+# nenhum outro modificador é atropelado por ela.
+- type: moodCategory
+  id: WhiskeyEuforia
+
+# O peso é o do TG, mood_change 50, e é enorme de propósito. Numa escala cujo
+# topo é +15, isso é mais que o triplo do máximo: a droga não melhora o humor,
+# ela ATROPELA qualquer coisa que estivesse acontecendo, inclusive um episódio
+# de depressão. É esse o ponto dela, e é por isso que ela custa caro.
+#
+# A duração é curta porque o efeito é levantado a cada tique de metabolismo
+# enquanto a droga está no sangue, e cada levantada reinicia o relógio por ser
+# da mesma categoria. Ou seja, os 30 segundos são o rastro depois que a droga
+# acaba, e não a duração total.
+- type: moodEffect
+  id: WhiskeyEuforiaQuimica
+  category: WhiskeyEuforia
+  moodChange: 50
+  timeout: 30
+
+# Metabolismo em Bloodstream, igual aos outros narcóticos do fork. Isso não é
+# só cosmético: o AddictionSystem do _Ganimed classifica como droga tudo que
+# metaboliza no Bloodstream, então o vício vem daí, pelo mesmo caminho de
+# qualquer outra droga daqui. Não precisou de efeito de vício avulso.
+- type: reagent
+  id: WhiskeyEuforico
+  name: reagent-name-whiskey-euforico
+  group: Narcotics
+  desc: reagent-desc-whiskey-euforico
+  physicalDesc: reagent-physical-desc-syrupy
+  contrabandSeverity: Minor
+  flavor: bitter
+  color: "#EE35FF"
+  metabolisms:
+    Bloodstream:
+      metabolismRate: 0.2
+      effects:
+      - !type:AdjustMood
+        effect: WhiskeyEuforiaQuimica
+
+# Receita de química. Fica atrás dos mesmos três reagentes do SpaceDrugs mais o
+# Éter, para não ser trivial de fazer em massa: o Psicólogo já começa com um
+# vidro, e repor exige trabalho de química de verdade.
+- type: reaction
+  id: WhiskeyEuforico
+  reactants:
+    Mercury:
+      amount: 1
+    Sugar:
+      amount: 1
+    Lithium:
+      amount: 1
+    Ethanol:
+      amount: 1
+  products:
+    WhiskeyEuforico: 3

@@ -10,16 +10,16 @@ namespace Content.Server.WhiteDream.BloodCult.BloodRites;
 public sealed partial class BloodBeamComponent : Component
 {
     [DataField]
-    public TimeSpan ChargeTime = TimeSpan.FromSeconds(9);
+    public TimeSpan ChargeTime = TimeSpan.FromSeconds(3); // Whiskey - swapped with Blood Gaze.
 
     [DataField]
     public TimeSpan ShotInterval = TimeSpan.FromSeconds(0.75);
 
     [DataField]
-    public TimeSpan ChargeChantInterval = TimeSpan.FromSeconds(3);
+    public TimeSpan ChargeChantInterval = TimeSpan.FromSeconds(2); // Whiskey - swapped with Blood Gaze.
 
     [DataField]
-    public int ChargeChantWords = 3;
+    public int ChargeChantWords = 4; // Whiskey - swapped with Blood Gaze.
 
     [DataField]
     public int FireChantWords = 3;
@@ -40,7 +40,8 @@ public sealed partial class BloodBeamComponent : Component
     public EntProtoId ProjectilePrototype = "ProjectileBloodBeam";
 
     [DataField]
-    public SoundSpecifier ChargeSound = new SoundPathSpecifier("/Audio/_Goobstation/Wizard/lightning_chargeup.ogg");
+    public SoundSpecifier ChargeSound = new SoundPathSpecifier(
+        "/Audio/_Goobstation/Heretic/stargazer/beam_open.ogg"); // Whiskey - swapped with Blood Gaze.
 
     [DataField]
     public SoundSpecifier FireSound = new SoundPathSpecifier("/Audio/_Goobstation/Wizard/exit_blood.ogg");

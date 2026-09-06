@@ -121,6 +121,7 @@
   - type: Tag
     tags:
     - BloodRitesAura
+    - BloodRiteBoundItem # Whiskey
   - type: UserInterface
     interfaces:
       enum.BloodRitesUiKey.Key:
@@ -129,6 +130,8 @@
     key: enum.BloodRitesUiKey.Key
     inHandsOnly: true
     requireActiveHand: false
+  - type: DeleteOnDropAttempt
+    deleteOnAttempt: false # Whiskey - refuse accidental drops without deleting stored blood.
 
 - type: entity
   parent: ArcaneBarrage
@@ -145,6 +148,10 @@
   - type: BasicEntityAmmoProvider
     proto: ProjectileBloodBoltBarrage
     capacity: 25
+  - type: ArcaneBarrage
+    swapHandsOnShot: false # Whiskey - keep the rite in the same hand while firing.
+  - type: Gun
+    projectileSpeed: 28 # Whiskey - slower bolts remain readable without reducing their range.
   - type: PointLight
     enabled: true
     radius: 2
@@ -152,6 +159,11 @@
     color: "#b51d1d"
   - type: BloodRiteChant
   - type: CultItem
+  - type: Tag
+    tags:
+    - BloodRiteBoundItem # Whiskey
+  - type: DeleteOnDropAttempt
+    deleteOnAttempt: false # Whiskey - bound rites cannot be lost to an accidental drop.
 
 - type: entity
   parent: BaseItem
@@ -173,6 +185,63 @@
     heavyStaminaCost: 0
   - type: BloodBeam
   - type: DeleteOnDropAttempt
+    deleteOnAttempt: false # Whiskey - bound rites cannot be lost to an accidental drop.
+  - type: CultItem
+  - type: Tag
+    tags:
+    - BloodRiteBoundItem # Whiskey
+
+# Whiskey - a balanced blood-cult adaptation of the Star Gazer's Star Gaze.
+- type: entity
+  parent: BaseItem
+  id: BloodGazeAura
+  name: blood gaze
+  description: A supreme blood rite that focuses a crimson, all-consuming beam after a long invocation.
+  components:
+  - type: Sprite
+    sprite: _Goobstation/Heretic/abilities_heretic.rsi
+    color: "#ff3030"
+    layers:
+    - state: gazer_beam_charge
+  - type: Item
+    size: Ginormous
+    sprite: WhiteDream/BloodCult/Entities/Items/rites.rsi
+  - type: MeleeWeapon
+    damage:
+      types:
+        Blunt: 0
+    heavyStaminaCost: 0
+  - type: BloodGaze
+  - type: Tag
+    tags:
+    - BloodRiteBoundItem # Whiskey
+  - type: ContinuousBeamGun
+    userCanFire: false
+    beamScale: 0.5 # Whiskey - the Star Gazer is huge; a human-held rite needs a smaller origin offset.
+    minMaxLaserRange: 1.5, 14
+    laserSpeed: 0.12
+    laserThickness: 0.7
+    beamTime: 10 # Whiskey - match the original Star Gaze beam duration.
+    damageTime: 0.25
+    beamSound:
+      path: /Audio/_Goobstation/Heretic/stargazer/beam_loop_one.ogg
+    damage:
+      types:
+        Blunt: 5 # Whiskey - roughly 200 brute over a full beam before armor.
+        Structural: 10
+    targetPart: Vital # Whiskey - Trauma derives life state from vital parts, so this damage can incapacitate.
+    splitDamageBehavior: SplitEnsureAll
+    limbDamageCompensation: false # Whiskey - vital targeting no longer needs the all-limb compensation multiplier.
+    data:
+      id: bloodgaze
+      startSprite: { sprite: /Textures/_Goobstation/Heretic/Effects/effects96x96.rsi, state: start1 }
+      sprite: { sprite: /Textures/_Goobstation/Heretic/Effects/effects.rsi, state: beam1 }
+      endSprite: { sprite: /Textures/_Goobstation/Heretic/Effects/effects.rsi, state: end1 }
+      color: "#ff2020" # Whiskey - recolor the cosmic beam red without changing the original asset.
+      scale: 1.5, 1.5
+      shouldCollide: false
+  - type: DeleteOnDropAttempt
+    deleteOnAttempt: false # Whiskey - bound rites cannot be lost to an accidental drop.
   - type: CultItem
 
 - type: entity
@@ -183,6 +252,7 @@
   components:
   - type: Sprite
     sprite: WhiteDream/BloodCult/Entities/Items/arcane_barrage.rsi
+    scale: 1.35, 1.35 # Whiskey
     layers:
     - state: bullet
       shader: unshaded
@@ -191,21 +261,32 @@
       types:
         Slash: 20
   - type: Trail
-    color: "#b51d1d88"
-    scale: 0.08
-    frequency: 0.02
-    lifetime: 0.3
+    color: "#ff2020dd" # Whiskey
+    scale: 0.14 # Whiskey
+    frequency: 0.01 # Whiskey
+    lifetime: 0.45 # Whiskey
     lerpTime: 0.0001
-    alphaLerpAmount: 0.2
-    scaleLerpAmount: 0.08
+    alphaLerpAmount: 0.12 # Whiskey
+    scaleLerpAmount: 0.05 # Whiskey
     shader: unshaded
+  - type: Fixtures
+    fixtures:
+      projectile:
+        shape:
+          !type:PhysShapeAabb
+          bounds: "-0.18,-0.18,0.18,0.18" # Whiskey
+        hard: false
+        mask:
+        - Impassable
+        - BulletImpassable
+        - Opaque # Whiskey - also hit holographic and other opaque mobs.
   - type: Ammo
     muzzleFlash: null
   - type: PointLight
     enabled: true
     radius: 1.5
-    energy: 1
-    color: "#b51d1d"
+    energy: 2 # Whiskey
+    color: "#ff2020" # Whiskey
 
 - type: entity
   parent: ProjectileArcaneBarrage

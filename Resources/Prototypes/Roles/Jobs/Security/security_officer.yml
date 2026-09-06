@@ -43,6 +43,7 @@
     back:
     - Flash
 #    - MagazinePistol - Trauma
+    - BookArteDaRobustez # Whiskey - o livro do Cleitosvaldo
 
 - type: chameleonOutfit
   id: SecurityOfficerChameleonOutfit
