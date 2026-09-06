@@ -5,6 +5,11 @@
   description: A card necessary to access various areas aboard the station.
   abstract: true
   components:
+  # <Whiskey>
+  # O saldo mora no cartão porque o cartão já é a identidade nesta estação,
+  # e porque o ponto de mineração logo abaixo já mora aqui.
+  - type: CreditAccount
+  # </Whiskey>
   # <Trauma>
   - type: MiningPoints
   - type: NanoChatCard
