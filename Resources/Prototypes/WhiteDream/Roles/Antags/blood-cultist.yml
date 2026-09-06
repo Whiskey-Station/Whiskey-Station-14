@@ -5,6 +5,7 @@
   setPreference: true
   objective: roles-antag-blood-cultist-objective
   guides: [ BloodCult ]
+  creditImage: /Textures/_Trauma/EndCredits/Antags/cult.png # Whiskey
   requirements:
   - !type:OverallPlaytimeRequirement
     time: 43200

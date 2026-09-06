@@ -13,8 +13,8 @@ ent-BloodCultRift = fenda da realidade
 
 ent-CultTeleportInEffect = Teleporte de entrada
 ent-CultTeleportOutEffect = Teleporte de saída
-ent-CultPylon = pilar
-    .desc = Um cristal flutuante que cura lentamente os fiéis de Nar'Sie.
+ent-CultPylon = coletor de sangue
+    .desc = Coleta sangue através do espaço-tempo para curar cultistas.
 ent-CultDoor = porta rúnica
 ent-CultGirder = viga rúnica
     .desc = Estrutura feita de um metal estranho e chocantemente frio. Não parece ter nenhum parafuso.

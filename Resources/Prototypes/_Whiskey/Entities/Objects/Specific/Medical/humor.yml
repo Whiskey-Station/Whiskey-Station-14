@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# A pílula e o vidro que o Psicólogo carrega. Mesma forma do PillSpaceDrugs e
+# do PillCanisterSpaceDrugs, que é o que ele já tinha no bolso.
+- type: entity
+  name: pill
+  parent: Pill
+  id: PillWhiskeyEuforico
+  suffix: Eufórico 5u
+  components:
+  - type: Solution
+    solution:
+      reagents:
+      - ReagentId: WhiskeyEuforico
+        Quantity: 5
+
+- type: entity
+  parent: PillCanister
+  id: PillCanisterWhiskeyEuforico
+  suffix: Eufórico 5u, 5
+  components:
+  - type: Label
+    localizedLabel: reagent-name-whiskey-euforico
+  - type: EntityTableContainerFill
+    containers:
+      storagebase:
+        id: PillWhiskeyEuforico
+        # Cinco pílulas de 5u, que é exatamente o que o TG põe no vidro do
+        # Psicólogo em code/game/objects/items/storage/pillbottles.dm.
+        #
+        # Eu tinha posto 7 pílulas de 20u, chutando sem medir a duração. Medindo
+        # depois: o ciclo do sangue é de 3 segundos e o consumo é 0,2 por ciclo,
+        # então 20u dão CINCO MINUTOS por pílula, e sete davam 35 minutos de
+        # humor Perfeito, quase uma rodada inteira. Isso anulava o traço em vez
+        # de dar contrajogo, que era justamente o que este desenho queria evitar.
+        #
+        # Com 5u, cada pílula dura 75 segundos, ou seja nem cobre um episódio de
+        # depressão inteiro, que dura 120. É último recurso, que é como o TG
+        # descreve: "used as a last resort means to temporarily stabilize".
+        amount: 5

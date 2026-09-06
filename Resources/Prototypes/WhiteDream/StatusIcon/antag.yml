@@ -3,8 +3,8 @@
   priority: 11
   locationPreference: left
   icon:
-    sprite: /Textures/WhiteDream/BloodCult/cult_hud.rsi
-    state: cult_member
+    sprite: /Textures/_Whiskey/BloodCult/Interface/cult_job_icons.rsi # Whiskey
+    state: Cultist # Whiskey
 
 - type: factionIcon
   id: BloodCultLeader

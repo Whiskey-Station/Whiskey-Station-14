@@ -9,16 +9,9 @@ using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 namespace Content.Shared._Whiskey.Mood;
 
 /// <summary>
-/// Derruba o humor de tempos em tempos, sozinho, sem gatilho no ambiente.
-///
-/// É o que a depressão usa: o baque não vem de fora, vem de dentro, e em hora
-/// imprevisível. Serve igual para química ou evento que precise disso, e por
-/// isso não se chama Depressão.
-///
-/// Antes isto empurrava uma medida de estresse própria, escrita aqui enquanto
-/// o fork não tinha humor. Com o humor do Einstein portado, o estresse saiu e
-/// este componente passou a levantar um modificador de humor de verdade, que é
-/// o que faz o efeito aparecer no alerta, na velocidade e na saturação da tela.
+/// Derruba o humor sozinho, em hora imprevisível, sem gatilho no ambiente. É o
+/// que a depressão usa, mas serve para química e evento, e por isso não se
+/// chama Depressão.
 /// </summary>
 [RegisterComponent, AutoGenerateComponentPause]
 public sealed partial class PeriodicMoodComponent : Component
