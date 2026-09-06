@@ -1,0 +1,13 @@
+# Audio attributions for RMC-14 playing cards system
+# Source: CM-SS13 (CreepyMuffin SS13)
+# License: CC-BY-SA-3.0
+
+- files: ["paper_drop.ogg"]
+  license: "CC-BY-SA-3.0"
+  copyright: "The CM-SS13 development team"
+  source: "https://github.com/cmss13-devs/cmss13/blob/master/sound/handling/paper_drop.ogg"
+
+- files: ["paper_pickup.ogg"]
+  license: "CC-BY-SA-3.0"
+  copyright: "The CM-SS13 development team"
+  source: "https://github.com/cmss13-devs/cmss13/blob/master/sound/handling/paper_pickup.ogg"
