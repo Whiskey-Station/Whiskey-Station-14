@@ -52,6 +52,30 @@ public sealed class NanoXpSystemTest : GameTest
         """;
 
     [Test]
+    public async Task NanoXpUiKeySynchronizesToConnectedClient()
+    {
+        var map = await Pair.CreateTestMap();
+        var pda = EntityUid.Invalid;
+        await Server.WaitPost(() =>
+        {
+            pda = SSpawnAtPosition("PassengerPDA", map.GridCoords);
+        });
+        await Pair.RunTicksSync(5);
+
+        await Client.WaitAssertion(() =>
+        {
+            var clientPda = ToClientUid(pda);
+            var ui = Client.System<SharedUserInterfaceSystem>();
+            Assert.Multiple(() =>
+            {
+                Assert.That(CEntMan.HasComponent<NanoXpDeviceComponent>(clientPda), Is.True);
+                Assert.That(ui.HasUi(clientPda, NanoXpUiKey.Key), Is.True);
+                Assert.That(ui.HasUi(clientPda, PdaUiKey.Key), Is.True);
+            });
+        });
+    }
+
+    [Test]
     public async Task BaseDevicesGainSecondaryDesktopWithoutReplacingExistingInterfaces()
     {
         await Server.WaitAssertion(() =>

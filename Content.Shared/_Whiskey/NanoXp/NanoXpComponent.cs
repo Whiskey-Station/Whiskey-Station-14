@@ -16,6 +16,7 @@ public static class NanoXpLimits
     public const int MaxDirectoryEntries = 256;
 }
 
+[Serializable, NetSerializable]
 public enum NanoXpUiKey : byte
 {
     Key,
