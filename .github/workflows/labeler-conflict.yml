@@ -11,6 +11,9 @@ on:
 jobs:
   Label:
     if: ( github.event.pull_request.draft == false )
+    permissions: # Trauma - allow conflict labels when the optional bot token is unavailable.
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Check for Merge Conflicts
