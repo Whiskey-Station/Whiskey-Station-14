@@ -587,7 +587,12 @@ public sealed partial class DwaineStorageSystem : EntitySystem
         if (container is not ContainerSlot physicalSlot || physicalSlot.ContainedEntity != media)
             return false;
 
-        return _containers.Remove(media, physicalSlot, force: force);
+        // During map shutdown there may be no live world parent left for the media.
+        var mainframeTransform = Transform(mainframe);
+        var canReparent = !force
+                          || ((mainframeTransform.MapUid is not { } map || !TerminatingOrDeleted(map))
+                              && (mainframeTransform.GridUid is not { } grid || !TerminatingOrDeleted(grid)));
+        return _containers.Remove(media, physicalSlot, reparent: canReparent, force: force);
     }
 
     private static string ContainerId(int slot)

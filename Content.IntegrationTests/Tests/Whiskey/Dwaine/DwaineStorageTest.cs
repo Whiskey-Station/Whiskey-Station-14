@@ -147,6 +147,36 @@ public sealed class DwaineStorageTest : GameTest
         """;
 
     [Test]
+    public async Task DeletingMapWithInsertedMediaDoesNotAttemptWorldReparent()
+    {
+        EntityUid map = EntityUid.Invalid;
+        EntityUid mainframe = EntityUid.Invalid;
+        EntityUid hardDrive = EntityUid.Invalid;
+        await Server.WaitAssertion(() =>
+        {
+            map = Server.System<SharedMapSystem>().CreateMap(out var mapId);
+            var coordinates = new MapCoordinates(Vector2.Zero, mapId);
+            mainframe = Server.EntMan.SpawnEntity("WhiskeyDwaineStorageTestMainframe", coordinates);
+            hardDrive = Server.EntMan.SpawnEntity("WhiskeyDwaineStorageTestHardDrive", coordinates);
+            Assert.That(
+                Server.System<DwaineStorageSystem>().TryInsert(mainframe, hardDrive, 0).Result,
+                Is.EqualTo(DwaineStorageResult.Success));
+
+            Server.EntMan.DeleteEntity(map);
+        });
+        await Server.WaitRunTicks(1);
+        await Server.WaitAssertion(() =>
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(Server.EntMan.Deleted(map), Is.True);
+                Assert.That(Server.EntMan.Deleted(mainframe), Is.True);
+                Assert.That(Server.EntMan.Deleted(hardDrive), Is.True);
+            });
+        });
+    }
+
+    [Test]
     public async Task BootRequiresExactInsertedDataOnlyMediaProfile()
     {
         EntityUid map = EntityUid.Invalid;
