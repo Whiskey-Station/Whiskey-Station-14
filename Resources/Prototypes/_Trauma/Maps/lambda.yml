@@ -4,7 +4,7 @@
   id: Lambda
   mapName: 'Lambda'
   mapPath: /Maps/_Trauma/lambda.yml
-  minPlayers: 35
+  minPlayers: 45
   maxPlayers: 70
   fallback: true
   stations:
