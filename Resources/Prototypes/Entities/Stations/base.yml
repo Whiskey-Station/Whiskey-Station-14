@@ -10,6 +10,9 @@
   components:
     - type: StationBankAccount
       primaryCut: 0.9 # Trauma
+    # <Whiskey>
+    - type: Payroll
+    # </Whiskey>
     - type: StationCargoOrderDatabase
       orders:
         Cargo: [ ]
