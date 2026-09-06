@@ -1,8 +1,8 @@
 ﻿- type: entity
   id: CultPylon
   parent: BaseStructure
-  name: pylon
-  description: A floating crystal that slowly heals those faithful to Nar'Sie.
+  name: blood collector
+  description: Collects blood through space-time to heal cultists.
   components:
   - type: Transform
     noRot: true
@@ -22,6 +22,7 @@
     sprite: _Whiskey/BloodCult/Structures/bloodcollector.rsi
     layers:
     - state: blood_collector
+      map: [ "enum.PylonVisuals.BaseLayer" ]
     - state: unshaded
       shader: unshaded
       map: [ "enum.PylonVisuals.Layer" ]
@@ -49,6 +50,8 @@
             max: 2
   - type: Appearance
   - type: Pylon
+    healingCooldown: 5 # Whiskey
+    bloodRegenerationAmount: 20 # Whiskey
     # WhiteDream - DamageSpecifier lost the `groups` shortcut, so the groups are spelled out.
     healing:
       types:

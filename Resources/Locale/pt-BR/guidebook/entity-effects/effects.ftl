@@ -616,3 +616,11 @@ entity-effect-guidebook-plant-mutate-consume-gasses =
         [1] Faz a planta sofrer mutação
         *[other] faz a planta sofrer mutação
     } para consumir entre {$minValue} e {$maxValue} mols de gases
+
+# <Whiskey> - efeito que levanta modificador de humor
+entity-effect-guidebook-adjust-mood =
+    { $chance ->
+        [1] Afeta
+        *[other] afetam
+    } o humor de quem tem humor
+# </Whiskey>

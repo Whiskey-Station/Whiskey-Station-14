@@ -99,7 +99,7 @@ public sealed partial class BloodBeamSystem : EntitySystem
 
         beam.Comp.Charging = true;
         beam.Comp.User = args.User;
-        Speak(args.User, _commune.GenerateChant(beam.Comp.ChargeChantWords));
+        SpeakEmphaticChant(args.User, beam.Comp.ChargeChantWords); // Whiskey - Blood Gaze's shorter invocation style.
         beam.Comp.NextChargeChant = _timing.CurTime + beam.Comp.ChargeChantInterval;
         _audio.PlayPvs(beam.Comp.ChargeSound, args.User);
         args.Handled = true;
@@ -146,7 +146,7 @@ public sealed partial class BloodBeamSystem : EntitySystem
                 beam.User is { } chargingUser && !TerminatingOrDeleted(chargingUser) &&
                 _hands.IsHolding(chargingUser, uid))
             {
-                Speak(chargingUser, _commune.GenerateChant(beam.ChargeChantWords));
+                SpeakEmphaticChant(chargingUser, beam.ChargeChantWords); // Whiskey
                 beam.NextChargeChant += beam.ChargeChantInterval;
             }
 
@@ -198,6 +198,12 @@ public sealed partial class BloodBeamSystem : EntitySystem
             message,
             InGameICChatType.Speak,
             ChatTransmitRange.Normal);
+    }
+
+    private void SpeakEmphaticChant(EntityUid user, int words)
+    {
+        var chant = _commune.GenerateChant(words).TrimEnd('!', ' ');
+        Speak(user, $"{chant}!!!");
     }
 
     private void OnProjectileCollide(Entity<BloodBeamProjectileComponent> projectile, ref PreventCollideEvent args)

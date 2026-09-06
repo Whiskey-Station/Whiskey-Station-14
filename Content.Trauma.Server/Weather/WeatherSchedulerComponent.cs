@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared.Destructible.Thresholds;
+using Robust.Shared.Audio;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 
 namespace Content.Trauma.Server.Weather;
@@ -60,4 +61,18 @@ public partial struct WeatherStage
     /// </summary>
     [DataField]
     public LocId? Message;
+
+    // <Whiskey>
+    /// <summary>
+    /// Alarm to play globally for everyone on the map when the stage starts.
+    /// </summary>
+    /// <remarks>
+    /// This is not the same as the weather's own sound, which is ambient and
+    /// gets occluded to nothing when there is no exposed tile nearby. A station
+    /// alarm has to reach people deep inside the hull, so it is played globally
+    /// alongside the message.
+    /// </remarks>
+    [DataField]
+    public SoundSpecifier? Sound;
+    // </Whiskey>
 }

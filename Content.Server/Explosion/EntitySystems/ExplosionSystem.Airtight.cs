@@ -271,8 +271,13 @@ public sealed partial class ExplosionSystem
                 damagePerIntensity += value * mod * Math.Max(0, ev.DamageCoefficient);
             }
 
+            // Damage can pass the destruction threshold before the airtight cache receives its update. Never cache a
+            // negative tolerance: that would make the flood-fill schedule the blocker into an iteration in the past.
+            var remainingDamage = FixedPoint2.Max(
+                FixedPoint2.Zero,
+                totalDamageTarget - _damageableSystem.GetTotalDamage(uid));
             var toleranceValue = damagePerIntensity > 0
-                ? (float) ((totalDamageTarget - _damageableSystem.GetTotalDamage(uid)) / damagePerIntensity)
+                ? (float) (remainingDamage / damagePerIntensity)
                 : ToleranceValues.Invulnerable;
 
             explosionTolerance[index] = toleranceValue;
