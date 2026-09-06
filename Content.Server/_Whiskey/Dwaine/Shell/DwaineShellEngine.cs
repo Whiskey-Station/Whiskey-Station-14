@@ -3,6 +3,7 @@
 
 using Content.Server._Whiskey.Dwaine.FileSystem;
 using Content.Server._Whiskey.Dwaine.Identity;
+using Content.Server._Whiskey.Dwaine.Process;
 using Content.Shared._Whiskey.Dwaine.FileSystem;
 using System;
 using System.Collections.Generic;
@@ -40,7 +41,8 @@ public sealed class DwaineShellEngine
         string Error = "",
         bool ClearScreen = false,
         bool TerminateProcess = false,
-        int Instructions = 1);
+        int Instructions = 1,
+        DwaineProcessId? WaitFor = null);
 
     public DwaineShellEngine(DwaineShellLimits limits)
     {
@@ -109,6 +111,7 @@ public sealed class DwaineShellEngine
         var exitCode = session.LastExitCode;
         var clear = false;
         var terminate = false;
+        DwaineProcessId? waitFor = null;
         var instructions = 1;
 
         foreach (var pipeline in parsed.Line.Pipelines)
@@ -159,6 +162,18 @@ public sealed class DwaineShellEngine
                     }
                 }
 
+                if (words.Count > 0
+                    && string.Equals(words[0], "vodka", StringComparison.OrdinalIgnoreCase)
+                    && (depth != 0
+                        || parsed.Line.Pipelines.Count != 1
+                        || pipeline.Commands.Count != 1
+                        || command.Redirections.Count != 0))
+                {
+                    exitCode = 2;
+                    standardError.AppendLine("vodka: process-backed scripts must be a standalone command at the top level");
+                    break;
+                }
+
                 var result = ExecuteCommand(words, pipelineInput, session, host, depth);
                 var consumed = result.Instructions + words.Count;
                 instructions += consumed;
@@ -176,6 +191,7 @@ public sealed class DwaineShellEngine
                 if (result.ClearScreen)
                     host.ClearScreen();
                 terminate |= result.TerminateProcess;
+                waitFor = result.WaitFor;
                 if (!string.IsNullOrEmpty(result.Error))
                     standardError.Append(result.Error);
 
@@ -207,13 +223,13 @@ public sealed class DwaineShellEngine
                     pipelineInput = result.Output;
                 }
 
-                if (terminate)
+                if (terminate || waitFor is not null)
                     break;
             }
 
             if (!string.IsNullOrEmpty(pipelineInput))
                 standardOutput.Append(pipelineInput);
-            if (terminate)
+            if (terminate || waitFor is not null)
                 break;
         }
 
@@ -232,7 +248,8 @@ public sealed class DwaineShellEngine
             standardError.ToString(),
             clear,
             terminate,
-            instructions);
+            instructions,
+            waitFor);
     }
 
     private CommandResult ExecuteCommand(
@@ -488,6 +505,7 @@ public sealed class DwaineShellEngine
         Register("while", "while COUNT command...: repeat a command with a hard iteration cap", While);
         Register("break", "break: stop the nearest bounded shell while", Break);
         Register("whiskeysay", "whiskeysay text...: Whiskey terminal novelty output", WhiskeySay);
+        Register("vodka", "vodka FILE.vodka [argument...]: run a Vodka Code script as a bounded child process", Vodka);
     }
 
     private void Register(string name, string manual, CommandHandler handler)
@@ -1192,6 +1210,24 @@ public sealed class DwaineShellEngine
     private static CommandResult WhiskeySay(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
     {
         return new CommandResult(0, $"[WHISKEY] {string.Join(' ', args)}\n");
+    }
+
+    private static CommandResult Vodka(
+        DwaineShellSession session,
+        IDwaineShellHost host,
+        IReadOnlyList<string> args,
+        string stdin,
+        int depth)
+    {
+        if (args.Count < 1)
+            return new CommandResult(2, Error: "usage: vodka FILE.vodka [argument...]\n");
+        if (host is not IDwaineVodkaShellHost vodkaHost || session.ProcessId is not { } parent)
+            return new CommandResult(126, Error: "vodka: runtime unavailable\n");
+
+        var started = vodkaHost.TryStartVodka(parent, session.WorkingDirectory, args[0], args.Skip(1).ToArray());
+        return started.Succeeded
+            ? new CommandResult(0, WaitFor: started.ProcessId)
+            : new CommandResult(1, Error: started.Error);
     }
 
     private static bool TryParseMode(string text, out DwaineVfsMode mode)

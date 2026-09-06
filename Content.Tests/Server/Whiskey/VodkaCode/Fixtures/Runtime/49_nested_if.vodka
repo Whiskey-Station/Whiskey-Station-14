@@ -1,0 +1,5 @@
+if (true) {
+    if (2 > 1) {
+        console.writeln("nested");
+    }
+}

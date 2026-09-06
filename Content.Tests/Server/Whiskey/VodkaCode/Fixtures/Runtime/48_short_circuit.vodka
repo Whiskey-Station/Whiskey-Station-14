@@ -1,0 +1,2 @@
+let safe = false and (1 / 0 == 0);
+console.writeln(safe);

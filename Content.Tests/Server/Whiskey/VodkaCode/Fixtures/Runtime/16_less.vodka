@@ -1,0 +1,1 @@
+console.writeln(41 < 42);

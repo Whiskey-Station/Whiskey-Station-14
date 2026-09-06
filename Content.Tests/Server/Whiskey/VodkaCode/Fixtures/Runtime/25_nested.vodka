@@ -1,0 +1,9 @@
+let outer = 0;
+while (outer < 2) {
+    let inner = 0;
+    while (inner < 2) {
+        inner = inner + 1;
+    }
+    outer = outer + 1;
+}
+console.writeln(outer);

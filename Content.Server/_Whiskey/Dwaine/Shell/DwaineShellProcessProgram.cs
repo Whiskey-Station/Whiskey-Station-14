@@ -11,8 +11,35 @@ public sealed class DwaineShellProcessProgram(
     DwaineShellSession session,
     IDwaineShellHost host) : IDwaineProcessProgram
 {
+    private DwaineProcessId? _waitingFor;
+
     public DwaineProcessStepResult Step(DwaineProcessExecutionContext context)
     {
+        if (_waitingFor is { } child)
+        {
+            if (!context.TryTakeWaitResult(out var waitResult))
+                return DwaineProcessStepResult.Wait(child);
+
+            var output = new DwaineShellProgramOutput(
+                string.Empty,
+                waitResult.State == Content.Shared._Whiskey.Dwaine.Process.DwaineProcessState.Faulted
+                    ? $"vodka: process terminated: {waitResult.ErrorCode.Replace('-', ' ')}\n"
+                    : string.Empty,
+                waitResult.ExitCode,
+                waitResult.ErrorCode);
+            if (host is IDwaineVodkaShellHost vodkaHost)
+                vodkaHost.TryTakeVodkaOutput(child, out output);
+
+            _waitingFor = null;
+            session.LastExitCode = output.ExitCode;
+            if (!WriteChunks(output.StandardOutput, context.TryWriteStdout)
+                || !WriteChunks(output.StandardError, context.TryWriteStderr))
+            {
+                return DwaineProcessStepResult.Fault("shell-output-limit");
+            }
+            return DwaineProcessStepResult.WaitForInput();
+        }
+
         if (!context.TryReadStdin(out var input))
             return DwaineProcessStepResult.WaitForInput();
 
@@ -25,9 +52,14 @@ public sealed class DwaineShellProcessProgram(
             return DwaineProcessStepResult.Fault("shell-output-limit");
         }
 
-        return result.TerminateProcess
-            ? DwaineProcessStepResult.Exit(result.ExitCode)
-            : DwaineProcessStepResult.WaitForInput();
+        if (result.TerminateProcess)
+            return DwaineProcessStepResult.Exit(result.ExitCode);
+        if (result.WaitFor is { } waitFor)
+        {
+            _waitingFor = waitFor;
+            return DwaineProcessStepResult.Wait(waitFor);
+        }
+        return DwaineProcessStepResult.WaitForInput();
     }
 
     private static bool WriteChunks(string text, Func<string, bool> writer)

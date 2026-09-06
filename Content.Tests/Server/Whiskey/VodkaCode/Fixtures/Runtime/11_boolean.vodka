@@ -1,0 +1,1 @@
+console.writeln(true and not false);

@@ -1,0 +1,6 @@
+let value = 1;
+{
+    let value = 2;
+    console.writeln(value);
+}
+console.writeln(value);

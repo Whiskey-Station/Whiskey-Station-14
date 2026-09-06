@@ -69,6 +69,19 @@ public sealed class DwaineAuthorizedFileSystem(
             : access;
     }
 
+    /// <summary>
+    /// Returns metadata only when the caller may read the target. This is the narrow stat primitive
+    /// used by sandboxed file predicates so inaccessible paths cannot be distinguished from absent ones.
+    /// </summary>
+    public DwaineVfsResult TryStat(
+        DwainePrincipalId principal,
+        string path,
+        DwaineVfsNodeHandle workingDirectory,
+        out DwaineVfsNodeSnapshot snapshot)
+    {
+        return CheckPath(principal, path, workingDirectory, DwaineIdentityPermission.Read, out snapshot);
+    }
+
     public DwaineVfsResult TryGetFields(
         DwainePrincipalId principal,
         string path,

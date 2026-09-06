@@ -227,7 +227,8 @@ internal sealed class VodkaLexer
                     AddToken(VodkaTokenKind.BangEqual, start);
                     return;
                 }
-                break;
+                AddToken(VodkaTokenKind.Not, start);
+                return;
             case '<':
                 AddToken(Match('=') ? VodkaTokenKind.LessEqual : VodkaTokenKind.Less, start);
                 return;
@@ -264,6 +265,7 @@ internal sealed class VodkaLexer
             "and" => VodkaTokenKind.And,
             "or" => VodkaTokenKind.Or,
             "xor" => VodkaTokenKind.Xor,
+            "eor" => VodkaTokenKind.Xor,
             "not" => VodkaTokenKind.Not,
             _ => VodkaTokenKind.Identifier,
         };

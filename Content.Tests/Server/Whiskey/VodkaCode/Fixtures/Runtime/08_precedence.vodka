@@ -1,0 +1,1 @@
+console.writeln(2 + 4 * 10);

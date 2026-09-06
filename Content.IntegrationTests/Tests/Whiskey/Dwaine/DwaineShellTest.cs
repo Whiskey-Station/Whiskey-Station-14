@@ -9,13 +9,16 @@ using Content.Server._Whiskey.Dwaine.Kernel;
 using Content.Server._Whiskey.Dwaine.Process;
 using Content.Server._Whiskey.Dwaine.Shell;
 using Content.Server._Whiskey.Dwaine.Transport;
+using Content.Server._Whiskey.VodkaCode.Runtime;
 using Content.Shared._Whiskey.Dwaine.FileSystem;
 using Content.Shared._Whiskey.Dwaine.Hardware;
 using Content.Shared._Whiskey.Dwaine.Kernel;
 using Content.Shared._Whiskey.Dwaine.Process;
 using Content.Shared._Whiskey.Dwaine.Shell;
+using Content.Shared._Whiskey.VodkaCode;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -72,6 +75,11 @@ public sealed class DwaineShellTest : GameTest
             maxTokens: 128
             maxCommands: 32
           - type: DwaineShellRuntime
+          - type: VodkaRuntime
+            maxInstructionsPerInvocation: 5000
+            maxOutputBytes: 8192
+            logicalTimeoutSeconds: 30
+          - type: VodkaRuntimeState
           - type: DwaineNetworkConnector
             networkId: shell-test
             linkRange: 10
@@ -273,6 +281,166 @@ public sealed class DwaineShellTest : GameTest
     }
 
     [Test]
+    public async Task VodkaCommandRunsAsBoundedChildAndReturnsOutputAndStatusToShell()
+    {
+        EntityUid map = EntityUid.Invalid;
+        EntityUid mainframe = EntityUid.Invalid;
+        EntityUid terminal = EntityUid.Invalid;
+        EntityUid actor = EntityUid.Invalid;
+        DwaineSessionId session = default;
+
+        await Server.WaitAssertion(() =>
+        {
+            var maps = Server.System<SharedMapSystem>();
+            map = maps.CreateMap(out var mapId);
+            var origin = new MapCoordinates(Vector2.Zero, mapId);
+            mainframe = Server.EntMan.SpawnEntity("WhiskeyDwaineShellTestMainframe", origin);
+            terminal = Server.EntMan.SpawnEntity("WhiskeyDwaineShellTestTerminal", origin);
+            actor = Server.EntMan.SpawnEntity("WhiskeyDwaineShellTestActor", origin);
+            Assert.That(Server.System<DwaineKernelSystem>().TryBoot(mainframe), Is.True);
+        });
+
+        await Server.WaitRunTicks(8);
+        await Server.WaitAssertion(() =>
+        {
+            var ui = Server.System<SharedUserInterfaceSystem>();
+            var transport = Server.System<DwaineTerminalTransportSystem>();
+            var identitySystem = Server.System<DwaineIdentitySystem>();
+            Assert.That(identitySystem.TryGetStore(mainframe, out var store), Is.True);
+            Assert.That(store.TryCreateAccount("alex", "alex-password", false, out _),
+                Is.EqualTo(DwaineIdentityResult.Success));
+            Assert.That(ui.TryOpenUi(terminal, DwaineTerminalUiKey.Key, actor), Is.True);
+            Assert.That(transport.TryConnect(terminal, mainframe, actor, out session),
+                Is.EqualTo(DwaineConnectResult.Connected));
+        });
+
+        await Server.WaitRunTicks(2);
+        await Send("su alex alex-password");
+        await Server.WaitRunTicks(3);
+        await Server.WaitAssertion(() =>
+        {
+            var identitySystem = Server.System<DwaineIdentitySystem>();
+            Assert.That(identitySystem.TryGetSession(mainframe, session, out var identity),
+                Is.EqualTo(DwaineIdentityResult.Success));
+            Assert.That(identitySystem.TryGetStore(mainframe, out var store), Is.True);
+            Assert.That(Server.System<DwaineFileSystemSystem>().TryGetFileSystem(mainframe, out var fileSystem), Is.True);
+            var files = new DwaineAuthorizedFileSystem(fileSystem, store);
+            var source = """
+                console.writeln("HELLO VODKA");
+                console.writeln(args.get(0));
+                console.writeln(fs.exists("/home/alex/hello.vodka"));
+                console.writeln(fs.exists("/home/alex/secret"));
+                exit 7;
+                """;
+            Assert.That(files.TryCreateText(
+                    identity.Principal,
+                    "/home/alex/hello.vodka",
+                    fileSystem.Root,
+                    source,
+                    DwaineVfsMode.DefaultFile,
+                    TimeSpan.Zero),
+                Is.EqualTo(DwaineVfsResult.Success));
+            Assert.That(fileSystem.TryCreate(
+                    "/home/alex/secret",
+                    fileSystem.Root,
+                    new DwaineVfsCreateRequest
+                    {
+                        Kind = DwaineVfsNodeKind.Text,
+                        Owner = DwainePrincipalId.System.Value,
+                        Group = DwaineGroupId.System.Value,
+                        Mode = DwaineVfsMode.OwnerRead,
+                        Text = "classified",
+                    },
+                    TimeSpan.Zero,
+                    out _),
+                Is.EqualTo(DwaineVfsResult.Success));
+            Assert.That(files.TryCreateText(
+                    identity.Principal,
+                    "/home/alex/loop.vodka",
+                    fileSystem.Root,
+                    "while (true) { let value = 1; }",
+                    DwaineVfsMode.DefaultFile,
+                    TimeSpan.Zero),
+                Is.EqualTo(DwaineVfsResult.Success));
+        });
+
+        await Send("vodka /home/alex/hello.vodka station");
+        await Server.WaitRunTicks(5);
+        await Server.WaitAssertion(() =>
+        {
+            var shell = Server.EntMan.GetComponent<DwaineShellRuntimeComponent>(mainframe).Sessions[session];
+            var output = Server.EntMan.GetComponent<DwaineMainframeRuntimeComponent>(mainframe)
+                .Sessions[session].Output.Snapshot();
+            Assert.Multiple(() =>
+            {
+                Assert.That(shell.LastExitCode, Is.EqualTo(7));
+                Assert.That(output, Does.Contain("HELLO VODKA"));
+                Assert.That(output, Does.Contain("station"));
+                Assert.That(output, Does.Contain("true"));
+                Assert.That(output, Does.Contain("false"),
+                    "file predicates must not reveal a path that the process principal cannot read");
+                Assert.That(Server.System<DwaineProcessSystem>().GetActiveProcessCount(mainframe), Is.EqualTo(1));
+                Assert.That(Server.EntMan.GetComponent<VodkaRuntimeStateComponent>(mainframe).CapturedOutput, Is.Empty);
+            });
+        });
+
+        await Send("vodka /home/alex/hello.vodka | cat");
+        await Server.WaitRunTicks(2);
+        await Server.WaitAssertion(() =>
+        {
+            var output = Server.EntMan.GetComponent<DwaineMainframeRuntimeComponent>(mainframe)
+                .Sessions[session].Output.Snapshot();
+            Assert.Multiple(() =>
+            {
+                Assert.That(output.Any(line => line.Contains("must be a standalone command")), Is.True);
+                Assert.That(Server.System<DwaineProcessSystem>().GetActiveProcessCount(mainframe), Is.EqualTo(1),
+                    "an invalid pipeline must not leave an orphan child process");
+            });
+        });
+
+        await Send("echo $(vodka /home/alex/hello.vodka)");
+        await Server.WaitRunTicks(2);
+        await Server.WaitAssertion(() =>
+        {
+            var output = Server.EntMan.GetComponent<DwaineMainframeRuntimeComponent>(mainframe)
+                .Sessions[session].Output.Snapshot();
+            Assert.Multiple(() =>
+            {
+                Assert.That(output.Any(line => line.Contains("must be a standalone command at the top level")), Is.True);
+                Assert.That(Server.System<DwaineProcessSystem>().GetActiveProcessCount(mainframe), Is.EqualTo(1),
+                    "command substitution must not orphan an asynchronous child process");
+            });
+        });
+
+        await Send("vodka /home/alex/loop.vodka");
+        await Server.WaitRunTicks(5);
+        await Server.WaitAssertion(() =>
+        {
+            var shell = Server.EntMan.GetComponent<DwaineShellRuntimeComponent>(mainframe).Sessions[session];
+            var output = Server.EntMan.GetComponent<DwaineMainframeRuntimeComponent>(mainframe)
+                .Sessions[session].Output.Snapshot();
+            Assert.Multiple(() =>
+            {
+                Assert.That(shell.LastExitCode, Is.EqualTo(-1));
+                Assert.That(output.Any(line => line.Contains("instruction budget exceeded")), Is.True);
+                Assert.That(Server.System<DwaineProcessSystem>().GetActiveProcessCount(mainframe), Is.EqualTo(1));
+                Assert.That(Server.EntMan.GetComponent<VodkaRuntimeStateComponent>(mainframe).CapturedOutput, Is.Empty);
+            });
+            Server.EntMan.DeleteEntity(map);
+        });
+
+        async Task Send(string command)
+        {
+            await Server.WaitAssertion(() =>
+            {
+                var input = new DwaineTerminalInputReceivedEvent(actor, command);
+                Server.EntMan.EventBus.RaiseLocalEvent(terminal, ref input);
+            });
+            await Server.WaitRunTicks(1);
+        }
+    }
+
+    [Test]
     public async Task ProductionMainframeComposesShellAndServerRuntime()
     {
         await Server.WaitAssertion(() =>
@@ -282,6 +450,8 @@ public sealed class DwaineShellTest : GameTest
             {
                 Assert.That(Server.EntMan.HasComponent<DwaineShellComponent>(mainframe), Is.True);
                 Assert.That(Server.EntMan.HasComponent<DwaineShellRuntimeComponent>(mainframe), Is.True);
+                Assert.That(Server.EntMan.HasComponent<VodkaRuntimeComponent>(mainframe), Is.True);
+                Assert.That(Server.EntMan.HasComponent<VodkaRuntimeStateComponent>(mainframe), Is.True);
             });
             Server.EntMan.DeleteEntity(mainframe);
         });

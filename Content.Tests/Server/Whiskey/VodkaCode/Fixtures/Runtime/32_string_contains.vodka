@@ -1,0 +1,1 @@
+console.writeln(string.contains("mainframe", "frame"));

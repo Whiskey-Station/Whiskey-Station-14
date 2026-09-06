@@ -1,0 +1,3 @@
+stack.push(42);
+let popped = stack.pop();
+console.writeln(popped);
