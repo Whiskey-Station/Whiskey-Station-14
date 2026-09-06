@@ -33,6 +33,7 @@ internal sealed class VodkaVirtualMachine
     private int _dataBytes;
     private int _outputBytes;
     private bool _cancelled;
+    private bool _yieldRequested;
     private VodkaExecutionState _state = VodkaExecutionState.Ready;
     private VodkaValue _returnValue = VodkaValue.Null;
     private int _exitCode;
@@ -83,9 +84,68 @@ internal sealed class VodkaVirtualMachine
         }
     }
 
+    private VodkaVirtualMachine(
+        VodkaVirtualMachine source,
+        IVodkaRuntimeHost host,
+        IReadOnlyList<string> arguments)
+    {
+        _program = source._program;
+        _limits = source._limits;
+        _host = host;
+        _startedAt = source._startedAt;
+        _random = new DeterministicGenerator(source._random);
+        _instructionPointer = source._instructionPointer;
+        _instructionsConsumed = source._instructionsConsumed;
+        _variableCount = source._variableCount;
+        _dataBytes = source._dataBytes - source._arguments.Sum(value => value.DataBytes);
+        _outputBytes = source._outputBytes;
+        _state = VodkaExecutionState.Ready;
+
+        _arguments = new VodkaValue[arguments.Count];
+        if (arguments.Count > _limits.MaxArguments)
+        {
+            SetTerminalFault("argument-limit-exceeded");
+            return;
+        }
+        for (var index = 0; index < arguments.Count; index++)
+        {
+            var value = VodkaValue.FromString(arguments[index]);
+            if (!IsValidValue(value) || value.DataBytes > _limits.MaxArgumentBytes - _dataBytes)
+            {
+                SetTerminalFault("argument-limit-exceeded");
+                return;
+            }
+            _arguments[index] = value;
+            _dataBytes += value.DataBytes;
+        }
+
+        _operands.AddRange(source._operands);
+        _compatibilityStack.AddRange(source._compatibilityStack);
+        _scopes.Clear();
+        foreach (var scope in source._scopes)
+            _scopes.Add(new Dictionary<string, VodkaValue>(scope, StringComparer.Ordinal));
+    }
+
+    public VodkaVirtualMachine Fork(IVodkaRuntimeHost host, IReadOnlyList<string> arguments)
+    {
+        return new VodkaVirtualMachine(this, host, arguments);
+    }
+
+    public bool TryAcceptForkResult(long value)
+    {
+        if (_state == VodkaExecutionState.Faulted)
+            return false;
+        return TryPush(VodkaValue.FromInteger(value), default, new StringBuilder());
+    }
+
     public void Cancel()
     {
         _cancelled = true;
+    }
+
+    public void RequestYield()
+    {
+        _yieldRequested = true;
     }
 
     public VodkaSliceResult ExecuteSlice(int instructionBudget)
@@ -148,6 +208,11 @@ internal sealed class VodkaVirtualMachine
             _instructionsConsumed += instructionCost;
             if (!ExecuteInstruction(instruction, output, error))
                 break;
+            if (_yieldRequested)
+            {
+                _yieldRequested = false;
+                break;
+            }
         }
 
         if (_state == VodkaExecutionState.Ready)
@@ -434,6 +499,12 @@ internal sealed class VodkaVirtualMachine
             return false;
 
         var hostResult = _host.Invoke(instruction.Text, arguments);
+        if (hostResult.Status == VodkaHostCallStatus.Exit)
+        {
+            _state = VodkaExecutionState.Exited;
+            _exitCode = hostResult.ExitCode;
+            return false;
+        }
         return hostResult.Status == VodkaHostCallStatus.Success
             ? TryPush(hostResult.Value, instruction.Span, error)
             : Fault(
@@ -442,6 +513,12 @@ internal sealed class VodkaVirtualMachine
                     VodkaHostCallStatus.UnknownFunction => "unknown-function",
                     VodkaHostCallStatus.InvalidArguments => "invalid-arguments",
                     VodkaHostCallStatus.AccessDenied => "permission-denied",
+                    VodkaHostCallStatus.NotFound => "not-found",
+                    VodkaHostCallStatus.Conflict => "conflict",
+                    VodkaHostCallStatus.RateLimited => "rate-limited",
+                    VodkaHostCallStatus.LimitExceeded => "resource-limit-exceeded",
+                    VodkaHostCallStatus.StaleHandle => "stale-handle",
+                    VodkaHostCallStatus.Offline => "device-offline",
                     _ => "host-unavailable",
                 },
                 string.IsNullOrWhiteSpace(hostResult.Error)
@@ -841,6 +918,11 @@ internal sealed class VodkaVirtualMachine
         public DeterministicGenerator(ulong seed)
         {
             _state = seed == 0 ? 0x9E3779B97F4A7C15UL : seed;
+        }
+
+        public DeterministicGenerator(DeterministicGenerator source)
+        {
+            _state = source._state;
         }
 
         public long Next(long inclusiveMaximum)

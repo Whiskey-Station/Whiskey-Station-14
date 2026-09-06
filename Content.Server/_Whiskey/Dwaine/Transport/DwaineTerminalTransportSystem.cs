@@ -333,6 +333,39 @@ public sealed partial class DwaineTerminalTransportSystem : EntitySystem
             : 0;
     }
 
+    public bool HasSession(EntityUid mainframe, DwaineSessionId sessionId)
+    {
+        return TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var runtime)
+               && runtime.Sessions.TryGetValue(sessionId, out var session)
+               && IsSessionStillValid(mainframe, session);
+    }
+
+    /// <summary>
+    /// Server-only ingress used by explicit trusted device drivers. It reuses the same bounded queue
+    /// and mainframe event as keyboard input but accepts no actor, PID or session value from a client.
+    /// </summary>
+    public bool TryInjectTrustedInput(EntityUid mainframe, DwaineSessionId sessionId, string text)
+    {
+        if (string.IsNullOrEmpty(text)
+            || text.Length > DwaineTerminalComponent.HardMaxInputLength
+            || text.IndexOf('\0') >= 0
+            || !TryComp<DwaineMainframeRuntimeComponent>(mainframe, out var runtime)
+            || !runtime.Sessions.TryGetValue(sessionId, out var session)
+            || !IsSessionStillValid(mainframe, session))
+        {
+            return false;
+        }
+
+        session.PendingInput.Add(text);
+        var forwarded = new DwaineMainframeInputReceivedEvent(
+            session.Id,
+            session.Terminal,
+            session.Owner,
+            text);
+        RaiseLocalEvent(mainframe, ref forwarded);
+        return true;
+    }
+
     public DwaineSessionId? GetTerminalSession(EntityUid terminal)
     {
         return TryComp<DwaineTerminalLinkComponent>(terminal, out var link) ? link.Session : null;

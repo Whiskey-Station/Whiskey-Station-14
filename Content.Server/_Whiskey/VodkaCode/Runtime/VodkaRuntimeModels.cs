@@ -106,16 +106,24 @@ internal interface IVodkaRuntimeHost
 internal enum VodkaHostCallStatus : byte
 {
     Success,
+    Exit,
     UnknownFunction,
     InvalidArguments,
     AccessDenied,
+    NotFound,
+    Conflict,
+    RateLimited,
+    LimitExceeded,
+    StaleHandle,
+    Offline,
     Unavailable,
 }
 
 internal readonly record struct VodkaHostCallResult(
     VodkaHostCallStatus Status,
     VodkaValue Value,
-    string Error)
+    string Error,
+    int ExitCode = 0)
 {
     public static VodkaHostCallResult Success(VodkaValue value)
     {
@@ -127,5 +135,10 @@ internal readonly record struct VodkaHostCallResult(
         string error)
     {
         return new VodkaHostCallResult(status, VodkaValue.Null, error);
+    }
+
+    public static VodkaHostCallResult Exit(int exitCode)
+    {
+        return new VodkaHostCallResult(VodkaHostCallStatus.Exit, VodkaValue.Null, string.Empty, exitCode);
     }
 }

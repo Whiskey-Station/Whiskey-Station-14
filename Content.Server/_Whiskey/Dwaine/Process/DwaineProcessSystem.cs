@@ -168,6 +168,9 @@ public sealed partial class DwaineProcessSystem : EntitySystem
             request.Implementation,
             _timing.CurTime,
             workingDirectory,
+            request.TerminalSession is { IsValid: true } explicitSession
+                ? explicitSession
+                : parent?.TerminalSession,
             environment,
             new DwaineProcessTextStream(limits.StreamChunkLimit, limits.StreamCharacterLimit),
             new DwaineProcessTextStream(limits.StreamChunkLimit, limits.StreamCharacterLimit),
@@ -413,6 +416,46 @@ public sealed partial class DwaineProcessSystem : EntitySystem
 
         var message = new DwaineProcessMessage(senderId, type, payload, _timing.CurTime);
         return target.Mailbox.TryWrite(message)
+            ? DwaineProcessMessageResult.Success
+            : DwaineProcessMessageResult.MailboxFull;
+    }
+
+    /// <summary>
+    /// Delivers a typed kernel-originated notification through the same bounded mailbox as IPC.
+    /// The zero sender is reserved for the kernel and cannot be selected by a user process.
+    /// </summary>
+    public DwaineProcessMessageResult TrySendKernelMessage(
+        EntityUid mainframe,
+        DwaineProcessId targetId,
+        DwaineKernelMessageType type,
+        string payload,
+        DwaineRequestCorrelationId correlation = default)
+    {
+        if (!TryGetOnlineRuntime(mainframe, out var runtime))
+            return DwaineProcessMessageResult.MainframeUnavailable;
+        if (!runtime.Processes.TryGetValue(targetId, out var target) || target.IsTerminal)
+            return DwaineProcessMessageResult.ProcessNotFound;
+        if (payload.IndexOf('\0') >= 0 || payload.Length > DwaineProcessMailbox.HardMaxPayloadLength - 32)
+            return DwaineProcessMessageResult.MalformedMessage;
+
+        var messageType = type switch
+        {
+            DwaineKernelMessageType.TaskExit => "kernel.task-exit",
+            DwaineKernelMessageType.ReceiveFile => "kernel.receive-file",
+            DwaineKernelMessageType.Break => "kernel.break",
+            DwaineKernelMessageType.Reply => "kernel.reply",
+            _ => string.Empty,
+        };
+        if (messageType.Length == 0)
+            return DwaineProcessMessageResult.MalformedMessage;
+        var body = correlation.IsValid ? $"{correlation.Value}:{payload}" : payload;
+        if (!target.Mailbox.IsValidMessage(messageType, body))
+            return DwaineProcessMessageResult.MalformedMessage;
+        return target.Mailbox.TryWrite(new DwaineProcessMessage(
+                new DwaineProcessId(0),
+                messageType,
+                body,
+                _timing.CurTime))
             ? DwaineProcessMessageResult.Success
             : DwaineProcessMessageResult.MailboxFull;
     }

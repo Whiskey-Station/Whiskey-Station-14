@@ -343,7 +343,12 @@ internal sealed class VodkaParser
         {
             if (Match(VodkaTokenKind.Dot))
             {
-                var member = Consume(VodkaTokenKind.Identifier, "expected member name after '.'");
+                // `exit` remains a statement keyword in primary-expression position, but is also
+                // part of the public syscall name `sys.process.exit`. Treat it as contextual only
+                // after a member-access dot instead of forcing the ABI to rename the operation.
+                var member = Check(VodkaTokenKind.Identifier) || Check(VodkaTokenKind.Exit)
+                    ? Advance()
+                    : Consume(VodkaTokenKind.Identifier, "expected member name after '.'");
                 expression = new VodkaMemberExpressionSyntax(
                     expression,
                     member.Lexeme,

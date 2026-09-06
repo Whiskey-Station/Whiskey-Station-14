@@ -72,6 +72,7 @@ public sealed class DwaineProcessExecutionContext
     public DwaineProcessId? ParentId => _process.ParentId;
     public DwaineProcessOwner Owner => _process.Owner;
     public DwaineWorkingDirectoryHandle WorkingDirectory => _process.WorkingDirectory;
+    public DwaineProcessTerminalSession? TerminalSession => _process.TerminalSession;
     public int InstructionsConsumed { get; private set; } = 1;
     public int InstructionsRemaining => Math.Max(0, _instructionBudget - InstructionsConsumed);
     public bool BudgetExceeded { get; private set; }

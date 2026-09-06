@@ -17,6 +17,12 @@
     maxNodes: 8192
     maxDepth: 32
   - type: DwaineStorageMediaRuntime
+  - type: DwaineDevice
+    driverId: storage-media
+    tag: storage
+    displayName: fixed storage media
+    capabilities: Inspect, Mount
+    access: Authenticated
 
 - type: entity
   parent: BaseItem
@@ -33,6 +39,12 @@
     maxNodes: 2048
     maxDepth: 20
   - type: DwaineStorageMediaRuntime
+  - type: DwaineDevice
+    driverId: storage-media
+    tag: storage
+    displayName: removable storage disk
+    capabilities: Inspect, Mount
+    access: Authenticated
 
 - type: entity
   parent: BaseItem
@@ -50,6 +62,12 @@
     maxNodes: 2048
     maxDepth: 20
   - type: DwaineStorageMediaRuntime
+  - type: DwaineDevice
+    driverId: storage-media
+    tag: storage
+    displayName: read-only storage disk
+    capabilities: Inspect, Mount
+    access: Authenticated
 
 - type: entity
   parent: BaseItem
@@ -67,3 +85,9 @@
     maxDepth: 24
     maxArchiveEntries: 2048
   - type: DwaineStorageMediaRuntime
+  - type: DwaineDevice
+    driverId: storage-media
+    tag: storage
+    displayName: data tape
+    capabilities: Inspect, Mount
+    access: Authenticated

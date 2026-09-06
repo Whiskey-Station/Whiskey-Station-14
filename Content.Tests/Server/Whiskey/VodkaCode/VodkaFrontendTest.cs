@@ -118,6 +118,18 @@ public sealed class VodkaFrontendTest
         });
     }
 
+    [Test]
+    public void ExitKeywordIsContextualAfterMemberAccess()
+    {
+        var result = VodkaParser.Parse("sys.process.exit(0);");
+
+        Assert.That(result.Succeeded, Is.True, FormatDiagnostics(result.Diagnostics));
+        var statement = (VodkaExpressionStatementSyntax) result.Program.Statements.Single();
+        var call = (VodkaCallExpressionSyntax) statement.Expression;
+        var exit = (VodkaMemberExpressionSyntax) call.Target;
+        Assert.That(exit.Member, Is.EqualTo("exit"));
+    }
+
     [TestCase("let = 1;")]
     [TestCase("let value = ;")]
     [TestCase("if true { return; }")]
