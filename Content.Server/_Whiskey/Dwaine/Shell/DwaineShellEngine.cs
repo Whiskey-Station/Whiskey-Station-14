@@ -468,46 +468,46 @@ public sealed class DwaineShellEngine
 
     private void RegisterCommands()
     {
-        Register("echo", "echo [-n] [text...] — write bounded text to stdout", Echo);
-        Register("clear", "clear — clear this terminal output buffer", Clear);
+        Register("echo", "echo [-n] [text...]: write bounded text to stdout", Echo);
+        Register("clear", "clear: clear this terminal output buffer", Clear);
         Alias("cls", "clear");
-        Register("history", "history [-c] — list or clear bounded session history", History);
-        Register("help", "help [command] — list commands or show exact command help", Help);
+        Register("history", "history [-c]: list or clear bounded session history", History);
+        Register("help", "help [command]: list commands or show exact command help", Help);
         Alias("man", "help");
-        Register("logout", "logout — replace this login with a temporary session", Logout);
+        Register("logout", "logout: replace this login with a temporary session", Logout);
         Alias("logoff", "logout");
-        Register("pwd", "pwd — print the canonical working directory", Pwd);
-        Register("cd", "cd [path] — change to an executable directory", Cd);
-        Register("cat", "cat [file...] — concatenate readable files or stdin", Cat);
-        Register("ls", "ls [-l] [path] — list a readable directory", Ls);
-        Register("mkdir", "mkdir [-p] path... — create owned directories", Mkdir);
-        Register("chmod", "chmod MODE path — set validated octal owner/group/other mode", Chmod);
-        Register("chown", "chown USER[:GROUP] path — operator-only ownership change", Chown);
-        Register("cp", "cp source destination — permission-aware VFS copy", Copy);
-        Register("mv", "mv source destination — atomic same-volume move", Move);
-        Register("rm", "rm [-r] [-f] [-i] path... | rm --confirm — remove entries; interactive confirmations expire", Remove);
-        Register("ln", "ln target link — create an owned symbolic link", Link);
-        Register("date", "date — print deterministic mainframe logical time", Date);
-        Register("grep", "grep [-i] [-E] [-r] pattern [file] — bounded text/record or timed-regex search", Grep);
-        Register("getopt", "getopt OPTSPEC arguments... — parse bounded short options", Getopt);
+        Register("pwd", "pwd: print the canonical working directory", Pwd);
+        Register("cd", "cd [path]: change to an executable directory", Cd);
+        Register("cat", "cat [file...]: concatenate readable files or stdin", Cat);
+        Register("ls", "ls [-l] [path]: list a readable directory", Ls);
+        Register("mkdir", "mkdir [-p] path...: create owned directories", Mkdir);
+        Register("chmod", "chmod MODE path: set validated octal owner/group/other mode", Chmod);
+        Register("chown", "chown USER[:GROUP] path: operator-only ownership change", Chown);
+        Register("cp", "cp source destination: permission-aware VFS copy", Copy);
+        Register("mv", "mv source destination: atomic same-volume move", Move);
+        Register("rm", "rm [-r] [-f] [-i] path... | rm --confirm: remove entries; interactive confirmations expire", Remove);
+        Register("ln", "ln target link: create an owned symbolic link", Link);
+        Register("date", "date: print deterministic mainframe logical time", Date);
+        Register("grep", "grep [-i] [-E] [-r] pattern [file]: bounded text/record or timed-regex search", Grep);
+        Register("getopt", "getopt OPTSPEC arguments...: parse bounded short options", Getopt);
         Register("tar", "tar -c archive source | -t archive | -x archive directory", Tar);
-        Register("mount", "mount [LABEL PATH|-u LABEL] — list or manage inserted media", Mount);
-        Register("su", "su USER PASSWORD — reauthenticate this session; history redacts the password", Su);
-        Register("set", "set [NAME=VALUE] — list or update the bounded session environment", Set);
-        Register("unset", "unset NAME... — remove non-protected environment variables", Unset);
-        Register("mesg", "mesg [y|n] — inspect or set direct-message acceptance", Mesg);
-        Register("talk", "talk USER message... — message a consenting user on this mainframe", Talk);
-        Register("who", "who — list public active users without privileged session details", Who);
+        Register("mount", "mount [LABEL PATH|-u LABEL]: list or manage inserted media", Mount);
+        Register("su", "su USER PASSWORD: reauthenticate this session; history redacts the password", Su);
+        Register("set", "set [NAME=VALUE]: list or update the bounded session environment", Set);
+        Register("unset", "unset NAME...: remove non-protected environment variables", Unset);
+        Register("mesg", "mesg [y|n]: inspect or set direct-message acceptance", Mesg);
+        Register("talk", "talk USER message...: message a consenting user on this mainframe", Talk);
+        Register("who", "who: list public active users without privileged session details", Who);
         Register("net", "net address|status|discover [TAG]|ping ADDRESS|send ADDRESS USER MESSAGE...|sendfile ADDRESS USER FILE|inbox|metrics|capture", Net);
-        Register("scnt", "scnt — bounded network discovery and local Device ABI rescan", Scan);
-        Register("sleep", "sleep SECONDS — wait on bounded logical game time", Sleep);
-        Register("eval", "eval shell-text... — evaluate only this bounded shell grammar", Eval);
-        Register("if", "if LEFT OP RIGHT — comparison status; OP is =, !=, -eq, -ne, -lt, -le, -gt or -ge", If);
-        Register("else", "else — succeed only when the previous command status failed", Else);
-        Register("while", "while COUNT command... — repeat a command with a hard iteration cap", While);
-        Register("break", "break — stop the nearest bounded shell while", Break);
-        Register("whiskeysay", "whiskeysay text... — Whiskey terminal novelty output", WhiskeySay);
-        Register("vodka", "vodka FILE.vodka [argument...] — run a Vodka Code script as a bounded child process", Vodka);
+        Register("scnt", "scnt: bounded network discovery and local Device ABI rescan", Scan);
+        Register("sleep", "sleep SECONDS: wait on bounded logical game time", Sleep);
+        Register("eval", "eval shell-text...: evaluate only this bounded shell grammar", Eval);
+        Register("if", "if LEFT OP RIGHT: comparison status; OP is =, !=, -eq, -ne, -lt, -le, -gt or -ge", If);
+        Register("else", "else: succeed only when the previous command status failed", Else);
+        Register("while", "while COUNT command...: repeat a command with a hard iteration cap", While);
+        Register("break", "break: stop the nearest bounded shell while", Break);
+        Register("whiskeysay", "whiskeysay text...: Whiskey terminal novelty output", WhiskeySay);
+        Register("vodka", "vodka FILE.vodka [argument...]: run a Vodka Code script as a bounded child process", Vodka);
     }
 
     private void Register(string name, string manual, CommandHandler handler)
@@ -519,7 +519,7 @@ public sealed class DwaineShellEngine
     private void Alias(string alias, string target)
     {
         _commands.Add(alias, _commands[target]);
-        _manual.Add(alias, $"{alias} — alias of {target}");
+        _manual.Add(alias, $"{alias}: alias of {target}");
     }
 
     private static CommandResult Echo(DwaineShellSession session, IDwaineShellHost host, IReadOnlyList<string> args, string stdin, int depth)
