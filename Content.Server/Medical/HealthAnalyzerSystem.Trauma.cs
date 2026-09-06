@@ -2,6 +2,8 @@
 
 using System.Linq;
 using Content.Medical.Common.Body;
+using Content.Medical.Common.Traumas;
+using Content.Medical.Shared.Traumas;
 using Content.Medical.Shared.Wounds;
 using Content.Server.Medical.Components;
 using Content.Shared.Body;
@@ -57,6 +59,18 @@ public sealed partial class HealthAnalyzerSystem
         }
 
         return bleeding;
+    }
+
+    private Dictionary<ProtoId<OrganCategoryPrototype>, BoneSeverity> FetchBoneData(Entity<BodyComponent?> body)
+    {
+        var bones = new Dictionary<ProtoId<OrganCategoryPrototype>, BoneSeverity>();
+        foreach (var part in _body.GetOrgans<BoneComponent>(body))
+        {
+            if (part.Comp.BoneSeverity != BoneSeverity.Normal && _body.GetCategory(part.Owner) is { } category)
+                bones[category] = part.Comp.BoneSeverity;
+        }
+
+        return bones;
     }
 
     public HealthAnalyzerUiState GetHealthAnalyzerUiState(Entity<HealthAnalyzerComponent?> ent, EntityUid? target)

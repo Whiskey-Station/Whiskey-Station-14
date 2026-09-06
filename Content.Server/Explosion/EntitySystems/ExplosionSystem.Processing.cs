@@ -89,7 +89,6 @@ public sealed partial class ExplosionSystem
             return;
 
         Stopwatch.Restart();
-        var x = Stopwatch.Elapsed.TotalMilliseconds;
 
         var tilesRemaining = TilesPerTick;
         while (tilesRemaining > 0 && MaxProcessingTime > Stopwatch.Elapsed.TotalMilliseconds)
@@ -122,7 +121,10 @@ public sealed partial class ExplosionSystem
                     // snooze power network (recipients look for new suppliers as wires get destroyed).
                 }
 
-                if (_activeExplosion.Area > SingleTickAreaLimit)
+                // Generating the flood map is not incremental yet. If spawning alone exhausted this tick's budget,
+                // defer damage and tile updates instead of adding more work to the same stalled tick.
+                if (_activeExplosion.Area > SingleTickAreaLimit ||
+                    Stopwatch.Elapsed.TotalMilliseconds >= MaxProcessingTime)
                     break; // start processing next turn.
             }
 
@@ -159,7 +161,7 @@ public sealed partial class ExplosionSystem
 #endif
         }
 
-        Log.Info($"Processed {TilesPerTick - tilesRemaining} tiles in {Stopwatch.Elapsed.TotalMilliseconds}ms");
+        Log.Debug($"Processed {TilesPerTick - tilesRemaining} tiles in {Stopwatch.Elapsed.TotalMilliseconds}ms");
 
         // we have finished processing our tiles. Is there still an ongoing explosion?
         if (_activeExplosion != null)

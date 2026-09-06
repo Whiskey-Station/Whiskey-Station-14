@@ -23,8 +23,11 @@ public sealed partial class BloodCultistSystem : EntitySystem
 {
     private static readonly ResPath LeaderAuraRsi =
         new("WhiteDream/BloodCult/Effects/leader_aura.rsi");
+    private static readonly ResPath LeaderHaloRsi =
+        new("_Whiskey/BloodCult/Effects/halo.rsi"); // Whiskey
 
     private const string LeaderAuraState = "leader_aura";
+    private const string LeaderHaloState = "halo"; // Whiskey
 
     [Dependency] private IRobustRandom _random = default!;
     [Dependency] private IPrototypeManager _prototype = default!;
@@ -68,7 +71,27 @@ public sealed partial class BloodCultistSystem : EntitySystem
         GetCultStatusIcon(ent, ref args);
     }
 
-    private void OnPentagramAdded(EntityUid uid, PentagramComponent component, ComponentStartup args)
+    private void OnPentagramAdded(EntityUid uid, PentagramComponent component, ComponentStartup args) =>
+        RefreshPentagramVisual(uid, component); // Whiskey
+
+    // Whiskey - cult leaders keep the red aura at their feet, but use the distinctive halo above
+    // their head instead of the regular pentagram shown on other cultists.
+    private void RefreshPentagramVisual(EntityUid uid, PentagramComponent component)
+    {
+        if (HasComp<BloodCultLeaderComponent>(uid))
+        {
+            RemovePentagram(uid);
+            AddLeaderHalo(uid);
+            RefreshLeaderAura(uid);
+            return;
+        }
+
+        RemoveLeaderHalo(uid);
+        RemoveLeaderAura(uid);
+        AddPentagram(uid, component);
+    }
+
+    private void AddPentagram(EntityUid uid, PentagramComponent component)
     {
         if (!TryComp<SpriteComponent>(uid, out var sprite))
             return;
@@ -84,25 +107,57 @@ public sealed partial class BloodCultistSystem : EntitySystem
             sprite.LayerMapSet(PentagramKey.Key, layer);
             sprite.LayerSetOffset(layer, new Vector2(0.0f, adj));
         }
-
-        if (HasComp<BloodCultLeaderComponent>(uid))
-            RefreshLeaderAura(uid);
     }
 
     private void OnPentagramRemoved(EntityUid uid, PentagramComponent component, ComponentShutdown args)
     {
-        if (TryComp<SpriteComponent>(uid, out var sprite) &&
-            sprite.LayerMapTryGet(PentagramKey.Key, out var layer))
-            sprite.RemoveLayer(layer);
-
+        RemovePentagram(uid); // Whiskey
+        RemoveLeaderHalo(uid); // Whiskey
         RemoveLeaderAura(uid);
     }
 
     private void OnLeaderAdded(EntityUid uid, BloodCultLeaderComponent component, ComponentStartup args)
-        => RefreshLeaderAura(uid);
+    {
+        if (TryComp<PentagramComponent>(uid, out var pentagram))
+            RefreshPentagramVisual(uid, pentagram); // Whiskey
+    }
 
     private void OnLeaderRemoved(EntityUid uid, BloodCultLeaderComponent component, ComponentShutdown args)
-        => RemoveLeaderAura(uid);
+    {
+        RemoveLeaderHalo(uid); // Whiskey
+        RemoveLeaderAura(uid);
+
+        if (!TerminatingOrDeleted(uid) && TryComp<PentagramComponent>(uid, out var pentagram))
+            AddPentagram(uid, pentagram); // Whiskey
+    }
+
+    private void RemovePentagram(EntityUid uid)
+    {
+        if (!TryComp<SpriteComponent>(uid, out var sprite) ||
+            !sprite.LayerMapTryGet(PentagramKey.Key, out var layer))
+            return;
+
+        sprite.RemoveLayer(layer);
+    }
+
+    private void AddLeaderHalo(EntityUid uid)
+    {
+        if (!TryComp<SpriteComponent>(uid, out var sprite) ||
+            sprite.LayerMapTryGet(BloodCultVisualLayers.LeaderHalo, out _))
+            return;
+
+        var layer = sprite.AddLayer(new SpriteSpecifier.Rsi(LeaderHaloRsi, LeaderHaloState));
+        sprite.LayerMapSet(BloodCultVisualLayers.LeaderHalo, layer);
+    }
+
+    private void RemoveLeaderHalo(EntityUid uid)
+    {
+        if (!TryComp<SpriteComponent>(uid, out var sprite) ||
+            !sprite.LayerMapTryGet(BloodCultVisualLayers.LeaderHalo, out var layer))
+            return;
+
+        sprite.RemoveLayer(layer);
+    }
 
     private void RefreshLeaderAura(EntityUid uid)
     {
@@ -154,5 +209,6 @@ public sealed partial class BloodCultistSystem : EntitySystem
 
 internal enum BloodCultVisualLayers : byte
 {
+    LeaderHalo, // Whiskey
     LeaderAura,
 }

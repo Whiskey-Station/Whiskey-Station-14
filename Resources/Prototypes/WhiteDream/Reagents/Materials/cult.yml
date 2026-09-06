@@ -2,6 +2,6 @@
   id: RunedMetal
   stackEntity: RunedMetal1
   name: materials-runed-metal
-  icon: { sprite: /Textures/WhiteDream/BloodCult/Entities/runic_metal.rsi, state: runic}
+  icon: { sprite: /Textures/_Whiskey/BloodCult/Sheets/metal.rsi, state: runedmetal } # Whiskey
   color: "#9d2b39"
   price: 0.05

@@ -47,7 +47,7 @@
 
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Sacramentos do Poder</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Habilidade Ativa</Box></ColorBox>
-    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Concede um feitiço de imunidade total e alguma reflexão de dano por 5 segundos; leva 1 segundo para iniciar. Você não pode atacar enquanto estiver ativo.</Box></ColorBox>
+    <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Concede um feitiço de imunidade total a dano e alguma reflexão de dano por 5 segundos, e leva 1 segundo para iniciar. Quem você atacar durante o efeito ignora ele.</Box></ColorBox>
 
     <ColorBox><Box HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">Aço Furioso</Box></ColorBox>
     <ColorBox><Box HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="5">Habilidade Ativa</Box></ColorBox>

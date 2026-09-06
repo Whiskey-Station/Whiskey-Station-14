@@ -3,6 +3,7 @@
 using Content.Shared.Bed.Sleep;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Components;
+using Content.Shared.Movement.Systems;
 using Robust.Shared.Timing;
 
 namespace Content.Trauma.Shared.Mobs;
@@ -13,6 +14,7 @@ namespace Content.Trauma.Shared.Mobs;
 public sealed partial class MobStateComponentsSystem : EntitySystem
 {
     [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private MovementSpeedModifierSystem _movement = default!;
     [Dependency] private EntityQuery<SleepingComponent> _sleepingQuery = default!;
 
     public override void Initialize()
@@ -45,6 +47,7 @@ public sealed partial class MobStateComponentsSystem : EntitySystem
         // not deferring removal so there is never a tick where multiple state components exist at the same time
         RemComp(uid, comp);
         AddState(uid, args.NewMobState);
+        _movement.RefreshMovementSpeedModifiers(uid);
     }
 
     private void OnAliveInit(Entity<AliveMobComponent> ent, ref ComponentInit args)
