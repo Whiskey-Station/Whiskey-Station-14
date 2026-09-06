@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# O que a Loja Geral vende, e por quanto.
+#
+# A régua é o salário: 100 spesos a cada 5 minutos, ou seja umas 1800 numa
+# rodada inteira. Comida e bebida saem barato para o dinheiro circular desde
+# cedo, e a bugiganga custa caro para sobrar decisão no fim do turno.
+#
+# Arma não entra. A loja é ralo de dinheiro, não atalho para o arsenal, e
+# quem decide o que é vendável de perigoso é a dona do servidor.
+- type: shopInventory
+  id: LojaGeralInventory
+  listings:
+  - id: FoodDonut
+    cost: 20
+  - id: Lighter
+    cost: 20
+  - id: DrinkColaCan
+    cost: 25
+  - id: FoodSnackChocolate
+    cost: 25
+  - id: CigPackGreen
+    cost: 60
+  - id: ClothingNeckScarfStripedRed
+    cost: 80
+  - id: FoodBoxDonut
+    cost: 90
+  - id: ClothingHeadHatCatEars
+    cost: 100
+  - id: PlushieBee
+    cost: 150
+  - id: PlushieLizard
+    cost: 150
+  - id: PlushieNuke
+    cost: 200
+  - id: DrinkGoldenCup
+    cost: 250

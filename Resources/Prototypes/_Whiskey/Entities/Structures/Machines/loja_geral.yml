@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: entity
+  parent: BaseVendingMachine
+  id: VendingMachineLojaGeral
+  name: Loja Geral
+  description: Aceita spesos direto do crachá. Não aceita conversa.
+  components:
+  - type: ShopVendor
+    pack: LojaGeralInventory
+    offState: off
+    brokenState: broken
+    normalState: normal-unshaded
+    denyState: deny-unshaded
+  - type: CreditVendor
+  - type: UserInterface
+    interfaces:
+      enum.VendingMachineUiKey.Key:
+        type: ShopVendorBoundUserInterface
+      enum.WiresUiKey.Key:
+        type: WiresBoundUserInterface
+  - type: Wires
+    layoutId: ShopVendor
+  - type: Sprite
+    sprite: Structures/Machines/VendingMachines/vendomat.rsi
+    layers:
+    - state: "off"
+      map: ["enum.VendingMachineVisualLayers.Base"]
+    - state: "off"
+      map: ["enum.VendingMachineVisualLayers.BaseUnshaded"]
+      shader: unshaded
+    - state: panel
+      map: ["enum.WiresVisualLayers.MaintenancePanel"]
+  - type: PointLight
+    radius: 2
+    energy: 1.6
+    color: "#4d9b31"

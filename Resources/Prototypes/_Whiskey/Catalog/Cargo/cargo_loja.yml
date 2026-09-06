@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# A loja chega pela carga, e não nasce no mapa, porque nenhum dos 29 mapas tem
+# um lugar para ela e porque assim a estação decide se quer uma.
+- type: cargoProduct
+  id: CrateVendingMachineLojaGeral
+  icon:
+    sprite: Structures/Machines/VendingMachines/vendomat.rsi
+    state: normal-unshaded
+  product: VendingMachineLojaGeral
+  container:
+    entity: WrappedParcel
+    containerId: contents
+  cost: 4000
+  category: cargoproduct-category-name-service
+  group: market
