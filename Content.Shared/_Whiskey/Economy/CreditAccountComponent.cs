@@ -7,8 +7,14 @@ using Robust.Shared.GameStates;
 namespace Content.Shared._Whiskey.Economy;
 
 /// <summary>
-/// Guarda o dinheiro de uma pessoa. Fica no cartão de identificação, e não na
-/// pessoa, por três motivos:
+/// O dinheiro de uma pessoa: um saldo em spesos, guardado no cartão de
+/// identificação dela.
+///
+/// O saldo é replicado, então quem estiver por perto enxerga o valor, e o
+/// examinar mostra ele de propósito. Cartão roubado entrega quanto a vítima
+/// tinha, e isso é parte do desenho e não vazamento.
+///
+/// Fica no cartão, e não na pessoa, por três motivos:
 ///
 /// 1. O cartão já é a identidade neste jogo: é ele que abre porta, que assina
 ///    registro e que o roubo já mira. Pendurar o saldo nele faz o roubo de ID
@@ -24,7 +30,7 @@ namespace Content.Shared._Whiskey.Economy;
 /// limitação: economia que atravessa rodada precisa de banco de dados, e faz
 /// quem joga todo dia acumular vantagem sobre quem entrou hoje.
 /// </summary>
-[RegisterComponent, NetworkedComponent, Access(typeof(CreditAccountSystem))]
+[RegisterComponent, NetworkedComponent, Access(typeof(SharedCreditAccountSystem))]
 [AutoGenerateComponentState]
 public sealed partial class CreditAccountComponent : Component
 {
