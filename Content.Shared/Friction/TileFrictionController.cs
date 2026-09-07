@@ -14,6 +14,7 @@ using Robust.Shared.Physics;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Controllers;
 using Robust.Shared.Physics.Dynamics;
+using Robust.Shared.Physics.Events;
 using Robust.Shared.Physics.Systems;
 using Robust.Shared.Utility;
 
@@ -37,6 +38,8 @@ namespace Content.Shared.Friction
         [Dependency] private EntityQuery<InputMoverComponent> _moverQuery = default!;
         [Dependency] private EntityQuery<BlockMovementComponent> _blockMoverQuery = default!;
 
+        private readonly HashSet<EntityUid> _warnedInvalidBodyTypes = [];
+
         private float _frictionModifier;
         private float _minDamping;
         private float _airDamping;
@@ -45,6 +48,9 @@ namespace Content.Shared.Friction
         public override void Initialize()
         {
             base.Initialize();
+
+            SubscribeLocalEvent<InputMoverComponent, ComponentShutdown>(OnMoverShutdown);
+            SubscribeLocalEvent<InputMoverComponent, PhysicsBodyTypeChangedEvent>(OnMoverBodyTypeChanged);
 
             Subs.CVar(_configManager, CCVars.TileFrictionModifier, value => _frictionModifier = value, true);
             Subs.CVar(_configManager, CCVars.MinFriction, value => _minDamping = value, true);
@@ -114,12 +120,24 @@ namespace Content.Shared.Friction
                      * Block movement shouldn't be added and removed frivolously so it should be reliable to use this
                      * as a check for brains and such which have input mover purely for ghosting behavior.
                      */
-                    // <Trauma> - made this a warning instead of assert, I have no idea what changed tomato to dynamic...
-                    if (_moverQuery.HasComp(uid) && !_blockMoverQuery.HasComp(uid))
+                    // Kinematic bodies are valid for admin ghosts and are handled by the physics engine.
+                    var shouldWarn = body.BodyType != BodyType.Kinematic &&
+                                     _moverQuery.HasComp(uid) &&
+                                     !_blockMoverQuery.HasComp(uid);
+
+                    if (!shouldWarn)
+                    {
+                        _warnedInvalidBodyTypes.Remove(uid);
+                    }
+                    else if (_warnedInvalidBodyTypes.Add(uid))
+                    {
                         Log.Warning($"Input mover: {ToPrettyString(uid)} in TileFrictionController is not the correct BodyType, BodyType found: {body.BodyType}, expected: KinematicController.");
-                    // </Trauma>
+                    }
+
                     continue;
                 }
+
+                _warnedInvalidBodyTypes.Remove(uid);
 
                 // Physics engine doesn't apply damping to Kinematic Controllers so we have to do it here.
                 // BEWARE YE TRAVELLER:
@@ -132,6 +150,16 @@ namespace Content.Shared.Friction
                 PhysicsSystem.SetLinearVelocity(uid, velocity, body: body);
                 PhysicsSystem.SetAngularVelocity(uid, angVelocity, body: body);
             }
+        }
+
+        private void OnMoverShutdown(Entity<InputMoverComponent> ent, ref ComponentShutdown args)
+        {
+            _warnedInvalidBodyTypes.Remove(ent.Owner);
+        }
+
+        private void OnMoverBodyTypeChanged(Entity<InputMoverComponent> ent, ref PhysicsBodyTypeChangedEvent args)
+        {
+            _warnedInvalidBodyTypes.Remove(ent.Owner);
         }
 
         [Pure]
