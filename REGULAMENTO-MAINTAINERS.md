@@ -38,9 +38,15 @@ Quando forem solicitadas mudanças, o autor deve realizar as correções, resolv
 
 Depois de modificar um PR, ele deve ser testado novamente.
 
+PR de sistema novo deve ser aberta como draft e permanecer assim até o conjunto estar completo. Peça solta de sistema inacabado não deve ser mesclada, mesmo funcionando sozinha.
+
+Draft desliga todo o CI deste repositório: build, testes e verificação de fim de linha só rodam com a PR marcada como pronta. Enquanto estiver em draft, a verificação é responsabilidade do autor, e o que foi rodado localmente deve estar escrito na PR. Antes de qualquer merge a PR precisa ser marcada como pronta e o CI precisa rodar.
+
 PRs claramente incompletos, sem contexto, sem testes suficientes ou que não sigam os requisitos podem ser devolvidos ou fechados.
 
 ## 4. Revisão e aprovação
+
+A revisão começa pelo estado do CI, antes de ler o código. Check vermelho ignorado já custou dias com PR sem compilar em Release sem ninguém notar.
 
 Nenhum PR deve ser aprovado apenas porque compila.
 
@@ -96,6 +102,10 @@ Alterações de uma linha em arquivos upstream devem utilizar comentários no pa
 
 Alterações maiores devem utilizar marcações como // <Trauma> e // </Trauma>. Quando for removida uma seção inteira, pode-se usar o formato de comentário indicado pelo projeto.
 
+Código escrito pela Whiskey dentro de arquivo herdado usa a marcação da Whiskey, // Whiskey - explicação para uma linha e // <Whiskey> com // </Whiskey> para bloco.
+
+Marcação existente não deve ser apagada ao alterar o bloco que ela envolve. Ela é o que faz o próximo upstream dar conflito na linha certa em vez de passar por cima sem aviso. Ao substituir lógica marcada como do Trauma por lógica nossa, troque a marcação, nunca remova.
+
 Quando novas entradas são adicionadas a listas onde a ordem não é importante, elas devem ser agrupadas no topo quando isso reduzir conflitos com upstream.
 
 ## 9. Ports de outros forks
@@ -124,7 +134,7 @@ Devem ser utilizadas APIs proxy quando disponíveis, como TryComp, em vez de ace
 
 ## 11. Resources, prototypes e estrutura de arquivos
 
-Recursos próprios devem permanecer nas subpastas específicas previstas pela estrutura do projeto, como os diretórios _Trauma.
+Recursos próprios devem permanecer nas subpastas específicas previstas pela estrutura do projeto. Conteúdo escrito pela Whiskey vai em _Whiskey. As pastas _Trauma, _Goobstation, _DV, _ES e demais pastas de fork guardam conteúdo herdado e não devem receber conteúdo novo nosso.
 
 Prototypes próprios devem permanecer em suas áreas correspondentes e não devem poluir arquivos upstream sem necessidade.
 
@@ -253,6 +263,8 @@ O teste deve ser proporcional ao risco. Dependendo da alteração, pode incluir 
 Quando a revisão exigir alterações, o PR deve ser testado novamente antes de nova aprovação.
 
 Deve haver instruções suficientes para outra pessoa reproduzir os testes.
+
+Teste automatizado que existe para guardar uma regra deve ser provado: apague a guarda de propósito, rode de novo e confirme que ele reprova. Teste que continua passando com o código removido não está guardando nada, e é pior que não ter teste, porque dá confiança falsa.
 
 Não testado não significa necessariamente rejeitado, mas deve significar que o risco da falta de teste foi explicitamente considerado.
 
