@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+# SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+- type: entity
+  parent: BaseItem
+  id: LojaCartridge
+  name: cartucho da Loja Geral
+  description: Compra do PDA, e cobra do cartão que está dentro dele.
+  components:
+  - type: Sprite
+    sprite: Objects/Devices/cartridge.rsi
+    state: cart-c
+  - type: Icon
+    sprite: Objects/Devices/cartridge.rsi
+    state: cart-c
+  - type: UIFragment
+    ui: !type:StoreCartridgeUi
+  - type: Cartridge
+    programName: store-cartridge-program-name
+    icon:
+      sprite: Objects/Devices/cartridge.rsi
+      state: cart-c
+  - type: StoreCartridge
+    pack: LojaGeralInventory

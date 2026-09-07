@@ -1,0 +1,19 @@
+<!--
+SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<economy:StoreCartridgeUiFragment xmlns="https://spacestation14.io"
+                                  xmlns:economy="clr-namespace:Content.Trauma.Client._Whiskey.Economy"
+                                  Orientation="Vertical"
+                                  VerticalExpand="True">
+    <BoxContainer Orientation="Horizontal" Margin="4 8">
+        <Label Name="SaldoLabel" Access="Public" StyleClasses="LabelHeading"/>
+        <BoxContainer HorizontalExpand="True"/>
+    </BoxContainer>
+    <ScrollContainer VerticalExpand="True">
+        <BoxContainer Orientation="Vertical" Name="ListaContainer" Access="Public" Margin="4 0"/>
+    </ScrollContainer>
+</economy:StoreCartridgeUiFragment>

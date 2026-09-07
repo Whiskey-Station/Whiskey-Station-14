@@ -97,6 +97,7 @@
         - id: NanoTaskCartridge
         - id: NewsReaderCartridge
         - id: NanoChatCartridge # Trauma
+        - id: LojaCartridge # Whiskey - a loja mora no PDA, e cobra do cartão dele
   - type: ActivatableUI
     key: enum.PdaUiKey.Key
     singleUser: true
@@ -171,6 +172,7 @@
         - id: NewsReaderCartridge
         - id: WantedListCartridge
         - id: NanoChatCartridge # Trauma
+        - id: LojaCartridge # Whiskey - a loja mora no PDA, e cobra do cartão dele
 
 - type: entity
   parent: BasePDA
@@ -187,6 +189,7 @@
         - id: NewsReaderCartridge
         - id: MedTekCartridge
         - id: NanoChatCartridge # Trauma
+        - id: LojaCartridge # Whiskey - a loja mora no PDA, e cobra do cartão dele
 
 - type: entity
   parent: BasePDA
@@ -560,6 +563,7 @@
         - id: NewsReaderCartridge
         - id: AstroNavCartridge
         - id: NanoChatCartridge # Trauma
+        - id: LojaCartridge # Whiskey - a loja mora no PDA, e cobra do cartão dele
 
 - type: entity
   parent: BasePDA
@@ -913,6 +917,7 @@
         - id: WantedListCartridge
         - id: LogProbeCartridge
         - id: NanoChatCartridge # Trauma
+        - id: LojaCartridge # Whiskey - a loja mora no PDA, e cobra do cartão dele
 
 - type: entity
   parent: BaseSecurityPDA
