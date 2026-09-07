@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared._Whiskey.Economy;
+using Content.Shared.Containers.ItemSlots;
 using Content.Trauma.Shared.VendingMachines;
 
 namespace Content.Trauma.Shared._Whiskey.Economy;
@@ -17,6 +18,7 @@ namespace Content.Trauma.Shared._Whiskey.Economy;
 /// </summary>
 public sealed partial class CreditVendorSystem : EntitySystem
 {
+    [Dependency] private ItemSlotsSystem _slots = default!;
     [Dependency] private SharedCreditAccountSystem _contas = default!;
 
     public override void Initialize()
@@ -28,10 +30,21 @@ public sealed partial class CreditVendorSystem : EntitySystem
 
     private void OnSaldo(Entity<CreditVendorComponent> ent, ref ShopVendorBalanceEvent args)
     {
+        if (GetCartao(ent) is not { } cartao)
+            return;
+
         // A interface da máquina conta em uint e a conta guarda int. Saldo
         // nunca fica negativo, mas a conversão fica explícita porque negativo
         // virado em uint aparece como bilhões na tela da máquina.
-        var saldo = _contas.GetUserBalance(args.User);
+        var saldo = _contas.GetBalance(cartao);
         args.Balance = saldo > 0 ? (uint) saldo : 0;
+    }
+
+    /// <summary>
+    /// O cartão que está dentro da máquina, ou nada.
+    /// </summary>
+    public EntityUid? GetCartao(Entity<CreditVendorComponent> ent)
+    {
+        return _slots.GetItemOrNull(ent.Owner, ent.Comp.SlotId);
     }
 }

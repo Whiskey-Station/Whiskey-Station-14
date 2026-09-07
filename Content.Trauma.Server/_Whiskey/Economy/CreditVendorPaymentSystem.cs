@@ -4,6 +4,7 @@
 
 using Content.Server._Whiskey.Economy;
 using Content.Trauma.Shared._Whiskey.Economy;
+using Content.Shared.Popups;
 using Content.Trauma.Shared.VendingMachines;
 
 namespace Content.Trauma.Server._Whiskey.Economy;
@@ -18,6 +19,8 @@ namespace Content.Trauma.Server._Whiskey.Economy;
 public sealed partial class CreditVendorPaymentSystem : EntitySystem
 {
     [Dependency] private CreditAccountSystem _contas = default!;
+    [Dependency] private CreditVendorSystem _leitor = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     public override void Initialize()
     {
@@ -31,10 +34,16 @@ public sealed partial class CreditVendorPaymentSystem : EntitySystem
         if (args.Cost > int.MaxValue)
             return;
 
-        if (!_contas.TryGetAccount(args.User, out var conta))
+        // Quem paga é o cartão que está DENTRO da máquina, e não o que a
+        // pessoa tem por perto. Sem cartão, a máquina recusa e diz por quê,
+        // senão vira negativa muda e ninguém descobre que faltava inserir.
+        if (_leitor.GetCartao(ent) is not { } cartao)
+        {
+            _popup.PopupEntity(Loc.GetString("credit-vendor-no-card"), ent, args.User);
             return;
+        }
 
-        if (_contas.TryWithdraw(conta.Owner, (int) args.Cost))
+        if (_contas.TryWithdraw(cartao, (int) args.Cost))
             args.Paid = true;
     }
 }

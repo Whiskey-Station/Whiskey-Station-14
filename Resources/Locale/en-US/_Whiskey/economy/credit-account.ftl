@@ -4,3 +4,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 credit-account-examine = Balance: [color=#4d9b31]{ $saldo }[/color] spesos.
+credit-vendor-card-slot = ID card
+credit-vendor-no-card = Insert an ID card first.
