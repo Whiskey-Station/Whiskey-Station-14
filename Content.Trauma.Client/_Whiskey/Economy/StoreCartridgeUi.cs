@@ -22,8 +22,8 @@ public sealed partial class StoreCartridgeUi : UIFragment
     {
         _fragment = new StoreCartridgeUiFragment();
 
-        _fragment.OnComprar += indice =>
-            ui.SendMessage(new CartridgeUiMessage(new StoreCartridgeBuyMessage(indice)));
+        _fragment.OnComprar += (indice, destinatario) =>
+            ui.SendMessage(new CartridgeUiMessage(new StoreCartridgeBuyMessage(indice, destinatario)));
     }
 
     public override void UpdateState(BoundUserInterfaceState state)

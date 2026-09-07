@@ -17,15 +17,27 @@ public sealed class StoreCartridgeUiState : BoundUserInterfaceState
 {
     public readonly int Balance;
     public readonly List<StoreCartridgeEntry> Listings;
+    public readonly List<StoreCartridgeRecipient> Recipients;
     public readonly bool HasCard;
 
-    public StoreCartridgeUiState(int balance, List<StoreCartridgeEntry> listings, bool hasCard)
+    public StoreCartridgeUiState(int balance,
+        List<StoreCartridgeEntry> listings,
+        List<StoreCartridgeRecipient> recipients,
+        bool hasCard)
     {
         Balance = balance;
         Listings = listings;
+        Recipients = recipients;
         HasCard = hasCard;
     }
 }
+
+/// <summary>
+/// Alguém a quem dá para mandar a encomenda. O id é o do registro da estação,
+/// que é a mesma lista que o correio usa para endereçar carta.
+/// </summary>
+[Serializable, NetSerializable]
+public readonly record struct StoreCartridgeRecipient(uint Id, string Name, string Job);
 
 /// <summary>
 /// Uma linha da loja. O índice é a posição na lista do prototype, e é ele que
@@ -43,8 +55,14 @@ public sealed class StoreCartridgeBuyMessage : CartridgeMessageEvent
 {
     public readonly int Index;
 
-    public StoreCartridgeBuyMessage(int index)
+    /// <summary>
+    /// Para quem vai a encomenda. Nulo é para si mesmo.
+    /// </summary>
+    public readonly uint? Recipient;
+
+    public StoreCartridgeBuyMessage(int index, uint? recipient)
     {
         Index = index;
+        Recipient = recipient;
     }
 }

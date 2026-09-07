@@ -18,3 +18,5 @@ store-cartridge-buy = Comprar
 store-cartridge-bought = Comprou. Sobraram { $saldo } spesos.
 store-cartridge-no-card = Não tem cartão de identificação neste PDA.
 store-cartridge-no-funds = Spesos insuficientes.
+store-cartridge-recipient = Para:
+store-cartridge-recipient-self = mim

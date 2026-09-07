@@ -15,11 +15,24 @@ namespace Content.Trauma.Client._Whiskey.Economy;
 [GenerateTypedNameReferences]
 public sealed partial class StoreCartridgeUiFragment : BoxContainer
 {
-    public event Action<int>? OnComprar;
+    public event Action<int, uint?>? OnComprar;
+
+    /// <summary>
+    /// Quem está escolhido para receber, ou nada para si mesmo. Guardado aqui
+    /// porque a lista é redesenhada a cada compra e a escolha não pode voltar
+    /// para o começo sozinha.
+    /// </summary>
+    private uint? _destinatario;
 
     public StoreCartridgeUiFragment()
     {
         RobustXamlLoader.Load(this);
+
+        DestinatarioBotao.OnItemSelected += args =>
+        {
+            DestinatarioBotao.SelectId(args.Id);
+            _destinatario = args.Id == 0 ? null : (uint) args.Id;
+        };
     }
 
     public void UpdateState(StoreCartridgeUiState state)
@@ -28,12 +41,42 @@ public sealed partial class StoreCartridgeUiFragment : BoxContainer
             ? Loc.GetString("store-cartridge-balance", ("saldo", state.Balance))
             : Loc.GetString("store-cartridge-no-card");
 
+        AtualizarDestinatarios(state);
+
         ListaContainer.RemoveAllChildren();
 
         foreach (var linha in state.Listings)
         {
             var podePagar = state.HasCard && state.Balance >= linha.Cost;
-            ListaContainer.AddChild(new StoreCartridgeItem(linha, podePagar, indice => OnComprar?.Invoke(indice)));
+            ListaContainer.AddChild(new StoreCartridgeItem(linha, podePagar,
+                indice => OnComprar?.Invoke(indice, _destinatario)));
         }
+    }
+
+    private void AtualizarDestinatarios(StoreCartridgeUiState state)
+    {
+        DestinatarioBotao.Clear();
+        DestinatarioBotao.AddItem(Loc.GetString("store-cartridge-recipient-self"), 0);
+
+        var achou = false;
+
+        foreach (var gente in state.Recipients)
+        {
+            // O id 0 é reservado para "eu", então ficha com id 0 não entra.
+            if (gente.Id == 0)
+                continue;
+
+            DestinatarioBotao.AddItem($"{gente.Name} ({gente.Job})", (int) gente.Id);
+
+            if (_destinatario == gente.Id)
+                achou = true;
+        }
+
+        // Se a pessoa escolhida saiu da lista, volta para si mesmo em vez de
+        // continuar mandando presente para uma ficha que não existe mais.
+        if (_destinatario is not null && !achou)
+            _destinatario = null;
+
+        DestinatarioBotao.SelectId((int) (_destinatario ?? 0));
     }
 }

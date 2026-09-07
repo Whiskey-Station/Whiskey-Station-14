@@ -18,3 +18,5 @@ store-cartridge-buy = Buy
 store-cartridge-bought = Bought. { $saldo } spesos left.
 store-cartridge-no-card = No ID card in this PDA.
 store-cartridge-no-funds = Not enough spesos.
+store-cartridge-recipient = To:
+store-cartridge-recipient-self = myself

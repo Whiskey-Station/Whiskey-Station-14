@@ -116,6 +116,39 @@ public sealed class StoreCartridgeTest : GameTest
     }
 
     /// <summary>
+    /// Presente para uma ficha que não existe volta a ser para quem comprou,
+    /// em vez de sair sem dono nem destrancar para ninguém.
+    ///
+    /// A tela manda o id da ficha, e tela é coisa do cliente.
+    /// </summary>
+    [Test]
+    public async Task PresenteParaFichaInexistenteVoltaParaQuemComprou()
+    {
+        var server = Server;
+        var (app, pda, pessoa, cartao) = await Montar(500);
+
+        var comprou = false;
+        await server.WaitPost(() =>
+            comprou = server.System<StoreCartridgeSystem>().Comprar(app, pda, pessoa, Rosquinha, 999999));
+        await Pair.RunTicksSync(2);
+
+        Entity<DeliveryComponent>? pacote = null;
+        var query = server.EntMan.EntityQueryEnumerator<DeliveryComponent>();
+        while (query.MoveNext(out var uid, out var comp))
+        {
+            if (server.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "LojaPacote")
+                pacote = (uid, comp);
+        }
+
+        Assert.That(comprou, Is.True);
+        Assert.That(pacote, Is.Not.Null, "a compra não virou encomenda");
+        Assert.That(pacote!.Value.Comp.RecipientName, Is.Not.Null.And.Not.Empty,
+            "a encomenda saiu sem destinatário");
+        Assert.That(server.System<CreditAccountSystem>().GetBalance(cartao!.Value),
+            Is.EqualTo(500 - PrecoDaRosquinha));
+    }
+
+    /// <summary>
     /// Abrir a encomenda da loja não paga a estação.
     ///
     /// O correio deposita 500 spesos na conta da estação quando a encomenda é
