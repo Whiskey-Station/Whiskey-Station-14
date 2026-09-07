@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.IntegrationTests.Fixtures;
+using Content.Server._Whiskey.Economy;
 using Content.Shared._Whiskey.Economy;
 using Content.Shared.Inventory;
 using Robust.Shared.GameObjects;
@@ -153,6 +154,35 @@ public sealed class CreditAccountTest : GameTest
             Assert.That(contas.TryDeposit(cartao, int.MaxValue), Is.True);
             Assert.That(contas.TryDeposit(cartao, 1), Is.False, "aceitou depósito que estoura o inteiro");
             Assert.That(contas.GetBalance(cartao), Is.EqualTo(int.MaxValue));
+        });
+    }
+
+    /// <summary>
+    /// O saque devolve quanto sobrou, para quem chamou não precisar consultar
+    /// o saldo de novo logo depois de mexer nele.
+    /// </summary>
+    [Test]
+    public async Task OSaqueDevolveOQueSobrou()
+    {
+        var pair = Pair;
+        var server = Server;
+        var mapa = await pair.CreateTestMap();
+        EntityUid cartao = default;
+
+        await server.WaitPost(() => cartao = server.EntMan.SpawnAtPosition(Cartao, mapa.GridCoords));
+
+        var contas = server.System<CreditAccountSystem>();
+        await server.WaitPost(() => contas.TryDeposit(cartao, 900));
+
+        var sacou = false;
+        var restante = -1;
+        await server.WaitPost(() => sacou = contas.TryWithdraw(cartao, 250, out restante));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sacou, Is.True);
+            Assert.That(restante, Is.EqualTo(650));
+            Assert.That(contas.GetBalance(cartao), Is.EqualTo(restante), "o restante devolvido não é o saldo");
         });
     }
 
