@@ -38,7 +38,9 @@ namespace Content.Shared.Friction
         [Dependency] private EntityQuery<InputMoverComponent> _moverQuery = default!;
         [Dependency] private EntityQuery<BlockMovementComponent> _blockMoverQuery = default!;
 
+        // <Whiskey> - avoid repeating the same diagnostic every physics tick.
         private readonly HashSet<EntityUid> _warnedInvalidBodyTypes = [];
+        // </Whiskey>
 
         private float _frictionModifier;
         private float _minDamping;
@@ -49,8 +51,10 @@ namespace Content.Shared.Friction
         {
             base.Initialize();
 
+            // <Whiskey>
             SubscribeLocalEvent<InputMoverComponent, ComponentShutdown>(OnMoverShutdown);
-            SubscribeLocalEvent<InputMoverComponent, PhysicsBodyTypeChangedEvent>(OnMoverBodyTypeChanged);
+            SubscribeLocalEvent<PhysicsComponent, PhysicsBodyTypeChangedEvent>(OnMoverBodyTypeChanged);
+            // </Whiskey>
 
             Subs.CVar(_configManager, CCVars.TileFrictionModifier, value => _frictionModifier = value, true);
             Subs.CVar(_configManager, CCVars.MinFriction, value => _minDamping = value, true);
@@ -120,6 +124,7 @@ namespace Content.Shared.Friction
                      * Block movement shouldn't be added and removed frivolously so it should be reliable to use this
                      * as a check for brains and such which have input mover purely for ghosting behavior.
                      */
+                    // <Whiskey> - warn once per invalid state instead of once per physics tick.
                     // Kinematic bodies are valid for admin ghosts and are handled by the physics engine.
                     var shouldWarn = body.BodyType != BodyType.Kinematic &&
                                      _moverQuery.HasComp(uid) &&
@@ -133,11 +138,14 @@ namespace Content.Shared.Friction
                     {
                         Log.Warning($"Input mover: {ToPrettyString(uid)} in TileFrictionController is not the correct BodyType, BodyType found: {body.BodyType}, expected: KinematicController.");
                     }
+                    // </Whiskey>
 
                     continue;
                 }
 
+                // <Whiskey>
                 _warnedInvalidBodyTypes.Remove(uid);
+                // </Whiskey>
 
                 // Physics engine doesn't apply damping to Kinematic Controllers so we have to do it here.
                 // BEWARE YE TRAVELLER:
@@ -152,15 +160,17 @@ namespace Content.Shared.Friction
             }
         }
 
+        // <Whiskey>
         private void OnMoverShutdown(Entity<InputMoverComponent> ent, ref ComponentShutdown args)
         {
             _warnedInvalidBodyTypes.Remove(ent.Owner);
         }
 
-        private void OnMoverBodyTypeChanged(Entity<InputMoverComponent> ent, ref PhysicsBodyTypeChangedEvent args)
+        private void OnMoverBodyTypeChanged(Entity<PhysicsComponent> ent, ref PhysicsBodyTypeChangedEvent args)
         {
             _warnedInvalidBodyTypes.Remove(ent.Owner);
         }
+        // </Whiskey>
 
         [Pure]
         private float GetTileFriction(
