@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.IntegrationTests.Fixtures;
+using Content.Server._Whiskey.Economy;
 using Content.Shared._Whiskey.Economy;
 using Content.Shared.Hands.EntitySystems;
 using Content.Trauma.Shared.VendingMachines;
