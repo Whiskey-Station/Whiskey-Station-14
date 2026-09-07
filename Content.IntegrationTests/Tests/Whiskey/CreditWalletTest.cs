@@ -86,16 +86,38 @@ public sealed class CreditWalletTest : GameTest
         });
         await Pair.RunTicksSync(2);
 
-        var verbos = server.System<SharedVerbSystem>()
-            .GetLocalVerbs(pda, pessoa, typeof(AlternativeVerb));
+        // Tudo que toca em localização roda dentro do WaitPost: o VerbCategory
+        // monta o texto pelo Loc, e o Loc não existe fora da thread do jogo.
+        var quantos = 0;
+        string? primeiroTexto = null;
+        string? primeiraCategoria = null;
+        string? categoriaDoEjetar = null;
 
-        Assert.That(verbos, Is.Not.Empty, "o PDA não ofereceu verbo alternativo nenhum");
+        await server.WaitPost(() =>
+        {
+            var verbos = server.System<SharedVerbSystem>()
+                .GetLocalVerbs(pda, pessoa, typeof(AlternativeVerb));
 
-        var primeiro = verbos.First();
-        var categoria = Loc.GetString("credit-account-withdraw-category");
+            quantos = verbos.Count;
+            categoriaDoEjetar = VerbCategory.Eject.Text;
 
-        Assert.That(primeiro.Category?.Text, Is.Not.EqualTo(categoria),
-            $"o saque virou o primeiro verbo do PDA e roubou o alt mais clique: {primeiro.Text}");
+            if (quantos == 0)
+                return;
+
+            var primeiro = verbos.First();
+            primeiroTexto = primeiro.Text;
+            primeiraCategoria = primeiro.Category?.Text;
+
+        });
+
+        Assert.That(quantos, Is.GreaterThan(0), "o PDA não ofereceu verbo alternativo nenhum");
+
+        // A asserção é sobre o primeiro ser o de ejetar, e não sobre o primeiro
+        // "não ser o saque". Verbo sem categoria tem Category nula, e nula é
+        // diferente de tudo: a primeira versão deste teste passava com o bug
+        // presente justamente por isso.
+        Assert.That(primeiraCategoria, Is.EqualTo(categoriaDoEjetar),
+            $"o primeiro verbo alternativo do PDA devia ser o de ejetar, e é: {primeiroTexto}");
     }
 
     /// <summary>
