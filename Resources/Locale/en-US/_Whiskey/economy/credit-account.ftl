@@ -10,3 +10,5 @@ credit-account-withdraw = Withdrew { $valor } spesos.
 credit-account-withdraw-verb = Withdraw { $valor }
 credit-account-withdraw-all = Withdraw everything ({ $valor })
 cargo-sale-commission = Commission: { $valor } spesos.
+credit-vendor-card-slot = ID card
+credit-vendor-no-card = Insert an ID card first.

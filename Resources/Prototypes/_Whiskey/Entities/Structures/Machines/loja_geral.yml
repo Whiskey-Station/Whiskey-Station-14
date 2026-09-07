@@ -16,6 +16,20 @@
     normalState: normal-unshaded
     denyState: deny-unshaded
   - type: CreditVendor
+  - type: ItemSlots
+    slots:
+      card_slot:
+        name: credit-vendor-card-slot
+        ejectOnBreak: true
+        swap: false
+        insertSound: /Audio/Machines/id_swipe.ogg
+        ejectSound: /Audio/Machines/id_swipe.ogg
+        whitelist:
+          components:
+          - IdCard
+  - type: ContainerContainer
+    containers:
+      card_slot: !type:ContainerSlot
   - type: UserInterface
     interfaces:
       enum.VendingMachineUiKey.Key:
