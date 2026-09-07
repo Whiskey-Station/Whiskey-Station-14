@@ -6,7 +6,9 @@ using System.Linq;
 using Content.Server.Stack;
 using Content.Shared._Whiskey.Economy;
 using Content.Shared.Hands.EntitySystems;
+using Content.Shared.Access.Systems;
 using Content.Shared.Interaction;
+using Content.Shared.PDA;
 using Content.Shared.Popups;
 using Content.Shared.Stacks;
 using Content.Shared.Store;
@@ -33,6 +35,7 @@ public sealed partial class CreditWalletSystem : EntitySystem
     [Dependency] private CreditAccountSystem _contas = default!;
     [Dependency] private IPrototypeManager _proto = default!;
     [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedIdCardSystem _idCard = default!;
     [Dependency] private SharedPopupSystem _popup = default!;
     [Dependency] private StackSystem _stack = default!;
 
@@ -55,6 +58,12 @@ public sealed partial class CreditWalletSystem : EntitySystem
 
         SubscribeLocalEvent<CreditAccountComponent, InteractUsingEvent>(OnDepositar);
         SubscribeLocalEvent<CreditAccountComponent, GetVerbsEvent<AlternativeVerb>>(OnVerbos);
+
+        // O cartão quase sempre está DENTRO do PDA, e um clique no PDA não
+        // chega no cartão. Sem isto, guardar dinheiro exigia ejetar o cartão,
+        // depositar e guardar de volta, três passos para uma coisa que é uma.
+        SubscribeLocalEvent<PdaComponent, InteractUsingEvent>(OnDepositarNoPda);
+        SubscribeLocalEvent<PdaComponent, GetVerbsEvent<AlternativeVerb>>(OnVerbosDoPda);
     }
 
     private void OnDepositar(Entity<CreditAccountComponent> ent, ref InteractUsingEvent args)
@@ -77,6 +86,28 @@ public sealed partial class CreditWalletSystem : EntitySystem
         // Só some com o dinheiro depois que ele entrou na conta.
         QueueDel(args.Used);
         _popup.PopupEntity(Loc.GetString("credit-account-deposit", ("valor", valor)), ent, args.User);
+    }
+
+    private void OnDepositarNoPda(Entity<PdaComponent> ent, ref InteractUsingEvent args)
+    {
+        if (args.Handled || !_idCard.TryGetIdCard(ent.Owner, out var cartao))
+            return;
+
+        if (!TryComp<CreditAccountComponent>(cartao.Owner, out var conta))
+            return;
+
+        var evento = new InteractUsingEvent(args.User, args.Used, cartao.Owner, args.ClickLocation);
+        OnDepositar((cartao.Owner, conta), ref evento);
+        args.Handled = evento.Handled;
+    }
+
+    private void OnVerbosDoPda(Entity<PdaComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)
+    {
+        if (!_idCard.TryGetIdCard(ent.Owner, out var cartao) ||
+            !TryComp<CreditAccountComponent>(cartao.Owner, out var conta))
+            return;
+
+        OnVerbos((cartao.Owner, conta), ref args);
     }
 
     private void OnVerbos(Entity<CreditAccountComponent> ent, ref GetVerbsEvent<AlternativeVerb> args)

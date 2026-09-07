@@ -3,7 +3,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Server._Whiskey.Economy;
+using Content.Server.Station.Systems;
+using Content.Shared.Access.Components;
 using Content.Shared.Access.Systems;
+using Content.Shared.Delivery;
+using Content.Shared.FingerprintReader;
+using Content.Shared.Forensics.Components;
+using Content.Shared.Labels.EntitySystems;
+using Robust.Shared.Containers;
 using Content.Shared.CartridgeLoader;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Popups;
@@ -29,6 +36,15 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
     [Dependency] private SharedIdCardSystem _idCard = default!;
     [Dependency] private SharedPopupSystem _popup = default!;
     [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private FingerprintReaderSystem _leitorDigital = default!;
+    [Dependency] private LabelSystem _label = default!;
+    [Dependency] private StationSystem _station = default!;
+
+    /// <summary>
+    /// A caixa em que a compra chega.
+    /// </summary>
+    private static readonly EntProtoId Pacote = "LojaPacote";
 
     public override void Initialize()
     {
@@ -75,15 +91,48 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
             return false;
         }
 
-        // A entrega é na mão de quem comprou, por enquanto. O pod de entrega
-        // vem em PR própria, e é ele que devolve o risco: entrega instantânea
-        // e segura é o que faz economia virar menu.
-        var item = Spawn(linha.Id, _transform.GetMapCoordinates(pda));
-        _maos.PickupOrDrop(comprador, item);
+        Entregar(linha.Id, pda, comprador, cartao);
 
         _popup.PopupEntity(Loc.GetString("store-cartridge-bought", ("saldo", restante)), pda, comprador);
         Atualizar(ent, pda);
         return true;
+    }
+
+    /// <summary>
+    /// Manda o que foi comprado dentro de uma encomenda embalada e trancada,
+    /// endereçada a quem comprou.
+    ///
+    /// Entregar o item direto na mão não custava nada a ninguém, e economia
+    /// sem risco vira menu. Assim a compra vira um objeto no mundo: dá para
+    /// tomar a caixa de alguém, e quem tomou não consegue abrir, porque a
+    /// trava é a digital do destinatário.
+    /// </summary>
+    private void Entregar(EntProtoId item, EntityUid pda, EntityUid comprador, Entity<IdCardComponent> cartao)
+    {
+        var pacote = Spawn(Pacote, _transform.GetMapCoordinates(pda));
+
+        if (TryComp<DeliveryComponent>(pacote, out var entrega))
+        {
+            // O correio sorteia um destinatário no arranque. Aqui o
+            // destinatário é sempre o dono do cartão que pagou.
+            entrega.RecipientName = cartao.Comp.FullName ?? Name(comprador);
+            entrega.RecipientJobTitle = cartao.Comp.LocalizedJobTitle;
+            entrega.RecipientStation = _station.GetOwningStation(comprador);
+            Dirty(pacote, entrega);
+
+            _label.Label(pacote, entrega.RecipientName);
+            var conteudo = _container.EnsureContainer<Container>(pacote, entrega.Container);
+            _container.Insert(Spawn(item), conteudo);
+
+            if (TryComp<FingerprintReaderComponent>(pacote, out var leitor) &&
+                TryComp<FingerprintComponent>(comprador, out var digital) &&
+                digital.Fingerprint is { } marca)
+            {
+                _leitorDigital.AddAllowedFingerprint((pacote, leitor), marca);
+            }
+        }
+
+        _maos.PickupOrDrop(comprador, pacote);
     }
 
     private void Atualizar(Entity<StoreCartridgeComponent> ent, EntityUid pda)
@@ -100,7 +149,7 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
                     ? Loc.GetString(loc)
                     : _proto.Index(linha.Id).Name;
 
-                linhas.Add(new StoreCartridgeEntry(i, nome, linha.Cost));
+                linhas.Add(new StoreCartridgeEntry(i, nome, linha.Cost, linha.Id));
             }
         }
 

@@ -6,6 +6,7 @@ using Content.IntegrationTests.Fixtures;
 using Content.Server._Whiskey.Economy;
 using Content.Shared.Access.Systems;
 using Content.Shared.Containers.ItemSlots;
+using Content.Shared.Delivery;
 using Content.Shared.PDA;
 using Content.Trauma.Server._Whiskey.Economy;
 using Content.Trauma.Shared._Whiskey.Economy.Cartridge;
@@ -80,6 +81,62 @@ public sealed class StoreCartridgeTest : GameTest
             Assert.That(comprou, Is.True, "o app recusou uma compra que cabia no saldo");
             Assert.That(server.System<CreditAccountSystem>().GetBalance(cartao!.Value),
                 Is.EqualTo(500 - PrecoDaRosquinha));
+        });
+    }
+
+    /// <summary>
+    /// A compra chega dentro de uma encomenda embalada, endereçada a quem
+    /// comprou, e com o item lá dentro.
+    /// </summary>
+    [Test]
+    public async Task ACompraChegaComoEncomendaEnderecada()
+    {
+        var server = Server;
+        var (app, pda, pessoa, _) = await Montar(500);
+
+        await server.WaitPost(() =>
+            server.System<StoreCartridgeSystem>().Comprar(app, pda, pessoa, Rosquinha));
+        await Pair.RunTicksSync(2);
+
+        Entity<DeliveryComponent>? pacote = null;
+        var query = server.EntMan.EntityQueryEnumerator<DeliveryComponent>();
+        while (query.MoveNext(out var uid, out var comp))
+        {
+            if (server.EntMan.GetComponent<MetaDataComponent>(uid).EntityPrototype?.ID == "LojaPacote")
+                pacote = (uid, comp);
+        }
+
+        Assert.That(pacote, Is.Not.Null, "a compra não virou encomenda");
+        Assert.Multiple(() =>
+        {
+            Assert.That(pacote!.Value.Comp.RecipientName, Is.Not.Null.And.Not.Empty,
+                "a encomenda saiu sem destinatário");
+            Assert.That(pacote.Value.Comp.IsLocked, Is.True, "a encomenda saiu destrancada");
+        });
+    }
+
+    /// <summary>
+    /// Abrir a encomenda da loja não paga a estação.
+    ///
+    /// O correio deposita 500 spesos na conta da estação quando a encomenda é
+    /// aberta, porque é assim que carteiro dá lucro. Herdar isso numa compra
+    /// vira impressora: comprar rosquinha de 20 e abrir a caixa daria 500.
+    /// </summary>
+    [Test]
+    public async Task AEncomendaDaLojaNaoPagaAEstacao()
+    {
+        var server = Server;
+        var mapa = await Pair.CreateTestMap();
+
+        DeliveryComponent comp = default!;
+        await server.WaitPost(() =>
+            comp = server.EntMan.GetComponent<DeliveryComponent>(
+                server.EntMan.SpawnAtPosition("LojaPacote", mapa.GridCoords)));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(comp.BaseSpesoReward, Is.Zero, "abrir a compra paga a estação");
+            Assert.That(comp.BaseSpesoPenalty, Is.Zero, "perder a compra multa a estação");
         });
     }
 

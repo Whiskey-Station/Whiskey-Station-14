@@ -20,7 +20,27 @@
   - type: Cartridge
     programName: store-cartridge-program-name
     icon:
-      sprite: Objects/Devices/cartridge.rsi
-      state: cart-c
+      sprite: Objects/Economy/cash.rsi
+      state: cash
   - type: StoreCartridge
     pack: LojaGeralInventory
+
+# A encomenda da loja. Herda o pacote do correio, que já nasce embalado,
+# trancado e com leitor de digital, e zera a recompensa.
+#
+# A recompensa NÃO pode ficar: o correio paga 500 spesos à estação quando a
+# encomenda é aberta, porque é assim que carteiro dá lucro. Numa compra isso
+# seria impressora de dinheiro, comprar rosquinha de 20 e abrir a caixa para
+# a estação ganhar 500.
+- type: entity
+  parent: PackageDelivery
+  id: LojaPacote
+  name: encomenda da Loja Geral
+  description: Embalada e trancada. Só abre na digital de quem comprou.
+  components:
+  - type: Delivery
+    baseSpesoReward: 0
+    baseSpesoPenalty: 0
+  - type: DeliveryRandomMultiplier
+    maxMultiplierOffset: 0
+    minMultiplierOffset: 0

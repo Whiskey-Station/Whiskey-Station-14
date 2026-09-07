@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared.CartridgeLoader;
+using Robust.Shared.Prototypes;
 using Robust.Shared.Serialization;
 
 namespace Content.Trauma.Shared._Whiskey.Economy.Cartridge;
@@ -32,7 +33,7 @@ public sealed class StoreCartridgeUiState : BoundUserInterfaceState
 /// comprar por texto.
 /// </summary>
 [Serializable, NetSerializable]
-public readonly record struct StoreCartridgeEntry(int Index, string Name, uint Cost);
+public readonly record struct StoreCartridgeEntry(int Index, string Name, uint Cost, EntProtoId Proto);
 
 /// <summary>
 /// A tela pedindo para comprar a linha de índice tal.

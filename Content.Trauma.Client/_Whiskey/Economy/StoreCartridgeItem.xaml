@@ -1,0 +1,20 @@
+<!--
+SPDX-FileCopyrightText: 2026 Zequinza <felipe828218@gmail.com>
+SPDX-FileCopyrightText: 2026 Whiskey Station Contributors
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+<BoxContainer xmlns="https://spacestation14.io"
+              Orientation="Horizontal"
+              HorizontalExpand="True"
+              SeparationOverride="4">
+    <EntityPrototypeView Name="Icone"
+                         Margin="4 0 0 0"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         MinSize="32 32"/>
+    <Label Name="NomeLabel" SizeFlagsStretchRatio="3" HorizontalExpand="True" ClipText="True"/>
+    <Label Name="PrecoLabel" HorizontalAlignment="Right" Margin="8 0"/>
+    <Button Name="ComprarBotao" MinWidth="72" Margin="0 0 4 0"/>
+</BoxContainer>
