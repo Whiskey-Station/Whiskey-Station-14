@@ -8,13 +8,8 @@ using Content.Shared.Examine;
 namespace Content.Shared._Whiskey.Economy;
 
 /// <summary>
-/// A parte da conta que os dois lados precisam: achar a conta de alguém, ler o
-/// saldo, e mostrar o valor ao examinar.
-///
-/// Mexer no saldo NÃO mora aqui. A escrita fica no sistema de servidor, e essa
-/// separação é o que impede código de cliente de chamar depósito ou saque: sem
-/// o tipo, não compila. Antes disto a classe era concreta e em shared, e só não
-/// acontecia porque ninguém tinha tentado.
+/// Leitura de saldo, dos dois lados. A escrita mora no sistema de servidor, e
+/// é essa separação que impede o cliente de chamar depósito ou saque.
 /// </summary>
 public abstract partial class SharedCreditAccountSystem : EntitySystem
 {
@@ -36,8 +31,7 @@ public abstract partial class SharedCreditAccountSystem : EntitySystem
     }
 
     /// <summary>
-    /// Acha a conta de alguém: a da própria entidade quando ela mesma tem uma,
-    /// senão a do cartão que ela carrega, veste ou tem dentro do PDA.
+    /// A conta da entidade, ou a do cartão que ela carrega, veste ou tem no PDA.
     /// </summary>
     public bool TryGetAccount(EntityUid portador, out Entity<CreditAccountComponent> conta)
     {
@@ -59,9 +53,7 @@ public abstract partial class SharedCreditAccountSystem : EntitySystem
     }
 
     /// <summary>
-    /// Saldo da conta, ou zero quando não existe conta nenhuma. Zero é a
-    /// resposta certa para quem não tem cartão: quem não tem conta não tem
-    /// dinheiro, e não é caso de erro.
+    /// Saldo da conta, ou zero sem conta. Sem cartão não é erro, é zero.
     /// </summary>
     public int GetBalance(Entity<CreditAccountComponent?> conta)
     {
@@ -75,9 +67,7 @@ public abstract partial class SharedCreditAccountSystem : EntitySystem
     }
 
     /// <summary>
-    /// Escreve o saldo novo e avisa quem estiver ouvindo. É protegido porque
-    /// só o sistema de servidor pode chegar aqui, e é o único ponto do jogo
-    /// que altera dinheiro.
+    /// Único ponto do jogo que altera saldo. Protegido: só o servidor chega aqui.
     /// </summary>
     protected void SetBalance(Entity<CreditAccountComponent> conta, int novo)
     {

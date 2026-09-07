@@ -8,8 +8,7 @@ using Content.Shared.Popups;
 namespace Content.Server._Whiskey.Economy;
 
 /// <summary>
-/// Paga a comissão de venda de carga. Ouve o evento que o console de venda
-/// levanta, para a lógica de dinheiro nosso não morar dentro do arquivo deles.
+/// Paga a comissão de venda de carga, ouvindo o evento do console de venda.
 /// </summary>
 public sealed partial class SalesCommissionSystem : EntitySystem
 {
@@ -38,9 +37,6 @@ public sealed partial class SalesCommissionSystem : EntitySystem
         _popup.PopupEntity(Loc.GetString("cargo-sale-commission", ("valor", valor)), args.Console, args.Seller);
     }
 
-    /// <summary>
-    /// Quanto sai de comissão numa venda daquele tamanho.
-    /// </summary>
     public int Comissao(SalesCommissionComponent regra, int total)
     {
         return Math.Min((int) (total * regra.Cut), regra.MaxPerSale);
@@ -48,8 +44,7 @@ public sealed partial class SalesCommissionSystem : EntitySystem
 }
 
 /// <summary>
-/// Levantado quando a estação vende o que estava nos pallets, com o total e
-/// com quem apertou o botão.
+/// A estação vendeu o que estava nos pallets, com total e com quem vendeu.
 /// </summary>
 [ByRefEvent]
 public readonly record struct CargoPalletSoldEvent(EntityUid Station, EntityUid Seller, EntityUid Console, int Total);

@@ -18,12 +18,10 @@ using Robust.Shared.Timing;
 namespace Content.Server._Whiskey.Economy;
 
 /// <summary>
-/// Paga a tripulação, tirando o dinheiro do orçamento do departamento de cada
-/// um e pondo na conta do crachá.
+/// Paga a tripulação com o dinheiro do orçamento do departamento de cada um.
 ///
-/// Recebe quem está com o crachá no lugar do crachá. Carregar na mão não
-/// conta, e é isso que impede a fábrica de identidades: imprimir vinte
-/// cartões não paga vinte salários, porque só um está sendo usado.
+/// Só recebe quem está com o cartão no slot: sem isso, imprimir vinte cartões
+/// pagaria vinte salários.
 /// </summary>
 public sealed partial class PayrollSystem : EntitySystem
 {
@@ -37,8 +35,6 @@ public sealed partial class PayrollSystem : EntitySystem
 
     public override void Update(float frameTime)
     {
-        // Relógio do jogo, nunca frameTime: a folha precisa cair no mesmo
-        // intervalo com o servidor cheio e com o servidor vazio.
         var query = EntityQueryEnumerator<PayrollComponent, StationBankAccountComponent>();
         while (query.MoveNext(out var uid, out var folha, out var banco))
         {
@@ -50,9 +46,6 @@ public sealed partial class PayrollSystem : EntitySystem
         }
     }
 
-    /// <summary>
-    /// Roda a folha inteira de uma estação.
-    /// </summary>
     public void PagarTodos(Entity<PayrollComponent, StationBankAccountComponent> estacao)
     {
         var query = EntityQueryEnumerator<ActorComponent>();
@@ -66,8 +59,7 @@ public sealed partial class PayrollSystem : EntitySystem
     }
 
     /// <summary>
-    /// Paga uma pessoa, se ela tiver crachá com cargo e o departamento dela
-    /// tiver dinheiro. Devolve o valor pago, ou zero.
+    /// Paga uma pessoa e devolve o valor pago, ou zero.
     /// </summary>
     public int Pagar(Entity<PayrollComponent, StationBankAccountComponent> estacao, EntityUid pessoa)
     {
@@ -84,14 +76,12 @@ public sealed partial class PayrollSystem : EntitySystem
         if (valor <= 0)
             return 0;
 
-        // Conferir o orçamento antes de tudo. Departamento sem dinheiro
-        // simplesmente não paga, e nunca fica devendo: conta de departamento
-        // negativa trava pedido de carga e ninguém entende por quê.
+        // Departamento sem dinheiro não paga e não fica devendo: conta negativa
+        // trava pedido de carga e ninguém liga uma coisa na outra.
         if (_cargo.GetBalanceFromAccount((estacao.Owner, estacao.Comp2), conta) < valor)
             return 0;
 
-        // Depositar primeiro. Se o depósito não couber, o orçamento não é
-        // tocado, e a ordem inversa apagaria o dinheiro no caminho.
+        // Depositar primeiro: a ordem inversa apagaria o dinheiro no caminho.
         if (!_contas.TryDeposit(cracha.Owner, valor))
             return 0;
 
@@ -100,8 +90,7 @@ public sealed partial class PayrollSystem : EntitySystem
     }
 
     /// <summary>
-    /// Acha o crachá que a pessoa está usando, e não o que ela está segurando.
-    /// O PDA conta, porque o cartão vive dentro dele.
+    /// O cartão que a pessoa está usando, não o que ela segura. PDA conta.
     /// </summary>
     private bool TryGetCracha(EntityUid pessoa, out Entity<IdCardComponent> cracha)
     {
@@ -111,15 +100,12 @@ public sealed partial class PayrollSystem : EntitySystem
                && _idCard.TryGetIdCard(slot.Value, out cracha);
     }
 
-    /// <summary>
-    /// De qual conta sai o salário daquele cargo, pelo departamento dele.
-    /// </summary>
     private bool TryGetConta(PayrollComponent folha, ProtoId<Content.Shared.Roles.JobPrototype> cargo, out ProtoId<CargoAccountPrototype> conta)
     {
         conta = default;
 
-        // Departamento primário, e não o primeiro que casar: chefe de setor
-        // aparece em Comando e no setor dele, e quem paga é o setor.
+        // Primário, não o primeiro que casar: chefe aparece em Comando e no
+        // setor dele, e quem paga é o setor.
         if (!_jobs.TryGetPrimaryDepartment(cargo, out var departamento) &&
             !_jobs.TryGetDepartment(cargo, out departamento))
             return false;

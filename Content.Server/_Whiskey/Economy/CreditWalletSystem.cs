@@ -20,16 +20,10 @@ using Robust.Shared.Prototypes;
 namespace Content.Server._Whiskey.Economy;
 
 /// <summary>
-/// Faz o crachá funcionar como carteira: encostar cédula nele deposita, e um
-/// verbo saca de volta em dinheiro vivo.
+/// O cartão como carteira: encostar cédula deposita, um verbo saca de volta.
 ///
-/// É isto que torna a economia social sem uma única janela nova. Com saldo que
-/// vira cédula e cédula que vira saldo, pagar outra pessoa já é entregar o
-/// dinheiro na mão dela, roubar já é tomar o maço, e o barman já pode cobrar
-/// pela bebida. Tudo isso o jogo faz desde sempre, e nenhuma dessas coisas
-/// precisou de código novo.
-///
-/// Fica no servidor porque dinheiro não se prevê no cliente.
+/// Com saldo virando cédula e cédula virando saldo, pagar outra pessoa é
+/// entregar o dinheiro na mão dela, e isso o jogo já sabe fazer.
 /// </summary>
 public sealed partial class CreditWalletSystem : EntitySystem
 {
@@ -41,26 +35,20 @@ public sealed partial class CreditWalletSystem : EntitySystem
     [Dependency] private StackSystem _stack = default!;
 
     /// <summary>
-    /// A moeda da estação. Nota falsa carrega <c>SpesosFake</c> e por isso não
-    /// entra na conta: o banco não é trouxa, e a falsificação continua servindo
-    /// para enganar gente, que é a graça dela.
+    /// A moeda da estação. Nota falsa carrega <c>SpesosFake</c> e não entra.
     /// </summary>
     private static readonly ProtoId<CurrencyPrototype> Moeda = "Spesos";
 
     /// <summary>
-    /// Valores de saque rápido. Existe também um saque do saldo inteiro, que
-    /// só aparece quando ele não coincide com nenhum destes.
+    /// Saque rápido. O saque do saldo inteiro só aparece quando não coincide
+    /// com nenhum destes.
     /// </summary>
     private static readonly int[] SaquesRapidos = [100, 500, 1000];
 
     /// <summary>
-    /// Os saques ficam num submenu próprio, e não soltos no menu.
-    ///
-    /// Isto NÃO é enfeite. Verbo sem categoria ordena antes de verbo com
-    /// categoria, está escrito no CompareTo do Verb: "uncategorized verbs
-    /// always appear first". Como o alt mais clique executa o primeiro verbo
-    /// alternativo da lista, os saques soltos roubaram o atalho de tirar o
-    /// cartão do PDA, e quem apertava alt para pegar o ID sacava dinheiro.
+    /// Categoria obrigatória, não enfeite: verbo sem categoria ordena antes de
+    /// verbo com categoria, e o alt mais clique executa o primeiro da lista.
+    /// Sem isto o saque rouba o atalho de tirar o cartão do PDA.
     /// </summary>
     private static readonly VerbCategory Saque =
         new("credit-account-withdraw-category", "/Textures/Interface/VerbIcons/eject.svg.192dpi.png");
@@ -72,9 +60,7 @@ public sealed partial class CreditWalletSystem : EntitySystem
         SubscribeLocalEvent<CreditAccountComponent, InteractUsingEvent>(OnDepositar);
         SubscribeLocalEvent<CreditAccountComponent, GetVerbsEvent<AlternativeVerb>>(OnVerbos);
 
-        // O cartão quase sempre está DENTRO do PDA, e um clique no PDA não
-        // chega no cartão. Sem isto, guardar dinheiro exigia ejetar o cartão,
-        // depositar e guardar de volta, três passos para uma coisa que é uma.
+        // Clique no PDA não chega no cartão de dentro dele.
         SubscribeLocalEvent<PdaComponent, InteractUsingEvent>(OnDepositarNoPda);
         SubscribeLocalEvent<PdaComponent, GetVerbsEvent<AlternativeVerb>>(OnVerbosDoPda);
     }
@@ -144,10 +130,8 @@ public sealed partial class CreditWalletSystem : EntitySystem
             {
                 Text = Loc.GetString("credit-account-withdraw-verb", ("valor", pedido)),
                 Category = Saque,
-                // Prioridade negativa por cima da categoria: mesmo que alguém
-                // mude a categoria um dia, o saque nunca volta a ser o primeiro
-                // da lista e o alt mais clique continua sendo do cartão.
-                Priority = -1,
+                Priority = -1, // cinto e suspensório, junto com a categoria
+
                 Act = () => TrySacar(ent, usuario, pedido),
             });
         }
@@ -164,9 +148,6 @@ public sealed partial class CreditWalletSystem : EntitySystem
         });
     }
 
-    /// <summary>
-    /// Tira o valor da conta e põe a cédula na mão de quem sacou.
-    /// </summary>
     public bool TrySacar(Entity<CreditAccountComponent> conta, EntityUid usuario, int valor)
     {
         if (!_proto.TryIndex(Moeda, out var moeda) || moeda.Cash == null || !moeda.CanWithdraw)
@@ -175,8 +156,7 @@ public sealed partial class CreditWalletSystem : EntitySystem
         if (!_contas.TryWithdraw(conta.Owner, valor))
             return false;
 
-        // Da nota mais alta para a mais baixa, igual ao saque da loja. Hoje só
-        // existe a de 1, mas quem criar a de 100 amanhã não precisa voltar aqui.
+        // Da nota mais alta para a mais baixa, igual ao saque da loja.
         var restante = valor;
         var coordenadas = Transform(usuario).Coordinates;
 
@@ -196,16 +176,13 @@ public sealed partial class CreditWalletSystem : EntitySystem
         return true;
     }
 
-    /// <summary>
-    /// Quanto vale, em spesos, o que a pessoa encostou no crachá.
-    /// </summary>
     private int Valor(EntityUid dinheiro)
     {
         if (!TryComp<CurrencyComponent>(dinheiro, out var moeda) ||
             !moeda.Price.TryGetValue(Moeda, out var porUnidade))
             return 0;
 
-        // O valor da moeda é POR UNIDADE da pilha, e não da pilha inteira.
+        // O valor da moeda é por unidade da pilha, não da pilha inteira.
         var quantidade = TryComp<StackComponent>(dinheiro, out var pilha) ? pilha.Count : 1;
         return (porUnidade * quantidade).Int();
     }

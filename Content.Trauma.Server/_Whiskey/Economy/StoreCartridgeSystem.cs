@@ -22,12 +22,10 @@ using Robust.Shared.Prototypes;
 namespace Content.Trauma.Server._Whiskey.Economy;
 
 /// <summary>
-/// A loja do PDA. Mostra o saldo do cartão que está dentro do aparelho e vende
-/// para ele.
+/// A loja do PDA, que vende para o cartão de dentro do aparelho.
 ///
-/// Roda só no servidor porque cobrar é escrita de saldo, e porque a lista de
-/// preço não pode ser decidida pelo cliente: a tela manda o índice da linha, e
-/// quem lê o preço daquele índice é aqui.
+/// A tela manda o índice da linha e o servidor lê o preço: preço vindo do
+/// cliente é preço que o cliente escolhe.
 /// </summary>
 public sealed partial class StoreCartridgeSystem : EntitySystem
 {
@@ -44,9 +42,6 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
     [Dependency] private StationSystem _station = default!;
     [Dependency] private StationRecordsSystem _registros = default!;
 
-    /// <summary>
-    /// A caixa em que a compra chega.
-    /// </summary>
     private static readonly EntProtoId Pacote = "LojaPacote";
 
     public override void Initialize()
@@ -71,7 +66,7 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
     }
 
     /// <summary>
-    /// Compra a linha pedida, tirando o dinheiro do cartão do PDA.
+    /// Compra a linha pedida com o dinheiro do cartão do PDA.
     /// </summary>
     public bool Comprar(Entity<StoreCartridgeComponent> ent, EntityUid pda, EntityUid comprador, int indice, uint? destinatario = null)
     {
@@ -80,8 +75,6 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
 
         var linha = lista.Listings[indice];
 
-        // Quem paga é o cartão que está DENTRO do PDA. Sem cartão, não vende,
-        // e diz por quê.
         if (!_idCard.TryGetIdCard(pda, out var cartao))
         {
             _popup.PopupEntity(Loc.GetString("store-cartridge-no-card"), pda, comprador);
@@ -102,13 +95,8 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
     }
 
     /// <summary>
-    /// Manda o que foi comprado dentro de uma encomenda embalada e trancada,
-    /// endereçada a quem comprou.
-    ///
-    /// Entregar o item direto na mão não custava nada a ninguém, e economia
-    /// sem risco vira menu. Assim a compra vira um objeto no mundo: dá para
-    /// tomar a caixa de alguém, e quem tomou não consegue abrir, porque a
-    /// trava é a digital do destinatário.
+    /// Entrega numa encomenda embalada e trancada na digital do destinatário.
+    /// A compra vira objeto no mundo: dá para tomar a caixa, e não para abrir.
     /// </summary>
     private void Entregar(EntProtoId item,
         EntityUid pda,
@@ -123,9 +111,8 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
             var estacao = _station.GetOwningStation(comprador);
             string? digital;
 
-            // O correio sorteia um destinatário no arranque. Aqui quem manda é
-            // a escolha de quem comprou: sem escolha, a encomenda é para o dono
-            // do cartão que pagou.
+            // O correio sorteia destinatário no arranque. Aqui manda a escolha
+            // de quem comprou, e sem escolha vai para o dono do cartão.
             if (destinatario is { } fichaId &&
                 estacao is { } daEstacao &&
                 _registros.TryGetRecord<GeneralStationRecord>(new StationRecordKey(fichaId, daEstacao), out var ficha))
@@ -148,9 +135,8 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
             var conteudo = _container.EnsureContainer<Container>(pacote, entrega.Container);
             _container.Insert(Spawn(item), conteudo);
 
-            // A digital é a tranca. Presente para outra pessoa nasce trancado
-            // na digital DELA, então nem quem pagou consegue abrir: é o que
-            // torna presente diferente de comprar e entregar na mão.
+            // Presente nasce trancado na digital de quem recebe, então nem
+            // quem pagou abre.
             if (TryComp<FingerprintReaderComponent>(pacote, out var leitor) && digital is { } marca)
                 _leitorDigital.AddAllowedFingerprint((pacote, leitor), marca);
         }
@@ -181,8 +167,8 @@ public sealed partial class StoreCartridgeSystem : EntitySystem
     }
 
     /// <summary>
-    /// Quem dá para presentear: a mesma lista de fichas que o correio usa para
-    /// endereçar carta, então quem não tem ficha na estação não aparece.
+    /// Quem dá para presentear: as fichas que o correio usa para endereçar
+    /// carta, então quem não tem ficha não aparece.
     /// </summary>
     private List<StoreCartridgeRecipient> Tripulacao(EntityUid pda)
     {
