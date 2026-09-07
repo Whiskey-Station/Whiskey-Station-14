@@ -8,23 +8,22 @@ using Content.Trauma.Shared.VendingMachines;
 namespace Content.Trauma.Shared._Whiskey.Economy;
 
 /// <summary>
-/// Atende as duas perguntas que a máquina de loja faz, pagando com o saldo do
-/// crachá.
+/// Responde à máquina de loja quanto a pessoa na frente dela tem em spesos.
 ///
-/// Fica em sistema próprio, e não dentro do <c>SharedShopVendorSystem</c> ao
-/// lado do adaptador de ponto de mineração, para o próximo upstream do Trauma
-/// não dar conflito num arquivo deles por causa de moeda nossa.
+/// Só leitura, e por isso pode viver em shared: a interface da máquina precisa
+/// desse número dos dois lados para desenhar a lista com o que dá e o que não
+/// dá para comprar. Quem tira dinheiro é o
+/// <c>CreditVendorPaymentSystem</c>, no servidor.
 /// </summary>
 public sealed partial class CreditVendorSystem : EntitySystem
 {
-    [Dependency] private CreditAccountSystem _contas = default!;
+    [Dependency] private SharedCreditAccountSystem _contas = default!;
 
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<CreditVendorComponent, ShopVendorBalanceEvent>(OnSaldo);
-        SubscribeLocalEvent<CreditVendorComponent, ShopVendorPurchaseEvent>(OnCompra);
     }
 
     private void OnSaldo(Entity<CreditVendorComponent> ent, ref ShopVendorBalanceEvent args)
@@ -34,17 +33,5 @@ public sealed partial class CreditVendorSystem : EntitySystem
         // virado em uint aparece como bilhões na tela da máquina.
         var saldo = _contas.GetUserBalance(args.User);
         args.Balance = saldo > 0 ? (uint) saldo : 0;
-    }
-
-    private void OnCompra(Entity<CreditVendorComponent> ent, ref ShopVendorPurchaseEvent args)
-    {
-        if (args.Cost > int.MaxValue)
-            return;
-
-        if (!_contas.TryGetAccount(args.User, out var conta))
-            return;
-
-        if (_contas.TryWithdraw(conta.Owner, (int) args.Cost))
-            args.Paid = true;
     }
 }
