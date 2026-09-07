@@ -16,4 +16,18 @@ namespace Content.Trauma.Shared._Whiskey.Economy;
 /// perguntas.
 /// </summary>
 [RegisterComponent, NetworkedComponent]
-public sealed partial class CreditVendorComponent : Component;
+public sealed partial class CreditVendorComponent : Component
+{
+    /// <summary>
+    /// A entrada de cartão da máquina. Sem cartão dentro ela não mostra saldo
+    /// e não vende nada.
+    ///
+    /// Máquina de pagamento não lê o bolso de ninguém de longe, e ler o cartão
+    /// mais próximo da mão era pior que irreal: com um cartão na mão e outro
+    /// no PDA, a mesma máquina mostrava dois saldos diferentes para a mesma
+    /// pessoa. Exigir o cartão dentro acaba com a dúvida, e ainda deixa
+    /// esquecer o cartão na máquina, que é problema de quem esqueceu.
+    /// </summary>
+    [DataField]
+    public string SlotId = "card_slot";
+}

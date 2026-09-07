@@ -9,3 +9,5 @@ credit-account-deposit-failed = The card refuses the deposit.
 credit-account-withdraw = Withdrew { $valor } spesos.
 credit-account-withdraw-verb = Withdraw { $valor }
 credit-account-withdraw-all = Withdraw everything ({ $valor })
+credit-vendor-card-slot = ID card
+credit-vendor-no-card = Insert an ID card first.

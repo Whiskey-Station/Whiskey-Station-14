@@ -9,3 +9,5 @@ credit-account-deposit-failed = O cartão recusa o depósito.
 credit-account-withdraw = Sacou { $valor } spesos.
 credit-account-withdraw-verb = Sacar { $valor }
 credit-account-withdraw-all = Sacar tudo ({ $valor })
+credit-vendor-card-slot = Cartão de identificação
+credit-vendor-no-card = Insira um cartão primeiro.
