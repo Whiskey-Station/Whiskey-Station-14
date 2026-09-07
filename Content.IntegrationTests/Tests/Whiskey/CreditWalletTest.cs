@@ -8,7 +8,9 @@ using Content.Server._Whiskey.Economy;
 using Content.Server.Stack;
 using Content.Shared._Whiskey.Economy;
 using Content.Shared.Interaction;
+using Content.Shared.Access.Systems;
 using Content.Shared.Stacks;
+using Content.Shared.Verbs;
 using Robust.Shared.GameObjects;
 using Robust.Shared.Map;
 using Robust.Shared.Prototypes;
@@ -54,6 +56,46 @@ public sealed class CreditWalletTest : GameTest
         }
 
         return total;
+    }
+
+    /// <summary>
+    /// O saque não pode ser o primeiro verbo alternativo do PDA.
+    ///
+    /// Alt mais clique executa o PRIMEIRO verbo alternativo da lista, e o
+    /// atalho de tirar o cartão do PDA é justamente um deles. Verbo sem
+    /// categoria ordena antes de verbo com categoria, está escrito no
+    /// CompareTo do Verb: "uncategorized verbs always appear first". Com os
+    /// saques soltos, quem apertava alt para pegar o ID sacava dinheiro.
+    /// </summary>
+    [Test]
+    public async Task OSaqueNaoRoubaOAtalhoDoCartao()
+    {
+        var server = Server;
+        var mapa = await Pair.CreateTestMap();
+
+        EntityUid pessoa = default;
+        EntityUid pda = default;
+
+        await server.WaitPost(() =>
+        {
+            pessoa = server.EntMan.SpawnAtPosition("MobHuman", mapa.GridCoords);
+            pda = server.EntMan.SpawnAtPosition("PassengerPDA", mapa.GridCoords);
+
+            if (server.System<SharedIdCardSystem>().TryGetIdCard(pda, out var cartao))
+                server.System<CreditAccountSystem>().TryDeposit(cartao.Owner, 500);
+        });
+        await Pair.RunTicksSync(2);
+
+        var verbos = server.System<SharedVerbSystem>()
+            .GetLocalVerbs(pda, pessoa, typeof(AlternativeVerb));
+
+        Assert.That(verbos, Is.Not.Empty, "o PDA não ofereceu verbo alternativo nenhum");
+
+        var primeiro = verbos.First();
+        var categoria = Loc.GetString("credit-account-withdraw-category");
+
+        Assert.That(primeiro.Category?.Text, Is.Not.EqualTo(categoria),
+            $"o saque virou o primeiro verbo do PDA e roubou o alt mais clique: {primeiro.Text}");
     }
 
     /// <summary>

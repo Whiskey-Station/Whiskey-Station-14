@@ -14,6 +14,7 @@ using Content.Shared.Stacks;
 using Content.Shared.Store;
 using Content.Shared.Store.Components;
 using Content.Shared.Verbs;
+using Robust.Shared.Utility;
 using Robust.Shared.Prototypes;
 
 namespace Content.Server._Whiskey.Economy;
@@ -51,6 +52,18 @@ public sealed partial class CreditWalletSystem : EntitySystem
     /// só aparece quando ele não coincide com nenhum destes.
     /// </summary>
     private static readonly int[] SaquesRapidos = [100, 500, 1000];
+
+    /// <summary>
+    /// Os saques ficam num submenu próprio, e não soltos no menu.
+    ///
+    /// Isto NÃO é enfeite. Verbo sem categoria ordena antes de verbo com
+    /// categoria, está escrito no CompareTo do Verb: "uncategorized verbs
+    /// always appear first". Como o alt mais clique executa o primeiro verbo
+    /// alternativo da lista, os saques soltos roubaram o atalho de tirar o
+    /// cartão do PDA, e quem apertava alt para pegar o ID sacava dinheiro.
+    /// </summary>
+    private static readonly VerbCategory Saque =
+        new("credit-account-withdraw-category", "/Textures/Interface/VerbIcons/eject.svg.192dpi.png");
 
     public override void Initialize()
     {
@@ -130,6 +143,11 @@ public sealed partial class CreditWalletSystem : EntitySystem
             args.Verbs.Add(new AlternativeVerb
             {
                 Text = Loc.GetString("credit-account-withdraw-verb", ("valor", pedido)),
+                Category = Saque,
+                // Prioridade negativa por cima da categoria: mesmo que alguém
+                // mude a categoria um dia, o saque nunca volta a ser o primeiro
+                // da lista e o alt mais clique continua sendo do cartão.
+                Priority = -1,
                 Act = () => TrySacar(ent, usuario, pedido),
             });
         }
@@ -140,6 +158,8 @@ public sealed partial class CreditWalletSystem : EntitySystem
         args.Verbs.Add(new AlternativeVerb
         {
             Text = Loc.GetString("credit-account-withdraw-all", ("valor", saldo)),
+            Category = Saque,
+            Priority = -1,
             Act = () => TrySacar(ent, usuario, saldo),
         });
     }

@@ -20,3 +20,4 @@ store-cartridge-no-card = No ID card in this PDA.
 store-cartridge-no-funds = Not enough spesos.
 store-cartridge-recipient = To:
 store-cartridge-recipient-self = myself
+credit-account-withdraw-category = Withdraw
