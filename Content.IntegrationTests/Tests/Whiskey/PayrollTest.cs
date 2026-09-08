@@ -11,6 +11,7 @@ using Content.Shared.Cargo.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Inventory;
 using Robust.Shared.GameObjects;
+using Robust.Shared.Prototypes;
 
 namespace Content.IntegrationTests.Tests.Whiskey;
 
@@ -28,6 +29,10 @@ public sealed class PayrollTest : GameTest
     // Serviço. Serve de prova do caminho cargo -> departamento -> conta.
     private const string Cargo = "Passenger";
     private const string Conta = "Service";
+
+    // O analisador proíbe literal no Index, e com razão: assim um id errado
+    // reprova no build em vez de estourar em jogo.
+    private static readonly EntProtoId Estacao = "StandardNanotrasenStation";
 
     private async Task<(EntityUid Estacao, PayrollComponent Folha, StationBankAccountComponent Banco, EntityUid Pessoa, EntityUid Cracha)> Montar(bool vestir = true)
     {
@@ -84,6 +89,40 @@ public sealed class PayrollTest : GameTest
             Assert.That(contas.GetBalance(cracha), Is.EqualTo(folha.DefaultSalary));
             Assert.That(cargas.GetBalanceFromAccount((estacao, banco), Conta),
                 Is.EqualTo(antes - folha.DefaultSalary), "o orçamento não pagou a conta");
+        });
+    }
+
+    /// <summary>
+    /// A tabela de salário da estação paga chefe mais que aprendiz.
+    ///
+    /// O teste não trava o valor, trava a ordem: se um dia alguém inverter a
+    /// tabela sem querer, o aprendiz passa a ganhar mais que o Capitão e
+    /// ninguém percebe olhando YAML.
+    /// </summary>
+    [Test]
+    public async Task AEscadaDeSalarioSobeDoAprendizAoCapitao()
+    {
+        var server = Server;
+
+        // Ler do PROTOTYPE da estação, e não de um componente criado por
+        // código: a tabela mora no YAML, e componente feito na mão nasce com
+        // ela vazia. A primeira versão deste teste caiu nessa e comparava 40
+        // com 40.
+        var estacao = server.ProtoMan.Index(Estacao);
+
+        Assert.That(estacao.TryComp<PayrollComponent>(out var folha, server.EntMan.ComponentFactory),
+            Is.True, "a estação não tem folha de pagamento no prototype");
+
+        int Salario(string cargo) => folha!.Salaries.GetValueOrDefault(cargo, folha.DefaultSalary);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Salario("Passenger"), Is.LessThan(Salario("CargoTechnician")),
+                "passageiro não pode ganhar o mesmo que quem tem função");
+            Assert.That(Salario("CargoTechnician"), Is.LessThan(Salario("Quartermaster")),
+                "chefe de setor tem que ganhar mais que a equipe dele");
+            Assert.That(Salario("Quartermaster"), Is.LessThan(Salario("Captain")),
+                "o Capitão tem que ganhar mais que chefe de setor");
         });
     }
 

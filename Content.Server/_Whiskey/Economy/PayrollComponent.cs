@@ -63,13 +63,13 @@ public sealed partial class PayrollComponent : Component
 
     /// <summary>
     /// Salário por cargo. O que não estiver aqui recebe o
-    /// <see cref="DefaultSalary"/>. A tabela nasce vazia porque valor de
-    /// cargo é balanceamento, e balanceamento vem em PR de conteúdo.
+    /// <see cref="DefaultSalary"/>. Os valores vivem no prototype da estação,
+    /// porque são balanceamento e mudam sem tocar em código.
     /// </summary>
     [DataField]
     public Dictionary<ProtoId<JobPrototype>, int> Salaries = new();
 
     /// <inheritdoc cref="Salaries"/>
     [DataField]
-    public int DefaultSalary = 100;
+    public int DefaultSalary = 40;
 }

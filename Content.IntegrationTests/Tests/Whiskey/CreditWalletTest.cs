@@ -89,9 +89,9 @@ public sealed class CreditWalletTest : GameTest
         // Tudo que toca em localização roda dentro do WaitPost: o VerbCategory
         // monta o texto pelo Loc, e o Loc não existe fora da thread do jogo.
         var quantos = 0;
-        string? primeiroTexto = null;
-        string? primeiraCategoria = null;
-        string? categoriaDoEjetar = null;
+        var primeiroTexto = string.Empty;
+        var primeiraCategoria = string.Empty;
+        var categoriaDoEjetar = string.Empty;
 
         await server.WaitPost(() =>
         {
@@ -105,8 +105,8 @@ public sealed class CreditWalletTest : GameTest
                 return;
 
             var primeiro = verbos.First();
-            primeiroTexto = primeiro.Text;
-            primeiraCategoria = primeiro.Category?.Text;
+            primeiroTexto = primeiro.Text ?? string.Empty;
+            primeiraCategoria = primeiro.Category?.Text ?? string.Empty;
 
         });
 

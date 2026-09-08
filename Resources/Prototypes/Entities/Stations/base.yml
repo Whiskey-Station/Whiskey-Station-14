@@ -12,6 +12,34 @@
       primaryCut: 0.9 # Trauma
     # <Whiskey>
     - type: Payroll
+      # A régua: a rodada tem 90 minutos e o salário cai a cada 5, então são 18
+      # pagamentos. Com o padrão de 40, um cargo comum termina a rodada com 720
+      # spesos, e o item mais caro da Loja Geral custa 250. Dinheiro que compra
+      # a prateleira inteira deixa de ser escolha.
+      #
+      # Quem não está aqui recebe o padrão. Silício e Comando Central não
+      # recebem nada, porque cyborg não usa cartão e Central não é da estação.
+      defaultSalary: 40
+      salaries:
+        # Capitão responde pela estação inteira.
+        Captain: 100
+
+        # Chefes de setor. Recebem mais e ainda decidem o orçamento de onde sai
+        # o salário de quem trabalha com eles.
+        ChiefEngineer: 70
+        ChiefMedicalOfficer: 70
+        HeadOfPersonnel: 70
+        HeadOfSecurity: 70
+        ResearchDirector: 70
+        Quartermaster: 70
+
+        # Quem está aprendendo, e quem entrou sem função fixa.
+        TechnicalAssistant: 25
+        MedicalIntern: 25
+        ResearchAssistant: 25
+        SecurityCadet: 25
+        Passenger: 25
+        Visitor: 25
     - type: SalesCommission
     # </Whiskey>
     - type: StationCargoOrderDatabase
