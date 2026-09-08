@@ -130,9 +130,13 @@ public sealed partial class PlantSystem : EntitySystem
         if (_plantHolder.IsDead(ent.Owner))
             return;
 
-        TryGetTray(ent.Owner, out var trayEnt);
-        var plantGrow = new PlantGrowEvent(GetNetEntity(trayEnt.Owner));
-        RaiseLocalEvent(ent.Owner, ref plantGrow);
+        // <Whiskey> - a detached plant still needs to mutate and die normally.
+        if (TryGetTray(ent.Owner, out var trayEnt))
+        {
+            var plantGrow = new PlantGrowEvent(GetNetEntity(trayEnt.Owner));
+            RaiseLocalEvent(ent.Owner, ref plantGrow);
+        }
+        // </Whiskey>
 
         // Process mutations.
         if (ent.Comp.MutationLevel > 0)
@@ -166,8 +170,10 @@ public sealed partial class PlantSystem : EntitySystem
     public bool TryGetTray(Entity<PlantComponent?> ent, out Entity<PlantTrayComponent> trayEnt)
     {
         trayEnt = default!;
-        if (!Resolve(ent.Owner, ref ent.Comp))
+        // <Whiskey> - missing plant data is valid while a plant is being detached.
+        if (!Resolve(ent.Owner, ref ent.Comp, false))
             return false;
+        // </Whiskey>
 
         trayEnt.Owner = Transform(ent.Owner).ParentUid;
         if (!_trayQuery.TryComp(trayEnt.Owner, out var trayComp))
