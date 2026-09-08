@@ -1,0 +1,6 @@
+author: Whiskey Station
+changes:
+  - type: Fix
+    message: >-
+      O servidor deixa de repetir a mesma advertência de física a cada tick para
+      uma entidade inválida, reduzindo tempestades de log e travamentos associados.
