@@ -3,6 +3,11 @@
   abstract: true
   components:
   - type: ESStationArrivals
+    # <Whiskey> - o ônibus próprio do ES foi apagado porque citava 190
+    # prototypes que nunca foram portados junto. Aponta para o ônibus padrão,
+    # que carrega. Nenhuma estação do jogo herda daqui hoje.
+    shuttlePath: /Maps/Shuttles/arrivals.yml
+    # </Whiskey>
 
 - type: entity
   id: ESBaseStationEvacuation
